@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# Make an xwax distribution archive from a Git repo, baking in the
+# version number
+#
+
+set -e
+
+VERSION="$1"
+
+if [ -z "$VERSION" ]; then
+	echo "usage: $0 <version>" >&2
+	exit 1
+fi
+
+T=`mktemp -dt xwax-mkdist.XXXXXX`
+trap 'rm -r $T' 0
+
+# Extract HEAD from Git
+
+D="xwax-$VERSION"
+git archive --prefix="$D/" -o "$T/$D.tar" HEAD
+
+# Bake in the version number
+
+mkdir "$T/$D"
+install -m 0644 -t "$T/$D" .version
+(cd "$T" && tar rf "$D.tar" "$D/.version")
+
+# Final compressed archive
+
+mkdir -p dist
+A="dist/xwax-$VERSION.tar.gz"
+gzip --best < "$T/$D.tar" > "$A"
+
+echo "Created $A" >&2
+exit 0

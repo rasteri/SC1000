@@ -1,0 +1,290 @@
+.TH XWAX "1"
+.SH NAME
+xwax \- Digital vinyl on Linux
+.SH SYNOPSIS
+.B xwax
+[\fIoptions\fR]
+.SH DESCRIPTION
+.P
+xwax is vinyl emulation software for Linux. It allows DJs and
+turntablists to playback digital audio files (MP3, Ogg Vorbis, FLAC,
+AAC and more), controlled using a normal pair of turntables via
+timecoded vinyls.
+.SH OPTIONS
+.P
+The ordering of options is important. Most options apply to
+subsequent music libraries or decks, which can be given multiple times.
+See the
+.B EXAMPLES
+below.
+.TP
+.B \-l \fIpath\fR
+Scan the music library or playlist at the given path.
+.TP
+.B \-t \fIname\fR
+Use the named timecode for subsequent decks. See \-h for a list of
+valid timecodes. You will need the corresponding timecode signal on
+vinyl to control playback.
+.TP
+.B \-33
+Set the reference playback speed for subsequent decks to 33 and one
+third revolutions per minute. This is the default.
+.TP
+.B \-45
+Set the reference playback speed for subsequent decks to 45
+revolutions per minute.
+.TP
+.B \-c
+Protect subsequent decks against certain operations during
+playback.
+.TP
+.B \-u
+Allow all operations on a deck during playback. This is the inverse
+of the
+.B \-c
+option, and is the default.
+.TP
+.B \-\-phono
+Adjust the noise thresholds of subsequent decks to tolerate a
+cartridge-level signal connected to a line-level audio interface. This
+is a 'software pre-amp'. Unless your audio path has low noise, this
+will give worse results or may not work at all; a true phono
+pre-amplifier is always preferred.
+.TP
+.B \-\-line
+Set noise thresholds of subsequent decks to standard audio levels.
+This reverses the effect of the
+.B \-\-phono
+option, and is the default.
+.TP
+.B \-i \fIpath\fR
+Use the given importer executable for subsequent decks.
+.TP
+.B \-s \fIpath\fR
+Use the given scanner executable to scan subsequent music libraries.
+.TP
+.B \-\-dummy
+Create a deck which is not connected to any audio device, used
+for testing.
+.TP
+.B \-k
+Lock into RAM any memory required for real-time use.
+This includes audio tracks held in memory which can be large.
+Use
+.B ulimit \-l
+to raise the kernel's memory limit to allow this.
+.TP
+.B \-q \fIn\fR
+Change the real-time priority of the process. A priority of 0 gives
+the process no priority, and is used for testing only.
+.TP
+.B \-g [\fIn\fRx\fIn\fR][+\fIn\fR+\fIn\fR][/\fIf\fR]
+Change the geometry of the display in size, position and scale (zoom)
+respectively.
+The size and position is passed
+to SDL, which may use it to set the display mode, or size of an X window.
+See the
+.B EXAMPLES.
+.TP
+.B \-\-no\-decor
+Request to the window manager to create a 'frameless' window which
+does not have the regular controls such as title bars and buttons.
+This can be useful in conjunction with the
+.B \-g
+flag for dedicated xwax installations.
+.TP
+.B \-h
+Display the help message and default values.
+.SH "ALSA DEVICE OPTIONS"
+.P
+The following options are available only when xwax is compiled with
+ALSA support.
+.TP
+.B \-a \fIdevice\fR
+Create a deck which uses the given ALSA device (eg. plughw:0).
+.TP
+.B \-r \fIhz\fR
+Set the sample rate for subsequent decks.
+.TP
+.B \-m \fImilliseconds\fR
+Set the ALSA buffer time for subsequent decks.
+.SH "JACK DEVICE OPTIONS"
+.P
+The following options are available only when xwax is compiled with
+JACK support.
+.TP
+.B \-j \fIname\fR
+Create a deck which connects to JACK and registers under the given
+name.
+.P
+xwax does not set the sample rate for JACK devices; it uses the sample
+rate given in the global JACK configuration.
+.SH "OSS DEVICE OPTIONS"
+.P
+The following options are available only when xwax is compiled with
+OSS support.
+.TP
+.B \-d \fIpathname\fR
+Create a deck which uses the given OSS device (eg. /dev/dsp).
+.TP
+.B \-r \fIhz\fR
+Set the sample rate for subsequent decks.
+.TP
+.B \-b \fIn\fR
+Set the number of OSS buffers for subsequent decks.
+.TP
+.B \-f \fIn\fR
+Set the OSS buffer size (2^n bytes).
+.SH HARDWARE CONTROLLER OPTIONS
+.P
+The following options are available only when xwax is compiled
+with ALSA support.
+.TP
+.B \-\-dicer \fIdevice\fR
+Use one or two Dicer controllers connected as the given ALSA device
+(eg. hw:Dicer). See the section
+.B NOVATION DICER CONTROLS
+for more information.
+.P
+Adding a hardware controller results in control over subsequent decks,
+up to the limit of the hardware.
+.SH KEYBOARD CONTROLS
+.P
+The playback of each deck (direction, speed and position) is
+controlled via the incoming timecode signal from the turntables.
+The keyboard provides additional controls.
+.P
+"C-" and "S-" means a keypress is combined with
+the 'Control' or 'Shift' key, respectively.
+.P
+Record selection controls:
+.TP
+cursor up, cursor down
+Move highlighted record up/down by one.
+.TP
+page up, page down
+Scroll the record listing up/down by one page.
+.TP
+left cursor, right cursor
+Switch to the previous/next crate of records.
+.TP
+tab
+Toggle between the current crate and the 'All records' crate.
+.TP
+C-tab
+Toggle sort mode between: artist/track name, BPM and 'playlist'
+order. Playlist order is the order in which records were returned
+from the scanner.
+.TP
+C-S-tab
+Re-scan the currently selected crate.
+.P
+To filter the current list of records type a portion of a record
+name. Separate multiple searches with a space, and use backspace to
+delete.
+.P
+Deck-specific controls:
+.TS
+l l l l.
+Deck 0	Deck 1	Deck 2
+F1	F5	F9	Load currently selected track to this deck
+F2	F6	F10	Reset start of track to the current position
+F3	F7	F11	Toggle timecode control on/off
+C-F3	C-F7	C-F11	Cycle between available timecodes
+.TE
+.P
+The "available timecodes" are those which have been the subject of any
+.B \-t
+flag on the command line.
+Audio display controls:
+.TP
++, \-
+Zoom in/out the close-up audio meters for all decks.
+.SH NOVATION DICER CONTROLS
+.P
+The Novation Dicer provides hardware control of cue points. The controls
+are:
+.TP
+cue mode: dice button (1-5)
+Jump to the specified cue point, or set it if unset.
+.TP
+loop-roll mode: dicer button (1-5)
+"Punch" to the specified cue point, or set it if unset. Returns playback
+to normal when the button is released.
+.TP
+mode button + dice button (1-5)
+Clear the specified cue point.
+.P
+The dice buttons are lit to show that the corresponding cue point is
+set.
+.SH EXAMPLES
+.P
+2-deck setup using one directory of music and OSS devices:
+.sp
+.RS
+xwax \-l ~/music \-d /dev/dsp \-d /dev/dsp1
+.RE
+.P
+As above, but using ALSA devices:
+.sp
+.RS
+xwax \-l ~/music \-d hw:0 \-d hw:1
+.RE
+.P
+2-deck setup using a different timecode on each deck:
+.sp
+.RS
+xwax \-l ~/music \-t serato_2a \-d hw:0 \-t mixvibes_v2 \-d hw:1
+.RE
+.P
+As above, but with the second deck at 45 RPM:
+.sp
+.RS
+xwax \-l ~/music \-t serato_2a \-d hw:0 \-t mixvibes_v2 \-45 \-d hw:1
+.RE
+.P
+Default to the same timecode, but allow switching at runtime:
+.sp
+.RS
+xwax \-l ~/music \-t serato_2a \-t mixvibes_v2 \-d hw:0 \-d hw:1
+.RE
+.P
+3-deck setup with the third deck at a higher sample rate:
+.sp
+.RS
+xwax \-l ~/music \-r 48000 \-a hw:0 \-a hw:1 \-r 96000 \-a hw:2
+.RE
+.P
+Using all three device types simultaneously, one deck on each:
+.sp
+.RS
+xwax \-l ~/music \-a hw:0 \-d /dev/dsp1 \-j jack0
+.RE
+.P
+Scan multiple music libraries:
+.sp
+.RS
+xwax \-l ~/music \-l ~/sounds \-l ~/mixes \-a hw:0
+.RE
+.P
+Scan a second music library using a custom script:
+.sp
+.RS
+xwax \-l ~/music \-i ./custom-scan \-l ~/sounds \-a hw:0
+.RE
+.P
+Control two decks with Dicer hardware:
+.sp
+.RS
+xwax \-\-dicer hw:Dicer \-a hw:0 \-a hw:1
+.RE
+.P
+Use a high resolution and enlarge the user interface:
+.sp
+.RS
+xwax -g 1920x1200/1.8 -a hw:0
+.RE
+.SH HOMEPAGE
+http://xwax.org/
+.SH AUTHOR
+Mark Hills <mark@xwax.org>

@@ -1,0 +1,36 @@
+The recommended way to build xwax is to run "make" with your chosen
+compile options, followed optionally by "make install" to install at
+the given prefix; eg.
+
+  $ make PREFIX=/usr ALSA=yes
+  $ make PREFIX=/usr ALSA=yes install  # as root
+
+If PREFIX is not given, the user's home directory is used and "make
+install" does not need to be run as root.
+
+Different audio device types are enabled using the compile options:
+
+  ALSA=yes
+  JACK=yes
+  OSS=yes
+
+If you are doing multiple builds you may like to put the compile
+options in a file named '.config' in the source directory instead of
+on the command line. There is a script to generate this file; for more
+information run
+
+  $ ./configure --help
+
+Compilation errors are most likely the result of missing
+libraries. You need the libraries and header files installed for:
+
+* libSDL: http://www.libsdl.org/
+* SDL_ttf (sometimes part of the SDL package, sometimes not)
+
+Optional dependencies are:
+
+* libasound: http://www.alsa-project.org/ (for ALSA=yes)
+* JACK: http://jackaudio.org/ (for JACK=yes)
+
+These libraries are packaged with most Linux distributions and this is
+the recommended way to install them.

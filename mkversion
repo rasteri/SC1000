@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# Generate version information from Git for use in a Makefile
+#
+# Output the current version number so it can be assigned to a
+# variable, and touch a file which can be used as a dependency.
+#
+
+VF=.version
+
+if [ "$1" = "-r" ]; then
+	# Refresh the version number, if we can
+
+	VERSION=`git describe 2> /dev/null`
+	if [ $? -eq 0 ]; then
+		if ! echo $VERSION | diff - $VF > /dev/null 2>&1; then
+			echo $VERSION > $VF
+		fi
+	fi
+else
+	# Output the version number
+
+	if [ ! -r $VF ]; then
+		echo "$0: Version number is not known" >&2
+		exit 1
+	fi
+
+	cat .version
+fi
+
+exit 0

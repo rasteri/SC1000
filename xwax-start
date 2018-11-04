@@ -1,0 +1,5 @@
+#!/bin/sh
+
+mkdir /media/sda
+mount /dev/sda1 /media/sda
+nice -n -19 /home/pi/xwax-1.7/xwax
