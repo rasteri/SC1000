@@ -1,3 +1,6 @@
+build
+debug
+dist
 TAGS
 xwax
 mktimecode
@@ -9,12 +12,3 @@ dist
 *.swp
 *.swo
 
-tests/cues
-tests/external
-tests/library
-tests/midi
-tests/observer
-tests/scan-bpm
-tests/timecoder
-tests/track
-tests/ttf
