@@ -90,7 +90,6 @@ void rig_clear()
 int rig_main()
 {
     struct pollfd pt[4];
-    const struct pollfd *px = pt + ARRAY_SIZE(pt);
 
     /* Monitor event pipe from external threads */
 

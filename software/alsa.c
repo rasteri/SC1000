@@ -211,11 +211,6 @@ static int pcm_revents(struct alsa_pcm *alsa, unsigned short *revents) {
 
 static void start(struct device *dv)
 {
-    struct alsa *alsa = (struct alsa*)dv->local;
-/*
-    if (snd_pcm_start(alsa->capture.pcm) < 0)
-        abort();
-        */
 }
 
 
@@ -276,30 +271,6 @@ static int playback(struct device *dv)
         fprintf(stderr, "alsa: playback underrun %d/%ld.\n", r,
                 alsa->playback.period);
     }
-
-    return 0;
-}
-
-
-/* Pull audio from the device's buffer for capture, and pass it
- * through to the timecoder */
-
-static int capture(struct device *dv)
-{
-    int r;
-    struct alsa *alsa = (struct alsa*)dv->local;
-
-    /*r = snd_pcm_readi(alsa->capture.pcm, alsa->capture.buf,
-                      alsa->capture.period);
-    if (r < 0)
-        return r;
-    
-    if (r < alsa->capture.period) {
-        fprintf(stderr, "alsa: capture underrun %d/%ld.\n",
-                r, alsa->capture.period);
-    }*/
-
-    //device_submit(dv, alsa->capture.buf, r);
 
     return 0;
 }
@@ -389,12 +360,6 @@ int alsa_init(struct device *dv, const char *device_name,
         return -1;
     }
 
-    /*if (pcm_open(&alsa->capture, device_name, SND_PCM_STREAM_CAPTURE,
-                rate, buffer_time) < 0)
-    {
-        fputs("Failed to open device for capture.\n", stderr);
-        goto fail;
-    }*/
     if (!slave){
 		if (pcm_open(&alsa->playback, device_name, SND_PCM_STREAM_PLAYBACK,
 					rate, buffer_time) < 0)
@@ -410,9 +375,7 @@ int alsa_init(struct device *dv, const char *device_name,
 
  fail_capture:
     pcm_close(&alsa->capture);
- fail:
-    free(alsa);
-    return -1;
+    return 0;
 }
 
 

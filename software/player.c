@@ -335,32 +335,6 @@ void player_clone(struct player *pl, const struct player *from) {
  * Return: 0 on success or -1 if the timecoder is not currently valid
  */
 
-static int sync_to_timecode(struct player *pl) {
-	double when, tcpos;
-	signed int timecode;
-
-	timecode = timecoder_get_position(pl->timecoder, &when);
-
-	/* Instruct the caller to disconnect the timecoder if the needle
-	 * is outside the 'safe' zone of the record */
-
-	if (timecode != -1 && timecode > timecoder_get_safe(pl->timecoder))
-		return -1;
-
-	/* If the timecoder is alive, use the pitch from the sine wave */
-
-	//pl->pitch = timecoder_get_pitch(pl->timecoder);
-	/* If we can read an absolute time from the timecode, then use it */
-
-	if (timecode == -1) {
-		pl->target_position = TARGET_UNKNOWN;
-	} else {
-		tcpos = (double) timecode / timecoder_get_resolution(pl->timecoder);
-		pl->target_position = tcpos + pl->pitch * when;
-	}
-
-	return 0;
-}
 
 /*
  * Synchronise to the position given by the timecoder without
@@ -431,13 +405,12 @@ bool NearlyEqual(double val1, double val2, double tolerance){
 }
 
 void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
-	double r, pitch, dt, target_volume, amountToDecay;
+	double r, pitch, target_volume, amountToDecay;
 	double diff;
 
 	samplesSoFar += samples;
 	//
 
-	dt = pl->sample_dt * samples;
 
 	//pl->target_position = (sin(((double) samplesSoFar) / 7000) + 1); // This is simulating the rotary encoder
 	/* timecode is disabled, therefore target position is our only source of pitch info, presumably from rotary encoder*/

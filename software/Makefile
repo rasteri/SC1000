@@ -60,7 +60,6 @@ OBJS = controller.o \
 	status.o \
 	thread.o \
 	track.o \
-	mcp3008.o \
 	alsa.o \
 	xwax.o
 DEVICE_CPPFLAGS = -DWITH_ALSA

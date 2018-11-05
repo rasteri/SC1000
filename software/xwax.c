@@ -42,7 +42,6 @@
 #include "rig.h"
 #include "track.h"
 #include "xwax.h"
-#include "mcp3008read.h"
 
 #define DEFAULT_OSS_BUFFERS 8
 #define DEFAULT_OSS_FRAGMENT 7
@@ -71,7 +70,6 @@ static struct rt rt;
 static double speed;
 static bool protect, phono;
 static const char *importer;
-static struct timecode_def *timecode, *timecode2;
 
 int file_i2c;
 unsigned char buff[60] = { 0 };
@@ -83,59 +81,8 @@ void i2c_read_address(unsigned char address, unsigned char *result) {
 		exit(1);
 
 	if (read(file_i2c, result, 1) != 1)
-		exit;
+		exit(1);
 }
-#define BCM2708_PERI_BASE        0x20000000
-#define GPIO_BASE                (BCM2708_PERI_BASE + 0x200000) /* GPIO controller */
-#define PAGE_SIZE (4*1024)
-#define BLOCK_SIZE (4*1024)
-// GPIO setup macros. Always use INP_GPIO(x) before using OUT_GPIO(x) or SET_GPIO_ALT(x,y)
-#define INP_GPIO(g) *(gpio+((g)/10)) &= ~(7<<(((g)%10)*3))
-#define OUT_GPIO(g) *(gpio+((g)/10)) |=  (1<<(((g)%10)*3))
-#define SET_GPIO_ALT(g,a) *(gpio+(((g)/10))) |= (((a)<=3?(a)+4:(a)==4?3:2)<<(((g)%10)*3))
-
-#define GPIO_SET *(gpio+7)  // sets   bits which are 1 ignores bits which are 0
-#define GPIO_CLR *(gpio+10) // clears bits which are 1 ignores bits which are 0
-#define GET_GPIO(g) (*(gpio+13)&(1<<g)) // 0 if LOW, (1<<g) if HIGH
-#define GPIO_PULL *(gpio+37) // Pull up/pull down
-#define GPIO_PULLCLK0 *(gpio+38) // Pull up/pull down clock
-int mem_fd;
-void *gpio_map;
-
-// I/O access
-volatile unsigned *gpio;
-void setup_io();
-
-//
-// Set up a memory regions to access GPIO
-//
-void setup_io() {
-	/* open /dev/mem */
-	if ((mem_fd = open("/dev/mem", O_RDWR | O_SYNC)) < 0) {
-		printf("can't open /dev/mem \n");
-		exit(-1);
-	}
-
-	/* mmap GPIO */
-	gpio_map = mmap(NULL,             //Any adddress in our space will do
-			BLOCK_SIZE,       //Map length
-			PROT_READ | PROT_WRITE, // Enable reading & writting to mapped memory
-			MAP_SHARED,       //Shared with other processes
-			mem_fd,           //File to map
-			GPIO_BASE         //Offset to GPIO peripheral
-			);
-
-	close(mem_fd); //No need to keep mem_fd open after mmap
-
-	if (gpio_map == MAP_FAILED) {
-		printf("mmap error %d\n", (int) gpio_map); //errno also set!
-		exit(-1);
-	}
-
-	// Always use volatile pointer!
-	gpio = (volatile unsigned *) gpio_map;
-
-} // setup_io
 
 // Folders contain files
 struct Folder {
@@ -176,9 +123,11 @@ struct File * GetFileAtIndex(unsigned int index, struct Folder *FirstFolder) {
 			}
 		}
 	}
+	return NULL;
 }
 
-struct Folder * LoadFileStructure(char *BaseFolderPath, unsigned int *TotalNum) {
+struct Folder * LoadFileStructure(char *BaseFolderPath,
+		unsigned int *TotalNum) {
 
 	struct Folder *prevFold = NULL;
 	struct File *prevFile = NULL;
@@ -312,45 +261,28 @@ void *encoderThread(void *ptr) {
 	int encoderAngle = 0x0000;
 	int wrappedAngle = 0x0000;
 	unsigned int totalTurns = 0x0001;
-	bool prevCap = 0;
-
-	// open spi
-
-	int ret;
-	mcp3008read_attr_t attr;
-	uint10_t data[7];
-	ret = mcp3008read_attr_init(&attr, "/dev/spidev0.0", 3000000, 4, CH0, CH1,
-			CH2, CH3);
-	if (ret < 0) {
-		pmcp3008error("mcp3008read_attr_init failed!");
-		exit(EXIT_FAILURE);
-	}
 
 	//----- OPEN THE I2C BUS -----
 	char *filename = (char*) "/dev/i2c-1";
 	if ((file_i2c = open(filename, O_RDWR)) < 0) {
 		//ERROR HANDLING: you can check errno to see what went wrong
 		printf("Failed to open the i2c bus");
-		return;
+		return NULL;
 	}
 
 	int addr = 0x36;          //<<<<<The I2C address of the slave
 	if (ioctl(file_i2c, I2C_SLAVE, addr) < 0) {
 		printf("Failed to acquire bus access and/or talk to slave.\n");
 		//ERROR HANDLING; you can check errno to see what went wrong
-		return;
+		return NULL;
 	}
-
-	setup_io();
-
-	INP_GPIO(25);
 
 	unsigned char touchedNum = 0;
 	uint32_t accumulatedPos = 0;
 
 	unsigned char buttonState = 0;
 
-	bool buttons[4], totalbuttons[4];
+	bool buttons[4] = {0,0,0,0}, totalbuttons[4] = {0,0,0,0};
 
 	unsigned int butCounter = 0;
 
@@ -379,9 +311,9 @@ void *encoderThread(void *ptr) {
 					CurrentBeatFile->FullPath));
 	//player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
 
-	srand(time(NULL));
+	srand (time(NULL));
 
-	unsigned int delcount = 0;
+unsigned	int delcount = 0;
 
 	while (1) {
 
@@ -391,15 +323,17 @@ void *encoderThread(void *ptr) {
 			delcount = 0;
 		}
 
-		ret = mcp3008read(&attr, data);
+		//ret = mcp3008read(&attr, data);
 
-		if (data[CH2] < 1021 && data[CH2] > 5)
-			deck[1].player.faderTarget = ((double) data[CH0]) / 1024;
-		else
-			deck[1].player.faderTarget = 0.0;
-		deck[0].player.faderTarget = ((double) data[CH1]) / 1024;
+		/* TODO - get ADC stuff from input processor
+		 if (data[CH2] < 1021 && data[CH2] > 5)
+		 deck[1].player.faderTarget = ((double) data[CH0]) / 1024;
+		 else
+		 deck[1].player.faderTarget = 0.0;
+		 deck[0].player.faderTarget = ((double) data[CH1]) / 1024;
+		 */
 
-		if (GET_GPIO(25)) {
+		if (true) { // TODO : REPLACE THIS WITH I2C code to input processor
 			touchedNum = 0;
 			if (!deck[1].player.capTouch) { // Positive touching edge
 				//printf("Touched from %d %f\n", accumulatedPos, deck[1].player.position);
@@ -456,11 +390,13 @@ void *encoderThread(void *ptr) {
 
 		}
 
-		buttons[0] = !GET_GPIO(16);
-		buttons[1] = !GET_GPIO(6);
-		buttons[2] = !GET_GPIO(5);
-		buttons[3] = !GET_GPIO(12);
+		/*buttons[0] = !GET_GPIO(16);
+		 buttons[1] = !GET_GPIO(6);
+		 buttons[2] = !GET_GPIO(5);
+		 buttons[3] = !GET_GPIO(12);*/
 
+		
+		
 		/*
 
 		 Button scanning logic goes like -
@@ -653,9 +589,7 @@ void *encoderThread(void *ptr) {
 
 int main(int argc, char *argv[]) {
 	int rc = -1, n, priority;
-	const char *scanner, *geo;
-	char *endptr;
-	bool use_mlock, decor;
+	bool use_mlock;
 
 	int rate;
 
@@ -673,14 +607,10 @@ int main(int argc, char *argv[]) {
 	rt_init(&rt);
 
 	ndeck = 0;
-	geo = "";
-	decor = true;
 	nctl = 0;
 	priority = DEFAULT_PRIORITY;
-	importer = DEFAULT_IMPORTER
-	;
-	scanner = DEFAULT_SCANNER
-	;
+	importer = DEFAULT_IMPORTER;
+
 	speed = 1.0;
 	protect = false;
 	phono = false;
@@ -689,19 +619,14 @@ int main(int argc, char *argv[]) {
 	alsa_buffer = DEFAULT_ALSA_BUFFER;
 	rate = DEFAULT_RATE;
 
-	int r;
-	struct device *device;
-
 	/* Create a deck */
 
-	r = alsa_init(&deck[0].device, "plughw:0,0", rate, alsa_buffer, 0);
-	r = alsa_init(&deck[1].device, "plughw:0,0", rate, alsa_buffer, 1);
+	alsa_init(&deck[0].device, "plughw:0,0", rate, alsa_buffer, 0);
+	
+	alsa_init(&deck[1].device, "plughw:0,0", rate, alsa_buffer, 1);
 
-	//timecode = timecoder_find_definition(DEFAULT_TIMECODE);
-	//timecode2 = timecoder_find_definition(DEFAULT_TIMECODE);
-
-	r = deck_init(&deck[0], &rt, importer, speed, phono, protect, 0);
-	r = deck_init(&deck[1], &rt, importer, speed, phono, protect, 1);
+	deck_init(&deck[0], &rt, importer, speed, phono, protect, 0);
+	deck_init(&deck[1], &rt, importer, speed, phono, protect, 1);
 
 	deck[0].device.player2 = deck[1].device.player;
 
@@ -729,9 +654,6 @@ int main(int argc, char *argv[]) {
 			track_acquire_by_import(deck[1].importer,
 					"/root/beepahhfresh.raw"));
 
-	//layer_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/home/pi/Music/beats/beatnew.raw"));
-	//player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, "/home/pi/Music/samples/sample3.raw"));
-
 	deck[0].player.justPlay = 1;
 
 	pthread_t thread1;
@@ -743,7 +665,7 @@ int main(int argc, char *argv[]) {
 	iret1 = pthread_create(&thread1, NULL, encoderThread, (void*) message1);
 	if (iret1) {
 		fprintf(stderr, "Error - pthread_create() return code: %d\n", iret1);
-		exit(EXIT_FAILURE);
+		exit (EXIT_FAILURE);
 	}
 
 	printf("pthread_create() for thread 1 returns: %d\n", iret1);
