@@ -145,6 +145,7 @@ void main(void) {
         TRISB5 = 1;
         tmp5 = getADC(11);
 
+		// TODO - perhaps instead of calibrating, we could get the min/max observed values and use them to set the threshhold
         if (calibrationMode) {
 
             if (tmp5 < threshold)
