@@ -71,10 +71,9 @@ static double speed;
 static bool protect, phono;
 static const char *importer;
 
-int file_i2c;
 unsigned char buff[60] = { 0 };
 
-void i2c_read_address(unsigned char address, unsigned char *result) {
+void i2c_read_address(int file_i2c, unsigned char address, unsigned char *result) {
 
 	*result = address;
 	if (write(file_i2c, result, 1) != 1)
@@ -253,29 +252,40 @@ void DumpFileStructure(struct Folder *FirstFolder) {
 }
 
 void *encoderThread(void *ptr) {
-	char *message;
-	message = (char *) ptr;
-	printf("%s \n", message);
+	
+	int file_i2c_rot, file_i2c_pic;
+	
+	// Initialise PIC input processor on I2C0
+	if ((file_i2c_pic = open("/dev/i2c-0", O_RDWR)) < 0) {
+		printf("I2C #0 (input processor) - Failed to open\n");
+		return NULL;
+	}
+	if (ioctl(file_i2c_pic, I2C_SLAVE, 0x36) < 0) {
+		printf("I2C #0 (input processor) - Failed to acquire bus access and/or talk to slave.\n");
+		return NULL;
+	}
+
+	// Initialise rotary sensor on I2C1
+	if ((file_i2c_rot = open("/dev/i2c-1", O_RDWR)) < 0) {
+		printf("I2C #1 (rotary sensor) - Failed to open\n");
+		return NULL;
+	}
+	if (ioctl(file_i2c_rot, I2C_SLAVE, 0x36) < 0) {
+		printf("I2C #1 (rotary sensor) - Failed to acquire bus access and/or talk to slave.\n");
+		return NULL;
+	}
+	
 	unsigned char result;
+	
 	int prevAngle = 0x0000;
 	int encoderAngle = 0x0000;
 	int wrappedAngle = 0x0000;
 	unsigned int totalTurns = 0x0001;
+	
+	unsigned int ADCs[4] = {0,0,0,0};
+	
 
-	//----- OPEN THE I2C BUS -----
-	char *filename = (char*) "/dev/i2c-1";
-	if ((file_i2c = open(filename, O_RDWR)) < 0) {
-		//ERROR HANDLING: you can check errno to see what went wrong
-		printf("Failed to open the i2c bus");
-		return NULL;
-	}
-
-	int addr = 0x36;          //<<<<<The I2C address of the slave
-	if (ioctl(file_i2c, I2C_SLAVE, addr) < 0) {
-		printf("Failed to acquire bus access and/or talk to slave.\n");
-		//ERROR HANDLING; you can check errno to see what went wrong
-		return NULL;
-	}
+	bool capIsTouched = 0;
 
 	unsigned char touchedNum = 0;
 	uint32_t accumulatedPos = 0;
@@ -291,6 +301,8 @@ void *encoderThread(void *ptr) {
 	struct Folder *FirstBeatFolder;
 
 	unsigned int NumBeats, NumSamples;
+	
+	
 
 	FirstBeatFolder = LoadFileStructure("/media/sda/beats/", &NumBeats);
 	//DumpFileStructure(FirstBeatFolder);
@@ -322,18 +334,56 @@ unsigned	int delcount = 0;
 			//printf("pos : %d %d\n", accumulatedPos, encoderAngle  );
 			delcount = 0;
 		}
+		
+		/* Input processor register map -
+		
+		// ADC LSBs
+        STATUSDATA[0] = (unsigned char) (tmp1 & 0xFF);
+        STATUSDATA[1] = (unsigned char) (tmp2 & 0xFF);
+        STATUSDATA[2] = (unsigned char) (tmp3 & 0xFF);
+        STATUSDATA[3] = (unsigned char) (tmp4 & 0xFF);
 
-		//ret = mcp3008read(&attr, data);
+        // ADC MSBs
+        STATUSDATA[4] = (unsigned char) (((tmp1 & 0x300) >> 8) | ((tmp2 & 0x300) >> 6) | ((tmp3 & 0x300) >> 4) | ((tmp4 & 0x300) >> 2));
 
-		/* TODO - get ADC stuff from input processor
-		 if (data[CH2] < 1021 && data[CH2] > 5)
-		 deck[1].player.faderTarget = ((double) data[CH0]) / 1024;
+        // Digital I/Os and capsense
+        STATUSDATA[5] = (unsigned char) ((PORTBbits.RB7) | (PORTCbits.RC7 << 1) | (PORTCbits.RC4 << 2) | (PORTCbits.RC5 << 3) | touchState << 4);
+		
+		*/
+		
+		// Get info from registers
+		// First the ADC values
+		// 5 = XFADER1, 6 = XFADER2, 7 = POT1, 8 = POT2
+		i2c_read_address(file_i2c_pic, 0x00, &result);
+		ADCs[0] = result;
+		i2c_read_address(file_i2c_pic, 0x01, &result);
+		ADCs[1] = result;
+		i2c_read_address(file_i2c_pic, 0x02, &result);
+		ADCs[2] = result;
+		i2c_read_address(file_i2c_pic, 0x03, &result);
+		ADCs[3] = result;
+		i2c_read_address(file_i2c_pic, 0x04, &result);
+		ADCs[0] |= ((result | 0x03) << 8);
+		ADCs[1] |= ((result | 0x0C) << 6);
+		ADCs[2] |= ((result | 0x30) << 4);
+		ADCs[3] |= ((result | 0x0C) << 2);
+		
+		// Now buttons and capsense
+		i2c_read_address(file_i2c_pic, 0x05, &result);
+		buttons[0] = !(result & 0x01);
+		buttons[1] = !(result >> 1 & 0x01));
+		buttons[2] = !(result >> 2 & 0x01));
+		buttons[3] = !(result >> 3 & 0x01));
+		capIsTouched = (result >> 4 & 0x01));
+		
+
+		 if (ADCs[0] < 1021 && ADCs[0] > 5)
+			deck[1].player.faderTarget = ((double) ADCs[2]) / 1024;
 		 else
-		 deck[1].player.faderTarget = 0.0;
-		 deck[0].player.faderTarget = ((double) data[CH1]) / 1024;
-		 */
+			deck[1].player.faderTarget = 0.0;
+			deck[0].player.faderTarget = ((double) ADCs[3]) / 1024;
 
-		if (true) { // TODO : REPLACE THIS WITH I2C code to input processor
+		if (capIsTouched) {
 			touchedNum = 0;
 			if (!deck[1].player.capTouch) { // Positive touching edge
 				//printf("Touched from %d %f\n", accumulatedPos, deck[1].player.position);
@@ -358,9 +408,9 @@ unsigned	int delcount = 0;
 
 			// Handle rotary sensor
 
-			i2c_read_address(0x0e, &result);
+			i2c_read_address(file_i2c_rot, 0x0e, &result);
 			encoderAngle = result << 8;
-			i2c_read_address(0x0f, &result);
+			i2c_read_address(file_i2c_rot, 0x0f, &result);
 			encoderAngle = (encoderAngle & 0x0f00) | result;
 
 			if (encoderAngle < 1024 && prevAngle >= 3072) { // We crossed zero in the positive direction
@@ -390,10 +440,7 @@ unsigned	int delcount = 0;
 
 		}
 
-		/*buttons[0] = !GET_GPIO(16);
-		 buttons[1] = !GET_GPIO(6);
-		 buttons[2] = !GET_GPIO(5);
-		 buttons[3] = !GET_GPIO(12);*/
+
 
 		
 		
