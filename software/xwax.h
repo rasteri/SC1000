@@ -22,14 +22,6 @@
 
 #include "deck.h"
 
-extern char *banner;
-
-#define NOTICE \
-  "This software is supplied WITHOUT ANY WARRANTY; without even the implied\n"\
-  "warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. This is\n"\
-  "free software, and you are welcome to redistribute it under certain\n"\
-  "conditions; see the file COPYING for details."
-
 extern size_t ndeck;
 extern struct deck deck[];
 
