@@ -32,6 +32,7 @@
 #include <linux/i2c-dev.h>              //Needed for I2C port
 #include <time.h>
 #include <dirent.h>
+#include <stdint.h>
 
 #include "alsa.h"
 #include "controller.h"
@@ -44,50 +45,22 @@
 #include "xwax.h"
 #include "sc_input.h"
 
-#define DEFAULT_OSS_BUFFERS 8
-#define DEFAULT_OSS_FRAGMENT 7
-
-#define DEFAULT_ALSA_BUFFER 5 /* milliseconds, change this to reduce latency*/
-
-#define DEFAULT_RATE 48000
-#define DEFAULT_PRIORITY 0 
-
 #define DEFAULT_IMPORTER EXECDIR "/xwax-import"
-#define DEFAULT_SCANNER EXECDIR "/xwax-scan"
-#define DEFAULT_TIMECODE "serato_2a"
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 
-size_t ndeck;
-struct deck deck[3];
-
-static size_t nctl;
-static struct controller ctl[2];
+struct deck deck[2];
 
 static struct rt rt;
 
-static double speed;
-static bool protect, phono;
 static const char *importer;
 
-void i2c_read_address(int file_i2c, unsigned char address, unsigned char *result) {
-
-	*result = address;
-	if (write(file_i2c, result, 1) != 1)
-		exit(1);
-
-	if (read(file_i2c, result, 1) != 1)
-		exit(1);
-}
-
-
 int main(int argc, char *argv[]) {
-	int rc = -1, n, priority;
+	
+	int rc = -1, priority;
 	bool use_mlock;
-
-	int rate;
-
+	
 	int alsa_buffer;
+	int rate;
 
 	if (setlocale(LC_ALL, "") == NULL) {
 		fprintf(stderr, "Could not honour the local encoding\n");
@@ -98,30 +71,24 @@ int main(int argc, char *argv[]) {
 		return -1;
 	rt_init(&rt);
 
-	ndeck = 0;
-	nctl = 0;
-	priority = DEFAULT_PRIORITY;
+	
 	importer = DEFAULT_IMPORTER;
-
-	speed = 1.0;
-	protect = false;
-	phono = false;
 	use_mlock = false;
 
-	alsa_buffer = DEFAULT_ALSA_BUFFER;
-	rate = DEFAULT_RATE;
 
-	
 	// Create two decks, both pointed at the same audio device
+	
+	alsa_buffer = 5;
+	rate = 48000;
 
 	alsa_init(&deck[0].device, "plughw:0,0", rate, alsa_buffer, 0);
 	alsa_init(&deck[1].device, "plughw:0,0", rate, alsa_buffer, 1);
 
-	deck_init(&deck[0], &rt, importer, speed, phono, protect, 0);
-	deck_init(&deck[1], &rt, importer, speed, phono, protect, 1);
+	deck_init(&deck[0], &rt, importer, 1.0, false, false, 0);
+	deck_init(&deck[1], &rt, importer, 1.0, false, false, 1);
 	
 	
-	// point deck1's output at deck0
+	// point deck1's output at deck0, it will be summed in
 
 	deck[0].device.player2 = deck[1].device.player;
 	
@@ -142,6 +109,8 @@ int main(int argc, char *argv[]) {
 
 	// Start realtime stuff 
 	
+	priority = 0;
+	
 	if (rt_start(&rt, priority) == -1)
 		return -1;
 
@@ -150,20 +119,22 @@ int main(int argc, char *argv[]) {
 		goto out_rt;
 	}
 
-
+	
+	// Main loop
+	
 	if (rig_main() == -1)
 		goto out_interface;
+	
+	
+	// Exit
 
 	rc = EXIT_SUCCESS;
 	fprintf(stderr, "Exiting cleanly...\n");
 
 	out_interface: out_rt: rt_stop(&rt);
 
-	for (n = 0; n < 2; n++)
-		deck_clear(&deck[n]);
-
-	for (n = 0; n < 2; n++)
-		controller_clear(&ctl[n]);
+	deck_clear(&deck[0]);
+	deck_clear(&deck[1]);
 
 	rig_clear();
 	thread_global_clear();

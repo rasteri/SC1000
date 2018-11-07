@@ -1,3 +1,15 @@
+// SC1000 playlist routines
+// Build a linked-list tree of every track on the usb stick
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <dirent.h>
+#include "sc_playlist.h"
+
 struct File * GetFileAtIndex(unsigned int index, struct Folder *FirstFolder) {
 
 	struct Folder *CurrFolder = FirstFolder;

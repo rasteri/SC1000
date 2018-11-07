@@ -61,6 +61,8 @@ OBJS = controller.o \
 	thread.o \
 	track.o \
 	alsa.o \
+	sc_input.o \
+	sc_playlist.o \
 	xwax.o
 DEVICE_CPPFLAGS = -DWITH_ALSA
 DEVICE_LIBS = $(ALSA_LIBS)
