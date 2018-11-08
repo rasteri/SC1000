@@ -22,13 +22,9 @@
 INSTALL ?= install
 
 SDL_CFLAGS ?= `sdl-config --cflags`
-#SDL_LIBS ?= -L/root/buildroot-2018.08/output/host/lib -L/root/buildroot-2018.08/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib -Wl,-rpath,/root/buildroot-2018.08/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib -lSDL -lpthread -lSDL_ttf -liconv
-
-SDL_LIBS ?= -lSDL -lpthread -lSDL_ttf
-
+#SDL_LIBS ?= -L/root/buildroot-2018.08/output/host/lib -L/root/buildroot-2018.08/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib -Wl,-rpath,/root/buildroot-2018.08/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib -lpthread -liconv
 
 ALSA_LIBS ?= -lasound
-JACK_LIBS ?= -ljack
 
 # Installation paths
 
@@ -90,7 +86,7 @@ xwax:		$(OBJS)
 xwax:		LDLIBS += $(SDL_LIBS) $(DEVICE_LIBS) -lm
 xwax:		LDFLAGS += -pthread
 
-xwax.o:		CFLAGS += $(SDL_CFLAGS)
+#xwax.o:		CFLAGS += $(SDL_CFLAGS)
 xwax.o:		CPPFLAGS += $(DEVICE_CPPFLAGS)
 xwax.o:		CPPFLAGS += -DEXECDIR=\"$(EXECDIR)\" -DVERSION=\"$(VERSION)\"
 xwax.o:		.version

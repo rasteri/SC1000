@@ -25,7 +25,6 @@
 #include <unistd.h>
 #include <sys/mman.h> /* mlockall() */
 
-#include <SDL.h> /* may override main() */
 #include <unistd.h>                     //Needed for I2C port
 #include <fcntl.h>                      //Needed for I2C port
 #include <sys/ioctl.h>                  //Needed for I2C port
