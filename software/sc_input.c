@@ -12,6 +12,7 @@
 #include <fcntl.h>                      //Needed for I2C port
 #include <sys/ioctl.h>                  //Needed for I2C port
 #include <linux/i2c-dev.h>              //Needed for I2C port
+#include <sys/time.h>
 #include "sc_playlist.h"
 #include "alsa.h"
 #include "controller.h"
@@ -95,13 +96,21 @@ void *SC_InputThread(void *ptr) {
 	player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
 
 	srand (time(NULL)); // TODO - need better entropy source, SoC is starting up annoyingly deterministically
-
+struct timeval tv;
+	unsigned long lastTime = 0;
+	unsigned int frameCount = 0;
 while(	1) {
-
+		frameCount++;
+		gettimeofday(&tv, NULL);
+		if (tv.tv_sec != lastTime) {
+			lastTime = tv.tv_sec;
+			printf("\nFPS : %u\n", frameCount);
+			frameCount = 0;
+		}
 		// Get info from input processor registers
 		// First the ADC values
 		// 5 = XFADER1, 6 = XFADER2, 7 = POT1, 8 = POT2
-
+/*
 		i2c_read_address(file_i2c_pic, 0x00, &result);
 		ADCs[0] = result;
 		i2c_read_address(file_i2c_pic, 0x01, &result);
@@ -124,6 +133,9 @@ while(	1) {
 		buttons[2] = !(result >> 2 & 0x01);
 		buttons[3] = !(result >> 3 & 0x01);
 		capIsTouched = (result >> 4 & 0x01);
+*/
+
+		ADCs[0] = 512; ADCs[1] = 512; ADCs[2] = 1023; ADCs[3] = 0;
 
 		// Handle crossfader
 
@@ -135,7 +147,7 @@ while(	1) {
 		deck[0].player.faderTarget = ((double) ADCs[3]) / 1024;
 
 		// Handle touch sensor
-
+		capIsTouched=1;
 		if (capIsTouched) {
 			if (!deck[1].player.capTouch) { // Positive touching edge
 				accumulatedPos = (uint32_t)(deck[1].player.position * 3072);
@@ -153,7 +165,7 @@ while(	1) {
 			i2c_read_address(file_i2c_rot, 0x0e, &result);
 			encoderAngle = result << 8;
 			i2c_read_address(file_i2c_rot, 0x0f, &result);
-			encoderAngle = (encoderAngle & 0x0f00) | result;
+			encoderAngle = (encoderAngle & 0x0f00) | result; 
 
 			// Handle wrapping at zero
 
@@ -349,7 +361,7 @@ while(	1) {
 
 		}
 
-		usleep(1500);
+		//usleep(500);
 	}
 }
 

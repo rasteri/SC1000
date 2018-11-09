@@ -110,13 +110,19 @@ static int pcm_open(struct alsa_pcm *alsa, const char *device_name,
         return -1;
     }
 
-    p = buffer_time * 1000; /* microseconds */
+   /* p = buffer_time * 1000; 
     dir = -1;
     r = snd_pcm_hw_params_set_buffer_time_near(alsa->pcm, hw_params, &p, &dir);
     if (!chk("hw_params_set_buffer_time_near", r)) {
         fprintf(stderr, "Buffer of %dms may be too small for this hardware.\n",
                 buffer_time);
         return -1;
+    }*/
+
+
+    if (snd_pcm_hw_params_set_buffer_size(alsa->pcm, hw_params, 4096) < 0) {        
+	fprintf(stderr, "Error setting buffersize.\n");
+        return(-1);
     }
 
     p = 2; /* double buffering */
@@ -135,6 +141,10 @@ static int pcm_open(struct alsa_pcm *alsa, const char *device_name,
     r = snd_pcm_hw_params_get_period_size(hw_params, &alsa->period, &dir);
     if (!chk("get_period_size", r))
         return -1;
+snd_pcm_uframes_t fun;
+	 r = snd_pcm_hw_params_get_buffer_size(hw_params, &fun);
+printf("frames %u\n", fun);
+	
 
     bytes = alsa->period * DEVICE_CHANNELS * sizeof(signed short);
     alsa->buf = malloc(bytes);

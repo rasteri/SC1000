@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 
 	// Create two decks, both pointed at the same audio device
 	
-	alsa_buffer = 5;
+	alsa_buffer = 1;
 	rate = 48000;
 
 	alsa_init(&deck[0].device, "plughw:0,0", rate, alsa_buffer, 0);

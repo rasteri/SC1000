@@ -33,6 +33,9 @@ struct player {
     spin lock;
     struct track *track;
 
+long samplesSoFar;
+
+
     /* Current playback parameters */
 
     double position, /* seconds */

@@ -105,10 +105,10 @@ static double dither(void) {
  */
 
 static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
-		struct track *tr, double position, double pitch, double start_vol,
+		struct track *tr, double position, double pitch, double end_pitch, double start_vol,
 		double end_vol) {
 	int s;
-	double sample, step, vol, gradient;
+	double sample, step, vol, gradient, pitchGradient;
 
 	sample = position * tr->rate;
 	step = sample_dt * pitch * tr->rate;
@@ -116,7 +116,12 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 	vol = start_vol;
 	gradient = (end_vol - start_vol) / samples;
 
+	pitchGradient = (end_pitch - pitch) / samples;
+
 	for (s = 0; s < samples; s++) {
+
+		step = sample_dt * pitch * tr->rate;
+
 		int c, sa, q;
 		double f;
 		signed short i[PLAYER_CHANNELS][4];
@@ -163,8 +168,8 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 		if (sample > tr->length)
 			sample = 0;
 		vol += gradient;
+		pitch += pitchGradient;
 	}
-
 
 
 	//return sample_dt * pitch * samples;
@@ -220,6 +225,7 @@ void player_init(struct player *pl, unsigned int sample_rate,
 	pl->sync_pitch = 1.0;
 	pl->volume = 0.0;
 	pl->GoodToGo = 0;
+	pl->samplesSoFar=0;
 }
 
 /*
@@ -386,7 +392,7 @@ void player_seek_to(struct player *pl, double seconds) {
 	pl->offset = pl->position - seconds;
 }
 
-unsigned samplesSoFar = 0;
+unsigned long samplesSoFar = 0;
 
 /*
  * Get a block of PCM audio data to send to the soundcard
@@ -405,14 +411,18 @@ bool NearlyEqual(double val1, double val2, double tolerance){
 }
 
 void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
-	double r, pitch, target_volume, amountToDecay;
+	double r, pitch, target_volume, amountToDecay, target_pitch;
 	double diff;
 
-	samplesSoFar += samples;
-	//
+	int i = 0;
+	//printf("new\n");
+	//for (i = 0; i < 16; i++){
+	pitch = pl->pitch; // Original pitch for smoothing
 
+	pl->samplesSoFar += samples;
+	
 
-	//pl->target_position = (sin(((double) samplesSoFar) / 7000) + 1); // This is simulating the rotary encoder
+	//pl->target_position = (sin(((double) pl->samplesSoFar) / 20000) + 1); // This is simulating the rotary encoder
 	/* timecode is disabled, therefore target position is our only source of pitch info, presumably from rotary encoder*/
 
 	if (pl->justPlay == 1 || pl->capTouch == 0){
@@ -434,7 +444,7 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	//printf("%f, %f, %f, %f\n",pl->position, pl->target_position, diff, pl->pitch);
 	//pl->pitch = 1.0;
 
-	pitch = pl->pitch;
+	target_pitch = pl->pitch;
 	
 	amountToDecay = (DECAYSAMPLES) / (double)samples;
 
@@ -461,13 +471,14 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	} else {
 
 		r = build_pcm(pcm, samples, pl->sample_dt, pl->track,
-				pl->position - pl->offset, pitch, pl->volume, target_volume);
+				pl->position - pl->offset, pitch, target_pitch, pl->volume, target_volume);
 		spin_unlock(&pl->lock);
 	}
 
-	//printf("%f %f\n", pl->position, r);
+	//printf("%f %u\n", pl->pitch, samples);
 
 	pl->position += r;
 
 	pl->volume = target_volume;
+//	}
 }
