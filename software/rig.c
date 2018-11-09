@@ -90,6 +90,7 @@ void rig_clear()
 int rig_main()
 {
     struct pollfd pt[4];
+    const struct pollfd *px = pt + ARRAY_SIZE(pt);
 
     /* Monitor event pipe from external threads */
 
@@ -105,6 +106,15 @@ int rig_main()
         struct track *track, *xtrack;
 
         pe = &pt[1];
+
+        /* Do our best if we run out of poll entries */
+
+        list_for_each(track, &tracks, rig) {
+            if (pe == px)
+                break;
+            track_pollfd(track, pe);
+            pe++;
+        }
 
 
         mutex_unlock(&lock);

@@ -48,32 +48,32 @@ void *SC_InputThread(void *ptr) {
 	bool capIsTouched = 0;
 	uint32_t accumulatedPos = 0;
 	unsigned char buttonState = 0;
-	bool buttons[4] = { 0, 0, 0, 0 }, totalbuttons[4] = { 0, 0, 0, 0 };
+	unsigned char buttons[4] = { 0, 0, 0, 0 }, totalbuttons[4] = { 0, 0, 0, 0 };
 	unsigned int butCounter = 0;
 	unsigned char i = 0;
 	unsigned int NumBeats, NumSamples;
 	struct Folder *FirstBeatFolder, *CurrentBeatFolder, *FirstSampleFolder, *CurrentSampleFolder;
 	struct File *CurrentBeatFile, *CurrentSampleFile;
 
-	// Initialise PIC input processor on I2C0
+	// Initialise PIC input processor on I2C2
 
-	if ((file_i2c_pic = open("/dev/i2c-0", O_RDWR)) < 0) {
-		printf("I2C #0 (input processor) - Failed to open\n");
+	if ((file_i2c_pic = open("/dev/i2c-2", O_RDWR)) < 0) {
+		printf("I2C #2 (input processor) - Failed to open\n");
 		return NULL;
 	}
-	if (ioctl(file_i2c_pic, I2C_SLAVE, 0x36) < 0) {
-		printf("I2C #0 (input processor) - Failed to acquire bus access and/or talk to slave.\n");
+	if (ioctl(file_i2c_pic, I2C_SLAVE, 0x69) < 0) {
+		printf("I2C #2 (input processor) - Failed to acquire bus access and/or talk to slave.\n");
 		return NULL;
 	}
 
 	// Initialise rotary sensor on I2C1
 
-	if ((file_i2c_rot = open("/dev/i2c-1", O_RDWR)) < 0) {
-		printf("I2C #1 (rotary sensor) - Failed to open\n");
+	if ((file_i2c_rot = open("/dev/i2c-0", O_RDWR)) < 0) {
+		printf("I2C #0 (rotary sensor) - Failed to open\n");
 		return NULL;
 	}
 	if (ioctl(file_i2c_rot, I2C_SLAVE, 0x36) < 0) {
-		printf("I2C #1 (rotary sensor) - Failed to acquire bus access and/or talk to slave.\n");
+		printf("I2C #0 (rotary sensor) - Failed to acquire bus access and/or talk to slave.\n");
 		return NULL;
 	}
 
@@ -111,10 +111,10 @@ while(	1) {
 		i2c_read_address(file_i2c_pic, 0x03, &result);
 		ADCs[3] = result;
 		i2c_read_address(file_i2c_pic, 0x04, &result);
-		ADCs[0] |= ((result | 0x03) << 8);
-		ADCs[1] |= ((result | 0x0C) << 6);
-		ADCs[2] |= ((result | 0x30) << 4);
-		ADCs[3] |= ((result | 0x0C) << 2);
+		ADCs[0] |= ((unsigned int)(result & 0x03) << 8);
+		ADCs[1] |= ((unsigned int)(result & 0x0C) << 6);
+		ADCs[2] |= ((unsigned int)(result & 0x30) << 4);
+		ADCs[3] |= ((unsigned int)(result & 0xC0) << 2);
 
 		// Now buttons and capsense
 

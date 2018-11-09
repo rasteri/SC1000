@@ -65,7 +65,8 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Could not honour the local encoding\n");
 		return -1;
 	}
-
+    if (thread_global_init() == -1)
+        return -1;
 	if (rig_init() == -1)
 		return -1;
 	rt_init(&rt);
