@@ -415,8 +415,6 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	double diff;
 
 	int i = 0;
-	//printf("new\n");
-	//for (i = 0; i < 16; i++){
 	pitch = pl->pitch; // Original pitch for smoothing
 
 	pl->samplesSoFar += samples;
@@ -475,10 +473,7 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 		spin_unlock(&pl->lock);
 	}
 
-	//printf("%f %u\n", pl->pitch, samples);
-
 	pl->position += r;
 
 	pl->volume = target_volume;
-//	}
 }

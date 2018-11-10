@@ -67,7 +67,6 @@ int deck_init(struct deck *d, struct rt *rt,
 	//device_connect_timecoder(&d->device, &d->timecoder);
 
 	device_connect_player(&d->device, &d->player);
-	printf("Here\n");
 	return 0;
 }
 

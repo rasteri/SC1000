@@ -15,14 +15,14 @@
 # MA 02110-1301, USA.
 #
 
-#CC=/root/buildroot-2018.08/output/host/usr/bin/arm-linux-gcc
+CC=/root/buildroot-2018.08/output/host/usr/bin/arm-linux-gcc
 
 # Libraries and dependencies
 
 INSTALL ?= install
 
 SDL_CFLAGS ?= `sdl-config --cflags`
-#SDL_LIBS ?= -L/root/buildroot-2018.08/output/host/lib -L/root/buildroot-2018.08/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib -Wl,-rpath,/root/buildroot-2018.08/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib -lpthread -liconv
+SDL_LIBS ?= -L/root/buildroot-2018.08/output/host/lib -L/root/buildroot-2018.08/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib -Wl,-rpath,/root/buildroot-2018.08/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib -lpthread -liconv
 
 ALSA_LIBS ?= -lasound
 

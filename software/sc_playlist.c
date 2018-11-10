@@ -91,8 +91,8 @@ struct Folder * LoadFileStructure(char *BaseFolderPath,
 					if (FirstFile == NULL)
 						FirstFile = new_file;
 
-					printf("Added file %d - %s\n", new_file->Index,
-							new_file->FullPath);
+					/*printf("Added file %d - %s\n", new_file->Index,
+							new_file->FullPath);*/
 
 				}
 				free(fileList[p]);
@@ -122,7 +122,7 @@ struct Folder * LoadFileStructure(char *BaseFolderPath,
 
 				new_folder->FirstFile = FirstFile;
 
-				printf("Added Subfolder %s\n", new_folder->FullPath);
+				//printf("Added Subfolder %s\n", new_folder->FullPath);
 
 			}
 
@@ -137,6 +137,8 @@ struct Folder * LoadFileStructure(char *BaseFolderPath,
 	free(dirList);
 
 	*TotalNum = FilesCount;
+	
+	printf ("Added folder %s : %d files found\n", BaseFolderPath, FilesCount);
 
 	return FirstFolder;
 

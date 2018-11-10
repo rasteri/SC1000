@@ -120,7 +120,7 @@ static int pcm_open(struct alsa_pcm *alsa, const char *device_name,
     }*/
 
 
-    if (snd_pcm_hw_params_set_buffer_size(alsa->pcm, hw_params, 4096) < 0) {        
+    if (snd_pcm_hw_params_set_buffer_size(alsa->pcm, hw_params, 256) < 0) {        
 	fprintf(stderr, "Error setting buffersize.\n");
         return(-1);
     }
@@ -143,7 +143,6 @@ static int pcm_open(struct alsa_pcm *alsa, const char *device_name,
         return -1;
 snd_pcm_uframes_t fun;
 	 r = snd_pcm_hw_params_get_buffer_size(hw_params, &fun);
-printf("frames %u\n", fun);
 	
 
     bytes = alsa->period * DEVICE_CHANNELS * sizeof(signed short);

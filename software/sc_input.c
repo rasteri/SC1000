@@ -96,21 +96,21 @@ void *SC_InputThread(void *ptr) {
 	player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
 
 	srand (time(NULL)); // TODO - need better entropy source, SoC is starting up annoyingly deterministically
-struct timeval tv;
+	struct timeval	tv;
 	unsigned long lastTime = 0;
 	unsigned int frameCount = 0;
-while(	1) {
-		frameCount++;
-		gettimeofday(&tv, NULL);
-		if (tv.tv_sec != lastTime) {
-			lastTime = tv.tv_sec;
-			printf("\nFPS : %u\n", frameCount);
-			frameCount = 0;
-		}
+	while (1) {
+		/*frameCount++;
+		 gettimeofday(&tv, NULL);
+		 if (tv.tv_sec != lastTime) {
+		 lastTime = tv.tv_sec;
+		 printf("\nFPS : %u - %u %u %u %u\n", frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3]);
+		 frameCount = 0;
+		 }*/
+
 		// Get info from input processor registers
 		// First the ADC values
 		// 5 = XFADER1, 6 = XFADER2, 7 = POT1, 8 = POT2
-/*
 		i2c_read_address(file_i2c_pic, 0x00, &result);
 		ADCs[0] = result;
 		i2c_read_address(file_i2c_pic, 0x01, &result);
@@ -120,10 +120,10 @@ while(	1) {
 		i2c_read_address(file_i2c_pic, 0x03, &result);
 		ADCs[3] = result;
 		i2c_read_address(file_i2c_pic, 0x04, &result);
-		ADCs[0] |= ((unsigned int)(result & 0x03) << 8);
-		ADCs[1] |= ((unsigned int)(result & 0x0C) << 6);
-		ADCs[2] |= ((unsigned int)(result & 0x30) << 4);
-		ADCs[3] |= ((unsigned int)(result & 0xC0) << 2);
+		ADCs[0] |= ((unsigned int) (result & 0x03) << 8);
+		ADCs[1] |= ((unsigned int) (result & 0x0C) << 6);
+		ADCs[2] |= ((unsigned int) (result & 0x30) << 4);
+		ADCs[3] |= ((unsigned int) (result & 0xC0) << 2);
 
 		// Now buttons and capsense
 
@@ -133,21 +133,19 @@ while(	1) {
 		buttons[2] = !(result >> 2 & 0x01);
 		buttons[3] = !(result >> 3 & 0x01);
 		capIsTouched = (result >> 4 & 0x01);
-*/
 
-		ADCs[0] = 512; ADCs[1] = 512; ADCs[2] = 1023; ADCs[3] = 0;
+		// Apply volume and fader
 
-		// Handle crossfader
-
-		if (ADCs[0] < 1021 && ADCs[0] > 5)// cut on both sides of crossfader
-		deck[1].player.faderTarget = ((double) ADCs[2]) / 1024;
+		if (ADCs[1] > 5 && ADCs[1] < 1000){		// cut on both sides of crossfader
+			deck[1].player.faderTarget = ((double) ADCs[3]) / 1024;
+		}
 		else
-		deck[1].player.faderTarget = 0.0;
+			deck[1].player.faderTarget = 0.0;
 
-		deck[0].player.faderTarget = ((double) ADCs[3]) / 1024;
+
+		deck[0].player.faderTarget = ((double) ADCs[2]) / 1024;
 
 		// Handle touch sensor
-		capIsTouched=1;
 		if (capIsTouched) {
 			if (!deck[1].player.capTouch) { // Positive touching edge
 				accumulatedPos = (uint32_t)(deck[1].player.position * 3072);
@@ -157,7 +155,8 @@ while(	1) {
 		} else {
 			deck[1].player.capTouch = 0;
 		}
-
+		
+	
 		if (deck[1].player.capTouch) {
 
 			// Handle rotary sensor
@@ -165,7 +164,7 @@ while(	1) {
 			i2c_read_address(file_i2c_rot, 0x0e, &result);
 			encoderAngle = result << 8;
 			i2c_read_address(file_i2c_rot, 0x0f, &result);
-			encoderAngle = (encoderAngle & 0x0f00) | result; 
+			encoderAngle = (encoderAngle & 0x0f00) | result;
 
 			// Handle wrapping at zero
 
@@ -218,150 +217,146 @@ while(	1) {
 
 		switch (buttonState) {
 
+			// No buttons pressed
 			case BUTTONSTATE_NONE:
-			if (buttons[0] || buttons[1] || buttons[2] || buttons[3]) {
-				buttonState = BUTTONSTATE_PRESSING;
+				if (buttons[0] || buttons[1] || buttons[2] || buttons[3]) {
+					buttonState = BUTTONSTATE_PRESSING;
+				}
+				break;
 
-			}
-			break;
-
+			// At least one button pressed
 			case BUTTONSTATE_PRESSING:
-			for (i = 0; i < 4; i++)
-			totalbuttons[i] |= buttons[i];
+				for (i = 0; i < 4; i++)
+					totalbuttons[i] |= buttons[i];
 
-			if (!(buttons[0] || buttons[1] || buttons[2] || buttons[3]))
-			buttonState = BUTTONSTATE_ACTING_INSTANT;
+				if (!(buttons[0] || buttons[1] || buttons[2] || buttons[3]))
+					buttonState = BUTTONSTATE_ACTING_INSTANT;
 
-			butCounter++;
-			if (butCounter > 500) {
-				butCounter = 0;
-				buttonState = BUTTONSTATE_ACTING_HELD;
-			}
+				butCounter++;
+				if (butCounter > 500) {
+					butCounter = 0;
+					buttonState = BUTTONSTATE_ACTING_HELD;
+				}
 
-			break;
-
+				break;
+				
+			// Act on instantaneous (i.e. not held) button press
 			case BUTTONSTATE_ACTING_INSTANT:
-			if (totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3]) {
-				printf("Samples - Up pushed\n");
-				if (CurrentSampleFile->prev != NULL) {
-					CurrentSampleFile = CurrentSampleFile->prev;
-					player_set_track(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
+				if (totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3]) {
+					printf("Samples - Up pushed\n");
+					if (CurrentSampleFile->prev != NULL) {
+						CurrentSampleFile = CurrentSampleFile->prev;
+						player_set_track(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
+					}
+				} else if (!totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3]) {
+					printf("Samples - Down pushed\n");
+					if (CurrentSampleFile->next != NULL) {
+						CurrentSampleFile = CurrentSampleFile->next;
+						player_set_track(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
+					}
+				} else if (totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3]) {
+					printf("Samples - both buttons pushed\n");
+					r = rand() % NumSamples;
+					printf("Playing file %d/%d\n", r, NumSamples);
+					player_set_track(&deck[1].player, track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstSampleFolder)->FullPath));
 				}
-			} else if (!totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3]) {
-				printf("Samples - Down pushed\n");
-				if (CurrentSampleFile->next != NULL) {
-					CurrentSampleFile = CurrentSampleFile->next;
-					player_set_track(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
+
+				else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && !totalbuttons[3]) {
+					printf("Beats - Up pushed\n");
+					if (CurrentBeatFile->prev != NULL) {
+						CurrentBeatFile = CurrentBeatFile->prev;
+						player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+					}
+				} else if (!totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && totalbuttons[3]) {
+					printf("Beats - Down pushed\n");
+					if (CurrentBeatFile->next != NULL) {
+						CurrentBeatFile = CurrentBeatFile->next;
+						player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+					}
+				} else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && totalbuttons[3]) {
+					printf("Beats - both buttons pushed\n");
+					r = rand() % NumBeats;
+					printf("Playing file %d/%d\n", r, NumBeats);
+					player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstBeatFolder)->FullPath));
 				}
-			} else if (totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3]) {
-				printf("Samples - both buttons pushed\n");
-				r = rand() % NumSamples;
-				printf("Playing file %d/%d\n", r, NumSamples);
-				player_set_track(&deck[1].player, track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstSampleFolder)->FullPath));
-			}
 
-			else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && !totalbuttons[3]) {
-				printf("Beats - Up pushed\n");
-				if (CurrentBeatFile->prev != NULL) {
-					CurrentBeatFile = CurrentBeatFile->prev;
-					player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
-				}
-			} else if (!totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && totalbuttons[3]) {
-				printf("Beats - Down pushed\n");
-				if (CurrentBeatFile->next != NULL) {
-					CurrentBeatFile = CurrentBeatFile->next;
-					player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
-				}
-			} else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && totalbuttons[3]) {
-				printf("Beats - both buttons pushed\n");
-				r = rand() % NumBeats;
-				printf("Playing file %d/%d\n", r, NumBeats);
-				player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstBeatFolder)->FullPath));
-			}
+				else if (totalbuttons[0] && totalbuttons[1] && totalbuttons[2] && totalbuttons[3])
+					printf("All buttons pushed!\n");
 
-			else if (totalbuttons[0] && totalbuttons[1] && totalbuttons[2] && totalbuttons[3])
-			printf("All buttons pushed!\n");
+				else
+					printf("Sod knows what you were trying to do there\n");
 
-			else
-			printf("Sod knows what you were trying to do there\n");
+				buttonState = BUTTONSTATE_WAITING;
 
-			buttonState = BUTTONSTATE_WAITING;
+				break;
 
-			break;
+				
+			// Act on whatever buttons are being held down when the timeout happens
+			case BUTTONSTATE_ACTING_HELD: 
+				if (buttons[0] && !buttons[1] && !buttons[2] && !buttons[3]) {
+					printf("Samples - Up held\n");
+					if (CurrentSampleFolder->prev != NULL) {
+						CurrentSampleFolder = CurrentSampleFolder->prev;
+						CurrentSampleFile = CurrentSampleFolder->FirstFile;
+						player_set_track(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
+					}
+				} else if (!buttons[0] && buttons[1] && !buttons[2] && !buttons[3]) {
+					printf("Samples - Down held\n");
+					if (CurrentSampleFolder->next != NULL) {
+						CurrentSampleFolder = CurrentSampleFolder->next;
+						CurrentSampleFile = CurrentSampleFolder->FirstFile;
+						player_set_track(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
+					}
+				} else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3])
+					printf("Samples - both buttons held\n");
 
-			case BUTTONSTATE_ACTING_HELD: // Act on whatever buttons are being held down when the timeout happens
-			if (buttons[0] && !buttons[1] && !buttons[2] && !buttons[3]) {
-				printf("Samples - Up held\n");
-				if (CurrentSampleFolder->prev != NULL) {
-					CurrentSampleFolder = CurrentSampleFolder->prev;
-					CurrentSampleFile = CurrentSampleFolder->FirstFile;
-					player_set_track(&deck[1].player,
-					track_acquire_by_import(deck[0].importer,
-							CurrentSampleFile->FullPath));
-				}
-			} else if (!buttons[0] && buttons[1] && !buttons[2] && !buttons[3]) {
-				printf("Samples - Down held\n");
-				if (CurrentSampleFolder->next != NULL) {
-					CurrentSampleFolder = CurrentSampleFolder->next;
-					CurrentSampleFile = CurrentSampleFolder->FirstFile;
-					player_set_track(&deck[1].player,
-					track_acquire_by_import(deck[0].importer,
-							CurrentSampleFile->FullPath));
-				}
-			} else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3])
-			printf("Samples - both buttons held\n");
+				else if (!buttons[0] && !buttons[1] && buttons[2] && !buttons[3]) {
+					printf("Beats - Up held\n");
+					if (CurrentBeatFolder->prev != NULL) {
+						CurrentBeatFolder = CurrentBeatFolder->prev;
+						CurrentBeatFile = CurrentBeatFolder->FirstFile;
+						player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+					}
+				} else if (!buttons[0] && !buttons[1] && !buttons[2] && buttons[3]) {
+					printf("Beats - Down held\n");
+					if (CurrentBeatFolder->next != NULL) {
+						CurrentBeatFolder = CurrentBeatFolder->next;
+						CurrentBeatFile = CurrentBeatFolder->FirstFile;
+						player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+					}
+				} else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3])
+					printf("Beats - both buttons held\n");
 
-			else if (!buttons[0] && !buttons[1] && buttons[2] && !buttons[3]) {
-				printf("Beats - Up held\n");
-				if (CurrentBeatFolder->prev != NULL) {
-					CurrentBeatFolder = CurrentBeatFolder->prev;
-					CurrentBeatFile = CurrentBeatFolder->FirstFile;
-					player_set_track(&deck[0].player,
-					track_acquire_by_import(deck[0].importer,
-							CurrentBeatFile->FullPath));
-				}
-			} else if (!buttons[0] && !buttons[1] && !buttons[2] && buttons[3]) {
-				printf("Beats - Down held\n");
-				if (CurrentBeatFolder->next != NULL) {
-					CurrentBeatFolder = CurrentBeatFolder->next;
-					CurrentBeatFile = CurrentBeatFolder->FirstFile;
-					player_set_track(&deck[0].player,
-					track_acquire_by_import(deck[0].importer,
-							CurrentBeatFile->FullPath));
-				}
-			} else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3])
-			printf("Beats - both buttons held\n");
+				else if (buttons[0] && buttons[1] && buttons[2] && buttons[3])
+					printf("All buttons held!\n");
 
-			else if (buttons[0] && buttons[1] && buttons[2] && buttons[3])
-			printf("All buttons held!\n");
+				else
+					printf("Sod knows what you were trying to do there\n");
 
-			else
-			printf("Sod knows what you were trying to do there\n");
+				buttonState = BUTTONSTATE_WAITING;
 
-			buttonState = BUTTONSTATE_WAITING;
-
-			break;
+				break;
 
 			case BUTTONSTATE_WAITING:
 
-			butCounter++;
+				butCounter++;
 
-			// wait till buttons are released before allowing the countdown
-			if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
-			butCounter = 0;
+				// wait till buttons are released before allowing the countdown
+				if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
+					butCounter = 0;
 
-			if (butCounter > 20) {
-				butCounter = 0;
-				buttonState = BUTTONSTATE_NONE;
+				if (butCounter > 20) {
+					butCounter = 0;
+					buttonState = BUTTONSTATE_NONE;
 
-				for (i = 0; i < 4; i++)
-				totalbuttons[i] = 0;
-			}
-			break;
+					for (i = 0; i < 4; i++)
+						totalbuttons[i] = 0;
+				}
+				break;
 
 		}
 
-		//usleep(500);
+		usleep(1000);
 	}
 }
 
