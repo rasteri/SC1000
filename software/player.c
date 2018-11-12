@@ -419,9 +419,7 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 
 	pl->samplesSoFar += samples;
 	
-
-	//pl->target_position = (sin(((double) pl->samplesSoFar) / 20000) + 1); // This is simulating the rotary encoder
-	/* timecode is disabled, therefore target position is our only source of pitch info, presumably from rotary encoder*/
+	//pl->target_position = (sin(((double) pl->samplesSoFar) / 20000) + 1); // Sine wave to simulate scratching, used for debugging
 
 	if (pl->justPlay == 1 || pl->capTouch == 0){
 		
@@ -438,9 +436,6 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 		pl->pitch = (-diff) * 40;
 	}
 
-	//pitch = pl->pitch;
-	//printf("%f, %f, %f, %f\n",pl->position, pl->target_position, diff, pl->pitch);
-	//pl->pitch = 1.0;
 
 	target_pitch = pl->pitch;
 	
@@ -455,7 +450,6 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 
 	target_volume = fabs(pl->pitch) * VOLUME * pl->faderVolume;
 
-	//target_volume = fabs(pl->pitch) * VOLUME;
 	if (target_volume > 1.0)
 		target_volume = 1.0;
 

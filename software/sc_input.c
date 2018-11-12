@@ -96,17 +96,24 @@ void *SC_InputThread(void *ptr) {
 	player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
 
 	srand (time(NULL)); // TODO - need better entropy source, SoC is starting up annoyingly deterministically
+	
+	/*
 	struct timeval	tv;
 	unsigned long lastTime = 0;
 	unsigned int frameCount = 0;
+	*/
+	
 	while (1) {
-		/*frameCount++;
+		
+		/*
+		frameCount++;
 		 gettimeofday(&tv, NULL);
 		 if (tv.tv_sec != lastTime) {
 		 lastTime = tv.tv_sec;
 		 printf("\nFPS : %u - %u %u %u %u\n", frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3]);
 		 frameCount = 0;
-		 }*/
+		 }
+		 */
 
 		// Get info from input processor registers
 		// First the ADC values
@@ -136,7 +143,7 @@ void *SC_InputThread(void *ptr) {
 
 		// Apply volume and fader
 
-		if (ADCs[1] > 5 && ADCs[1] < 1000){		// cut on both sides of crossfader
+		if (ADCs[0] > 5 && ADCs[1] > 5){		// cut on both sides of crossfader
 			deck[1].player.faderTarget = ((double) ADCs[3]) / 1024;
 		}
 		else
@@ -233,7 +240,7 @@ void *SC_InputThread(void *ptr) {
 					buttonState = BUTTONSTATE_ACTING_INSTANT;
 
 				butCounter++;
-				if (butCounter > 500) {
+				if (butCounter > 250) {
 					butCounter = 0;
 					buttonState = BUTTONSTATE_ACTING_HELD;
 				}
