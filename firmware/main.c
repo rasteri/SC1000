@@ -2,7 +2,6 @@
 #include <xc.h>
 #include "mcc_generated_files/mcc.h"
 
-
 void I2C_Slave_Init(short address) {
     SSPSTAT = 0b10000000;
     SSPADD = address; //Setting address
@@ -71,8 +70,9 @@ unsigned int getADC(unsigned char channel) {
 
     ADCON0bits.CHS = channel;
     ADCON0bits.ADON = 1;
-    __delay_us(10);
-    Nop(); Nop(); Nop();
+    Nop();
+    Nop();
+    Nop();
     ADCON0bits.GO_DONE = 1;
     while (ADCON0bits.GO_DONE);
     return ((signed int) ADRESH << 8) | ADRESL;
@@ -83,6 +83,7 @@ void main(void) {
     unsigned int touchDelay = 0;
     char touchState = 0;
     char oldTouchState = 1;
+    char cnt = 0;
     char calibrationMode = 1;
     unsigned int calibrationCount;
     unsigned int threshold = 0xffff;
@@ -90,6 +91,7 @@ void main(void) {
     unsigned int tmp1, tmp2, tmp3, tmp4, tmp5;
     unsigned int touchAverage = 32768;
     unsigned int schmittedThreshold = 0xffff;
+    char readingIndex = 0;
 
     // Initialize the device
     SYSTEM_Initialize();
@@ -127,7 +129,6 @@ void main(void) {
     // Delay while we wait for everything to settle
     for (calibrationCount = 0; calibrationCount < 60000; calibrationCount++);
 
-
     calibrationCount = 0;
     while (1) {
 
@@ -148,37 +149,45 @@ void main(void) {
         // Now make it an input and get result
         TRISB5 = 1;
         tmp5 = getADC(11);
-        
-        #define TOUCHREACTIONSPEED 50
-        #define HYSTERESIS 0x1000
-        
-        if (tmp5 << 6 > touchAverage)
-            touchAverage += TOUCHREACTIONSPEED;
-        else if (tmp5 << 6 < touchAverage)
-            touchAverage -= TOUCHREACTIONSPEED;
+
+
 
         if (calibrationMode) {
 
-            if (touchAverage < threshold)
-                threshold = touchAverage;
+            if (tmp5 < threshold)
+                threshold = tmp5;
 
             calibrationCount++;
             if (calibrationCount > 3000) {
                 calibrationMode = 0;
-                threshold -= 0x1500; // Give ourselves some margin
-                schmittedThreshold = threshold;
+                threshold -= 0x60;
             }
-            
+
         } else {
 
-            if (touchAverage < schmittedThreshold) {
-                touchState = 1;
-                schmittedThreshold = threshold + HYSTERESIS;
-            } else {
-                touchState = 0;
-                schmittedThreshold = threshold;
-            }
+            if (touchState) {
+                if (tmp5 > threshold)
+                    touchedNum++;
+                else
+                    touchedNum = 0;
 
+                if (touchedNum > 200) {
+                    touchState = 0;
+                    touchedNum = 0;
+                }
+
+            } else {
+                if (tmp5 <= threshold)
+                    touchedNum++;
+                else
+                    touchedNum = 0;
+
+                if (touchedNum > 200) {
+                    touchState = 1;
+                    touchedNum = 0;
+                }
+
+            }
 
         }
 
@@ -193,7 +202,7 @@ void main(void) {
 
         // Digital I/Os and capsense
         STATUSDATA[5] = (unsigned char) ((PORTBbits.RB7) | (PORTCbits.RC7 << 1) | (PORTCbits.RC4 << 2) | (PORTCbits.RC5 << 3) | touchState << 4);
-        //STATUSDATA[5] = touchAverage >> 8;
+        //STATUSDATA[5] = tmp5 >> 2;
     }
 }
 /**
