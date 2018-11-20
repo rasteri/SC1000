@@ -11,4 +11,4 @@ The folders are as follows :
 * **Firmware** - Source code for the input processor. This handles the pots, switches and capacitive touch sensor, and passes the information on to the main processor.
 * **SCOS** - Buildroot configuration and toolchain for the custom linux distribution that runs on the main SoC.
 * **Software** - Source code for the modified version of xwax running on the main SoC.
-* **Hardware** (coming soon) - Gerbers, Schematics and Altium source files for the main PCB and enclosure (which is made of PCBs)
+* **Hardware** - Gerbers, Schematics and Altium source files for the main PCB and enclosure (which is made of PCBs)

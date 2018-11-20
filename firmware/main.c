@@ -70,9 +70,7 @@ unsigned int getADC(unsigned char channel) {
 
     ADCON0bits.CHS = channel;
     ADCON0bits.ADON = 1;
-    Nop();
-    Nop();
-    Nop();
+    __delay_us(20);
     ADCON0bits.GO_DONE = 1;
     while (ADCON0bits.GO_DONE);
     return ((signed int) ADRESH << 8) | ADRESL;
@@ -80,18 +78,12 @@ unsigned int getADC(unsigned char channel) {
 
 void main(void) {
 
-    unsigned int touchDelay = 0;
     char touchState = 0;
-    char oldTouchState = 1;
-    char cnt = 0;
     char calibrationMode = 1;
     unsigned int calibrationCount;
     unsigned int threshold = 0xffff;
     unsigned int touchedNum = 0;
     unsigned int tmp1, tmp2, tmp3, tmp4, tmp5;
-    unsigned int touchAverage = 32768;
-    unsigned int schmittedThreshold = 0xffff;
-    char readingIndex = 0;
 
     // Initialize the device
     SYSTEM_Initialize();
@@ -151,7 +143,7 @@ void main(void) {
         tmp5 = getADC(11);
 
 
-
+        // First 3000 readings are to calibrate the threshold
         if (calibrationMode) {
 
             if (tmp5 < threshold)
@@ -160,7 +152,7 @@ void main(void) {
             calibrationCount++;
             if (calibrationCount > 3000) {
                 calibrationMode = 0;
-                threshold -= 0x60;
+                threshold -= 0x60; // Give ourselves some margin
             }
 
         } else {
@@ -171,6 +163,7 @@ void main(void) {
                 else
                     touchedNum = 0;
 
+                // Require 200 above-threshold readings before we consider the platter released
                 if (touchedNum > 200) {
                     touchState = 0;
                     touchedNum = 0;
@@ -182,7 +175,7 @@ void main(void) {
                 else
                     touchedNum = 0;
 
-                if (touchedNum > 200) {
+                if (touchedNum > 3) {
                     touchState = 1;
                     touchedNum = 0;
                 }
