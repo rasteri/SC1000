@@ -25,6 +25,8 @@ The folders are as follows :
 * **A13 System-on-Module** - Available from https://www.olimex.com/Products/SOM/A13/A13-SOM-256/, connects to the main PCB via 0.05" headers
 * **SD Card** - To hold the operating system. It only needs 200Mb so just get the smallest card you can find
 * **Enclosure parts** - The enclosure is made from PCBs and aluminium supports. Gerber files are in *./hardware/gerbers/Enclosure/*, aluminium supports are 20x10x156.8mm. I got mine from https://www.aluminiumwarehouse.co.uk/20-mm-x-10-mm-aluminium-flat-bar, they even cut it for me.
+* **Jogwheel parts** - M8 bearing/hex bolt/nuts/washers, diametrically polarized magnet from https://www.kjmagnetics.com/proddetail.asp?prod=D42DIA-N52
+* **Mini Innofader** - the OEM model (for example found in the innoFADER Mini DUO pack) is fine.
 
 
 ### Method ###
@@ -39,8 +41,10 @@ The folders are as follows :
 
 * Insert the SD card in the A13 module, and attach the SoM to the main PCB. Make sure it's the correct way round - the SD card should be right beside the USB storage connector on the rear of the SC1000.
 
-* Power up the unit to test - the A13 module's green light should blink a few times before remaining on.
+* Connect a USB power source, and power up the unit to test - the A13 module's green light should blink a few times before remaining on.
 
-* Connect the 
+* Assemble the jogwheel - glue the bearing into the hole in the top plate of the enclosure. Now glue the magnet to the tip of the M8 bolt. Attach the jogwheel to the bearing using the bolt/nut/washer. Solder a wire to the outside of the bearing to act as a capacitive touch sensor.
 
-* Assemble the enclosure - drill and tap M3 holes in the aluminium, and screw the whole enclosure together. 
+* Connect the fader to J1, capacitive touch sensor to J4, and (optionally) a small USB power bank to J3. If you don't use a power bank, put two jumpers horizontally across J3 to allow the power to bypass it.
+
+* Assemble the enclosure - drill and tap M3 holes in the aluminium, and screw the whole enclosure together. Make sure the magnet at the end of the jogwheel bolt is suspended directly above the rotary sensor IC.
