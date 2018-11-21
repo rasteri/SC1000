@@ -35,7 +35,7 @@ The folders are as follows :
 
 * Assemble the Main PCB. I recommend assembling/testing the 3.3v power section first, so you don't blow all the other components. Don't connect the A13 module yet.
 
-* Flash the input processor with its firmware. You will need a PIC programmer, such as the Microchip Pickit 3. The firmware hex file is available under */firmware/*
+* Flash the input processor with its firmware through connector J8. You will need a PIC programmer, such as the Microchip Pickit 3. The firmware hex file is available under */firmware/*
 
 * Transfer the operating system to the SD card. You will need an SD card interface, either USB or built-in to your PC. You can use dd on Linux/MacOS or Etcher on Windows to transfer the image. 
 
@@ -45,6 +45,6 @@ The folders are as follows :
 
 * Assemble the jogwheel - glue the bearing into the hole in the top plate of the enclosure. Now glue the magnet to the tip of the M8 bolt. Attach the jogwheel to the bearing using the bolt/nut/washer. Solder a wire to the outside of the bearing to act as a capacitive touch sensor.
 
-* Connect the fader to J1, capacitive touch sensor to J4, and (optionally) a small USB power bank to J3. If you don't use a power bank, put two jumpers horizontally across J3 to allow the power to bypass it.
+* Connect the fader to J1, capacitive touch sensor to J4, and (optionally) a small internal USB power bank to J3. If you don't use an internal power bank, put two jumpers horizontally across J3 to allow the power to bypass it.
 
 * Assemble the enclosure - drill and tap M3 holes in the aluminium, and screw the whole enclosure together. Make sure the magnet at the end of the jogwheel bolt is suspended directly above the rotary sensor IC.
