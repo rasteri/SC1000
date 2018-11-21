@@ -25,7 +25,7 @@ The folders are as follows :
 * **A13 System-on-Module** - Available from https://www.olimex.com/Products/SOM/A13/A13-SOM-256/, connects to the main PCB via 0.05" headers
 * **SD Card** - To hold the operating system. It only needs 200Mb so just get the smallest card you can find
 * **Enclosure parts** - The enclosure is made from PCBs and aluminium supports. Gerber files are in *./hardware/gerbers/Enclosure/*, aluminium supports are 20x10x156.8mm. I got mine from https://www.aluminiumwarehouse.co.uk/20-mm-x-10-mm-aluminium-flat-bar, they even cut it for me.
-* **Jogwheel parts** - M8 bearing/hex bolt/nuts/washers, diametrically polarized magnet from https://www.kjmagnetics.com/proddetail.asp?prod=D42DIA-N52
+* **Jogwheel parts** - The jogwheel itself is a PCB, available in *./hardware/gerbers/Jog Wheel/*. You'll also need M8 bearing/hex bolt/nuts/washers, and a diametrically polarized magnet from https://www.kjmagnetics.com/proddetail.asp?prod=D42DIA-N52
 * **Mini Innofader** - the OEM model (for example found in the innoFADER Mini DUO pack) is fine.
 
 
