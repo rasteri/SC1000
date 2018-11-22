@@ -414,7 +414,6 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	double r, pitch, target_volume, amountToDecay, target_pitch;
 	double diff;
 
-	int i = 0;
 	pitch = pl->pitch; // Original pitch for smoothing
 
 	pl->samplesSoFar += samples;
