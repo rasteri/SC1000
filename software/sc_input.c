@@ -55,6 +55,8 @@ void *SC_InputThread(void *ptr) {
 	unsigned int NumBeats, NumSamples;
 	struct Folder *FirstBeatFolder, *CurrentBeatFolder, *FirstSampleFolder, *CurrentSampleFolder;
 	struct File *CurrentBeatFile, *CurrentSampleFile;
+	unsigned char faderOpen = 0;
+	unsigned char faderCutPoint = 5; 
 
 	// Initialise PIC input processor on I2C2
 
@@ -142,12 +144,15 @@ void *SC_InputThread(void *ptr) {
 		capIsTouched = (result >> 4 & 0x01);
 
 		// Apply volume and fader
-
-		if (ADCs[0] > 5 && ADCs[1] > 5){		// cut on both sides of crossfader
+		
+		faderCutPoint = faderOpen ? 3 : 5; // Fader Hysteresis
+		
+		if (ADCs[0] > faderCutPoint && ADCs[1] > faderCutPoint){		// cut on both sides of crossfader
 			deck[1].player.faderTarget = ((double) ADCs[3]) / 1024;
 		}
 		else
 			deck[1].player.faderTarget = 0.0;
+	
 
 
 		deck[0].player.faderTarget = ((double) ADCs[2]) / 1024;
