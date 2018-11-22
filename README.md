@@ -79,4 +79,4 @@ Simply switch on SC1000 with a valid USB stick in, and after a few seconds it wi
 
 *Pressing* the **beat/sample down** button will select the next file in the current folder, and *holding* the button will skip to the next folder.
 
-Note that during power-on
+Note that you shouldn't touch the jog wheel while you are turning the device on - this is because the SC1000 does a short calibration routine. Leave it a few seconds before touching it.
