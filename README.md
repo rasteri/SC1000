@@ -31,20 +31,27 @@ The folders are as follows :
 
 ### Method ###
 
-* Order the Main and Enclosure PCBs, the components, the A13 SoM, and SD Card, and the Aluminium bar.
+* **Order** the Main and Enclosure PCBs, the components, the A13 SoM, and SD Card, and the Aluminium bar.
 
-* Assemble the Main PCB. I recommend assembling/testing the 3.3v power section first, so you don't blow all the other components. Don't connect the A13 module yet.
+* **Assemble the Main PCB.** I recommend assembling/testing the 3.3v power section first, so you don't blow all the other components. Don't connect the A13 module yet.
 
-* Flash the input processor with its firmware through connector J8. You will need a PIC programmer, such as the Microchip Pickit 3. The firmware hex file is [firmware/firmware.hex](./firmware/firmware.hex)
+* **Flash the input processor with its firmware** through connector J8. You will need a PIC programmer, such as the Microchip Pickit 3. The firmware hex file is [firmware/firmware.hex](./firmware/firmware.hex)
 
-* Transfer the operating system to the SD card. You will need an SD card interface, either USB or built-in to your PC. You can use dd on Linux/MacOS or Etcher on Windows to transfer the image. The image is [os/sdcard.img.gz](./os/sdcard.img.gz)
+* **Transfer the operating system to the SD card.** You will need an SD card interface, either USB or built-in to your PC. You can use dd on Linux/MacOS or Etcher on Windows to transfer the image. The image is [os/sdcard.img.gz](./os/sdcard.img.gz)
 
-* Insert the SD card in the A13 module, and attach the SoM to the main PCB. Make sure it's the correct way round - the SD card should be right beside the USB storage connector on the rear of the SC1000.
+* I**nsert the SD card in the A13 module, and attach the SoM to the main PCB.** Make sure it's the correct way round - the SD card should be right beside the USB storage connector on the rear of the SC1000.
 
-* Connect a USB power source, and power up the unit to test - the A13 module's green light should blink a few times before remaining on.
+* C**onnect a USB power source, and power up the unit to test** - the A13 module's green light should blink a few times before remaining on.
 
-* Assemble the jogwheel - glue the bearing into the hole in the top plate of the enclosure. Now glue the magnet to the tip of the M8 bolt. Attach the jogwheel to the bearing using the bolt/nut/washer. Solder a wire to the outside of the bearing to act as a capacitive touch sensor.
+* **Assemble the jogwheel** - glue the bearing into the hole in the top plate of the enclosure. Now glue the magnet to the tip of the M8 bolt. Attach the jogwheel to the bearing using the bolt/nut/washer. Solder a wire to the outside of the bearing to act as a capacitive touch sensor.
 
-* Connect the fader to J1, capacitive touch sensor to J4, and (optionally) a small internal USB power bank to J3. If you don't use an internal power bank, put two jumpers horizontally across J3 to allow the power to bypass it.
+* **Connect** the fader to J1, capacitive touch sensor to J4, and (optionally) a small internal USB power bank to J3. If you don't use an internal power bank, put two jumpers horizontally across J3 to allow the power to bypass it.
 
-* Assemble the enclosure - drill and tap M3 holes in the aluminium, and screw the whole enclosure together. Make sure the magnet at the end of the jogwheel bolt is suspended directly above the rotary sensor IC.
+* **Test** - copy some beats and samples to a USB stick, and see if they play. Check below for how to structure the folders on the USB stick.
+
+* **Assemble the enclosure** - drill and tap M3 holes in the aluminium, and screw the whole enclosure together. Make sure the magnet at the end of the jogwheel bolt is suspended directly above the rotary sensor IC.
+
+
+### USB Folder layout ###
+
+The SC1000 expects the USB stick to have two folders on it - beats and samples.
