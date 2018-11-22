@@ -51,7 +51,7 @@ struct Folder * LoadFileStructure(char *BaseFolderPath,
 	struct File* new_file;
 	struct Folder* new_folder;
 
-	char tempName[256];
+	char tempName[257];
 	unsigned int FilesCount = 0;
 
 	n = scandir(BaseFolderPath, &dirList, 0, alphasort);
@@ -71,7 +71,7 @@ struct Folder * LoadFileStructure(char *BaseFolderPath,
 				if (fileList[p]->d_name[0] != '.') {
 
 					new_file = (struct File*) malloc(sizeof(struct File));
-					sprintf(new_file->FullPath, "%s/%s", tempName,
+					snprintf(new_file->FullPath, 256, "%s/%s", tempName,
 							fileList[p]->d_name);
 
 					new_file->Index = FilesCount++;

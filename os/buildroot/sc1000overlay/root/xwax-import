@@ -1,0 +1,52 @@
+#!/bin/sh
+#
+# Audio import handler for xwax
+#
+# This script takes an output sample rate and filename as arguments,
+# and outputs signed, little-endian, 16-bit, 2 channel audio on
+# standard output. Errors to standard error.
+#
+# You can adjust this script yourself to customise the support for
+# different file formats and codecs.
+#
+
+FILE="$1"
+RATE="$2"
+
+case "$FILE" in
+
+*.cdaudio)
+	echo "Calling CD extract..." >&2
+	exec cdparanoia -r `cat "$FILE"` -
+	;;
+
+*.mp3)
+	echo "Calling MP3 decoder..." >&2
+	exec nice --1 mpg123 -q -s --rate "$RATE" --stereo "$FILE"
+	;;
+
+*.raw)
+	echo "Loading RAW file" >&2
+	exec cat "$FILE"
+	;;
+
+*.wav)
+	echo "Loading WAV file" >&2
+	exec dd if="$FILE" bs=1k skip=44
+	;;
+
+*)
+	echo "Calling fallback decoder..." >&2
+
+	FFMPEG=$(which ffmpeg 2> /dev/null || which avconv 2> /dev/null)
+
+	if [ -z "$FFMPEG" ]; then
+		echo "$0: no ffmpeg or avconv available to decode file" >&2
+		exit 1
+	fi
+
+	exec "$FFMPEG" -v 0 -i "$FILE" -f s16le -ar "$RATE" -
+	;;
+
+esac
+
