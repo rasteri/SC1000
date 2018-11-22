@@ -37,7 +37,7 @@ The folders are as follows :
 
 * Flash the input processor with its firmware through connector J8. You will need a PIC programmer, such as the Microchip Pickit 3. The firmware hex file is [firmware/firmware.hex](firmware/firmware.hex)
 
-* Transfer the operating system to the SD card. You will need an SD card interface, either USB or built-in to your PC. You can use dd on Linux/MacOS or Etcher on Windows to transfer the image. The image is [os/sdcard.img](os/sdcard.img)
+* Transfer the operating system to the SD card. You will need an SD card interface, either USB or built-in to your PC. You can use dd on Linux/MacOS or Etcher on Windows to transfer the image. The image is [os/sdcard.img](./os/sdcard.img)
 
 * Insert the SD card in the A13 module, and attach the SoM to the main PCB. Make sure it's the correct way round - the SD card should be right beside the USB storage connector on the rear of the SC1000.
 
