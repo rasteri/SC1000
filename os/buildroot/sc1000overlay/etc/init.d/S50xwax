@@ -1,0 +1,31 @@
+#! /bin/sh
+# Init script to mount USB stick and start xwax
+
+case "$1" in
+	start|"")
+		if [ "$VERBOSE" != no ]
+		then
+			printf "Starting XWAX for SC1000... "
+		fi
+		alsactl -f /etc/asound.state restore
+		sleep 2
+		mkdir /media/sda
+		mount /dev/sda1 /media/sda
+
+		# Start xwax from USB stick if possible, otherwise run local copy
+		if [ -f /media/sda/xwax ]; then
+			/media/sda/xwax &
+		else
+			/usr/bin/xwax &
+		fi
+
+		[ "$VERBOSE" != no ] && echo "done."
+		;;
+	stop)
+		killall xwax
+		;;
+	*)
+		echo "Usage: xwax {start|stop}" >&2
+		exit 1
+		;;
+esac

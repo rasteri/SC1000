@@ -2,10 +2,10 @@ build
 debug
 dist
 TAGS
-xwax
+software/xwax
 mktimecode
-*.o
-*.d
+software/*.o
+software/*.d
 .config
 .version
 dist
