@@ -3,9 +3,11 @@
 
 This github holds source code and CAM files for the SC1000.
 
-The SC1000 is a portable digital scratch instrument. It requires no computer, tablet or phone, and loads samples and beats from a USB stick. At less than the size of three stacked DVD cases, it’s probably the smallest integrated portablist solution ever. Despite this, the software and hardware have been carefully tuned and optimised for turntablism, and it’s responsive enough for even the most complex scratch patterns.
+The SC1000 is a portable digital scratch instrument which loads samples and beats from a USB stick. At less than the size of three stacked DVD cases, it’s probably the smallest integrated portablist solution ever. Despite this, the software and hardware have been carefully tuned and optimised, and it’s responsive enough for even the most complex scratch patterns.
 
 The device, including its enclosure, uses no custom parts apart from printed circuit boards. It will be possible for anyone with a bit of electronics know-how to build one, and I hope other makers in the portablist scene will be interested in manufacturing some.
+
+If you want to support development of the SC1000, please visit https://www.patreon.com/rasteri
 
 Demo video : 
 
