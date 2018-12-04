@@ -21,7 +21,7 @@ unsigned int index_i2c = 0; // used as an index pointer in array
 unsigned char junk = 0; // used to place unnecessary data
 unsigned char first = 1; // used to determine whether data address 
 
-unsigned char STATUSDATA[] = {0, 0, 0, 0, 0, 0};
+volatile unsigned char STATUSDATA[] = {0, 0, 0, 0, 0, 0};
 
 void interrupt ISR(void) {
     if (SSPIF) // check to see if SSP interrupt
