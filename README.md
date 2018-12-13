@@ -86,3 +86,23 @@ Simply switch on SC1000 with a valid USB stick in, and after a few seconds it wi
 *Pressing* the **beat/sample down** button will select the next file in the current folder, and *holding* the button will skip to the next folder.
 
 Note that you shouldn't touch the jog wheel while you are turning the device on - this is because the SC1000 does a short calibration routine. Leave it a few seconds before touching it.
+
+
+## License ##
+
+Copyright (C) 2018 Andrew Tait <rasteri@gmail.com>
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+version 2, as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License version 2 for more details.
+
+You should have received a copy of the GNU General Public License
+version 2 along with this program; if not, write to the Free
+Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+MA 02110-1301, USA.
+
