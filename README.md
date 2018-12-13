@@ -18,6 +18,10 @@ The folders are as follows :
 * **Hardware** - Schematics and gerbers for the main PCB and enclosure (which is made of PCBs)
 
 
+## Tech Info ##
+
+The device is based around the Olimex A13-SOM-256 system-on-module, which in turn uses an Allwinner A13 ARM Cortex A8 SoC. The sensing of the scratch wheel is handled by an Austria Microsystems AS5601 magnetic rotary sensor, and the other inputs are processed via a Microchip PIC18LF14K22 MCU. The whole unit is powered via USB, and optionally includes the ability to fit a power bank inside the enclosure.
+
 
 ## Build guide : 
 
