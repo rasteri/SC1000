@@ -9,9 +9,7 @@ The device, including its enclosure, uses no custom parts apart from printed cir
 
 If you want to support development of the SC1000, please visit https://www.patreon.com/rasteri
 
-Demo video : 
-
-[![Demo Video](https://img.youtube.com/vi/JTFGoQHsh3w/0.jpg)](https://www.youtube.com/watch?v=JTFGoQHsh3w)
+[![Demo Video](https://img.youtube.com/vi/ReuCnZciOf4/0.jpg)](https://www.youtube.com/watch?v=ReuCnZciOf4)
 
 The folders are as follows : 
 * **Firmware** - Source code for the input processor. This handles the pots, switches and capacitive touch sensor, and passes the information on to the main processor.
@@ -21,7 +19,11 @@ The folders are as follows :
 
 
 
-## (very) Brief build guide : 
+## Build guide : 
+
+### Assembly video ###
+
+A video covering most of this information can be found at https://www.youtube.com/watch?v=t1wy7IFSynY
 
 
 ### Ingredients
