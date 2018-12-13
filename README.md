@@ -7,6 +7,8 @@ The SC1000 is a portable digital scratch instrument which loads samples and beat
 
 The device, including its enclosure, uses no custom parts apart from printed circuit boards. It will be possible for anyone with a bit of electronics know-how to build one, and I hope other makers in the portablist scene will be interested in manufacturing some.
 
+The build tutorial video can be found here : https://www.youtube.com/watch?v=t1wy7IFSynY
+
 If you want to support development of the SC1000, please visit https://www.patreon.com/rasteri
 
 [![Demo Video](https://img.youtube.com/vi/ReuCnZciOf4/0.jpg)](https://www.youtube.com/watch?v=ReuCnZciOf4)
