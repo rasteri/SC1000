@@ -38,8 +38,8 @@ A video covering most of this information can be found at https://www.youtube.co
 * **Components** - Bill of Materials is in [hardware/docs/SC1000 - Bill Of Materials.pdf](./hardware/docs/SC1000%20-%20Bill%20Of%20Materials.pdf) and can be ordered from Mouser
 * **A13 System-on-Module** - Available from https://www.olimex.com/Products/SOM/A13/A13-SOM-256/, connects to the main PCB via 0.05" headers
 * **SD Card** - To hold the operating system. It only needs 200Mb so just get the smallest card you can find
-* **Enclosure parts** - The enclosure is made from PCBs and aluminium supports. Gerber files are in *./hardware/gerbers/Enclosure/*, aluminium supports are 20x10x156.8mm. I got mine from https://www.aluminiumwarehouse.co.uk/20-mm-x-10-mm-aluminium-flat-bar, they even cut it for me.
-* **Jogwheel parts** - The jogwheel itself is a PCB, available in [hardware/gerbers/Jog Wheel](./hardware/gerbers/Jog%20Wheel). You'll also need M8 bearing/hex bolt/nuts/washers, and a diametrically polarized magnet from https://www.kjmagnetics.com/proddetail.asp?prod=D42DIA-N52. The bearing I used is available at https://uk.rs-online.com/web/p/ball-bearings/6189957/
+* **Enclosure parts** - The enclosure is made from PCBs and aluminium supports. Gerber files are in *./hardware/gerbers/Enclosure/*, aluminium supports are 20x10x156.8mm. The front and rear plates should be 1mm thick, the rest should be 1.6mm. I got mine from https://www.aluminiumwarehouse.co.uk/20-mm-x-10-mm-aluminium-flat-bar, they even cut it for me.
+* **Jogwheel parts** - The jogwheel itself is a gold-plated PCB, available in [hardware/gerbers/Jog Wheel](./hardware/gerbers/Jog%20Wheel). Mine is made from 0.6mm thick board, you can choose the thickness you prefer. You'll also need M8 bearing/hex bolt/nuts/washers, and a diametrically polarized magnet from https://www.kjmagnetics.com/proddetail.asp?prod=D42DIA-N52. The bearing I used is available at https://uk.rs-online.com/web/p/ball-bearings/6189957/
 * **Mini innoFADER** - the OEM model (for example found in the innoFADER Mini DUO pack) is fine, but a Mini innoFADER Plus has  better performance
 
 
@@ -53,9 +53,9 @@ A video covering most of this information can be found at https://www.youtube.co
 
 * **Transfer the operating system to the SD card.** You will need an SD card interface, either USB or built-in to your PC. You can use dd on Linux/MacOS or Etcher on Windows to transfer the image. The image is [os/sdcard.img.gz](./os/sdcard.img.gz)
 
-* I**nsert the SD card in the A13 module, and attach the SoM to the main PCB.** Make sure it's the correct way round - the SD card should be right beside the USB storage connector on the rear of the SC1000.
+* **Insert the SD card in the A13 module, and attach the SoM to the main PCB.** Make sure it's the correct way round - the SD card should be right beside the USB storage connector on the rear of the SC1000.
 
-* C**onnect a USB power source, and power up the unit to test** - the A13 module's green light should blink a few times before remaining on.
+* **Connect a USB power source, and power up the unit to test** - the A13 module's green light should blink a few times before remaining on.
 
 * **Assemble the jogwheel** - glue the bearing into the hole in the top plate of the enclosure. Now glue the magnet to the tip of the M8 bolt. Attach the jogwheel to the bearing using the bolt/nut/washer. Solder a wire to the outside of the bearing to act as a capacitive touch sensor.
 
