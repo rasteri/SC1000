@@ -6,7 +6,7 @@
 |---------------|-----|--------------|--------------------------|-------------|---------|------|--------------------|
 | C1 | 1 | Taiyo Yuden | UMK316AB7475KL-T | Capacitor Ceramic 1206 4.7uF 16V X7R | 1206 | SMD | 963-UMK316AB7475KL-T |
 | C2 | 1 | TDK | C3216X7R1C106M160AC | Capacitor Ceramic 1206 10uF 10v X7R | 1206 | SMD | 810-C3216X7R1C106M |
-| C3, C6, C7, C8 | 4 | Wurth Electronics | 8,85012E+11 | Capacitor Ceramic 1206 0.1uF 10v X7R | 1206 | SMD | 710-885012208058 |
+| C3, C6, C7, C8 | 4 | Wurth Electronics | 885012208058 | Capacitor Ceramic 1206 0.1uF 10v X7R | 1206 | SMD | 710-885012208058 |
 | J1 | 1 | Amphenol FCI | 861400041LO1705LF | Connector Header 4x1 2.54mm RA | TH4X1 | THRU-HOLE | 649-86140041LO1705LF |
 | J2 | 1 | Molex | 48204-0001 | Connector USB Type A | 48204-0001 | THRU-HOLE | 538-48204-0001 |
 | J3 | 1 | Amphenol FCI | 68021-404HLF | Connector Header 2x2 2.54mm RA | TH2X2 | THRU-HOLE | 649-68021-404HLF |
