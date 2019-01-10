@@ -13,7 +13,7 @@ If you want to support development of the SC1000, please visit https://www.patre
 
 [![Demo Video](https://img.youtube.com/vi/ReuCnZciOf4/0.jpg)](https://www.youtube.com/watch?v=ReuCnZciOf4)
 
-The folders are as follows : 
+The folders are as follows :
 * **Firmware** - Source code for the input processor. This handles the pots, switches and capacitive touch sensor, and passes the information on to the main processor.
 * **OS** - SD card images and buildroot configs for the operating system that runs on the main processor.
 * **Software** - Source code for the modified version of xwax running on the main SoC.
@@ -25,7 +25,7 @@ The folders are as follows :
 The device is based around the Olimex A13-SOM-256 system-on-module, which in turn uses an Allwinner A13 ARM Cortex A8 SoC. The sensing of the scratch wheel is handled by an Austria Microsystems AS5601 magnetic rotary sensor, and the other inputs are processed via a Microchip PIC18LF14K22 MCU. The whole unit is powered via USB, and optionally includes the ability to fit a power bank inside the enclosure.
 
 
-## Build guide : 
+## Build guide :
 
 ### Assembly video ###
 
@@ -35,7 +35,7 @@ A video covering most of this information can be found at https://www.youtube.co
 ### Ingredients
 
 * **Main PCB and components** - Board files are in [hardware/gerbers/Main PCB](./hardware/gerbers/Main%20PCB) and can be ordered from somewhere like https://jlcpcb.com/
-* **Components** - Bill of Materials is in [hardware/docs/SC1000 - Bill Of Materials.xlsx](./hardware/docs/SC1000%20-%20Bill%20Of%20Materials.xlsx) and can be ordered from Mouser
+* **Components** - Bill of Materials is in [hardware/docs/SC1000 - Bill Of Materials.md](./hardware/docs/SC1000%20-%20Bill%20Of%20Materials.md) and can be ordered from Mouser
 * **A13 System-on-Module** - Available from https://www.olimex.com/Products/SOM/A13/A13-SOM-256/, connects to the main PCB via 0.05" headers
 * **SD Card** - To hold the operating system. It only needs 200Mb so just get the smallest card you can find
 * **Enclosure parts** - The enclosure is made from PCBs and aluminium supports. Gerber files are in *./hardware/gerbers/Enclosure/*, aluminium supports are 20x10x156.8mm. The front and rear plates should be 1mm thick, the rest should be 1.6mm. I got mine from https://www.aluminiumwarehouse.co.uk/20-mm-x-10-mm-aluminium-flat-bar, they even cut it for me.
@@ -70,7 +70,7 @@ A video covering most of this information can be found at https://www.youtube.co
 
 The SC1000 expects the USB stick to have two folders on it - **beats** and **samples**. Note that the names of these folders *must* be in all-lowercase letters.
 
-The beats and samples folders should in turn contain a number of subfolders, to organise your files into albums. Each of these subfolders should contain a number of audio files, in **mp3** or **wav** format. For example, you might have a folder layout like : 
+The beats and samples folders should in turn contain a number of subfolders, to organise your files into albums. Each of these subfolders should contain a number of audio files, in **mp3** or **wav** format. For example, you might have a folder layout like :
 
 * beats/Deluxe Shampoo Breaks/beat1.mp3
 * beats/Deluxe Shampoo Breaks/beat2.mp3
