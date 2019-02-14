@@ -85,7 +85,7 @@ static int add_deck(struct controller *c, struct deck *k)
 
 static void event(struct dicer *d)
 {
-	//	printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
+		printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
 	struct mapping *map = find_MIDI_mapping(maps, d->MidiBuffer, shifted ? 3 : 1);
 	unsigned int pval;
 	IOevent(map, d->MidiBuffer);
