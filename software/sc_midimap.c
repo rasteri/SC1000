@@ -57,7 +57,7 @@ void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Pullup, bool 
 	
 }
 
-void add_GPIO_mapping(struct mapping **maps, unsigned char port, unsigned char Pin, bool Pullup, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param){
+void add_GPIO_mapping(struct mapping **maps, unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param){
 	struct mapping *new_map = (struct mapping*) malloc(sizeof(struct mapping));
 	new_map->Pin = Pin;
 	new_map->port = port;
@@ -127,7 +127,7 @@ struct mapping *find_IO_mapping(struct mapping *maps, unsigned char pin, bool ed
 }
 
 // Find a mapping from a GPIO event
-struct mapping *find_GPIO_mapping(struct mapping *maps, unsigned char port, unsigned char pin, bool edge){
+struct mapping *find_GPIO_mapping(struct mapping *maps, unsigned char port, unsigned char pin, char edge){
 	
 	struct mapping *last_map = maps;
 	

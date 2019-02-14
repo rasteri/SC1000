@@ -59,7 +59,7 @@ struct mapping {
 	// IO event info
 	unsigned char Pin; // IO Pin Number
 	bool Pullup; // Whether or not to pull the pin up
-	bool Edge; // Edge (1 for unpressed-to-pressed)
+	char Edge; // Edge (1 for unpressed-to-pressed)
 
 	// GPIO event info
 	unsigned char port; // GPIO port number
@@ -76,8 +76,8 @@ struct mapping {
 
 void add_MIDI_mapping(struct mapping **maps, unsigned char buf[3], unsigned char DeckNo, unsigned char Action, unsigned char Param);
 void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Pullup, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param);
-void add_GPIO_mapping(struct mapping **maps, unsigned char port, unsigned char Pin, bool Pullup, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param);
+void add_GPIO_mapping(struct mapping **maps, unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param);
 struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3]);
 struct mapping *find_IO_mapping(struct mapping *maps, unsigned char pin, bool edge);
-struct mapping *find_GPIO_mapping(struct mapping *maps, unsigned char port, unsigned char pin, bool edge);
+struct mapping *find_GPIO_mapping(struct mapping *maps, unsigned char port, unsigned char pin, char edge);
 #endif

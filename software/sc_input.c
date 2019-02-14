@@ -110,7 +110,7 @@ static void IOevent(struct mapping *map)
 
 	if (map != NULL)
 	{
-		printf("Map notnull %d %d %d\n", map->DeckNo, map->Action, map->Param);
+		printf("Map notnull deck:%d edge:%d pin:%d action:%d param:%d\n", map->DeckNo, map->Edge, map->Pin, map->Action, map->Param);
 
 		if (map->Action == ACTION_CUE)
 		{

@@ -1,4 +1,4 @@
-######################
+#######################
 # SC1000 config file #
 ######################
 # Any lines beginning with # are ignored
@@ -63,17 +63,22 @@ mididelay=5
 # CHx_NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
 # CHx_GND - make the pin an output and set it low - used to provide additional ground connections (ignores x)
 
-gpio=2,6,1,1,CH1_NEXTFILE
+gpio=2,6,1,1,CH1_PREVFILE
+gpio=2,6,1,2,CH1_PREVFOLDER
 gpio=2,5,1,1,CH1_STARTSTOP
 gpio=2,7,1,1,CH1_NEXTFILE
+gpio=2,7,1,2,CH1_NEXTFOLDER
 gpio=2,8,1,1,CH1_SHIFTON
 gpio=2,8,1,0,CH1_SHIFTOFF
 gpio=2,9,1,1,CH1_CUE
 gpio=2,11,1,1,CH1_CUE
 gpio=2,1,1,1,CH1_CUE
 gpio=2,19,1,1,CH0_PREVFILE
+gpio=2,19,1,2,CH0_PREVFOLDER
 gpio=4,4,1,1,CH0_STARTSTOP
 gpio=4,5,1,1,CH0_NEXTFILE
+gpio=4,5,1,2,CH0_NEXTFOLDER
+
 
 ###########################
 # External I/O Mapping    #
