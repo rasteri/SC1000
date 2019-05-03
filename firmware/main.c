@@ -40,9 +40,9 @@ unsigned int index_i2c = 0; // used as an index pointer in array
 unsigned char junk = 0; // used to place unnecessary data
 unsigned char first = 1; // used to determine whether data address 
 
-volatile unsigned char STATUSDATA[] = {0, 0, 0, 0, 0, 0};
+volatile unsigned char STATUSDATA[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
-void interrupt ISR(void) {
+void __interrupt () ISR(void) {
     if (SSPIF) // check to see if SSP interrupt
     {
         if (SSPSTATbits.R_nW) { // Master read (R_nW = 1)
@@ -214,6 +214,8 @@ void main(void) {
 
         // Digital I/Os and capsense
         STATUSDATA[5] = (unsigned char) ((PORTBbits.RB7) | (PORTCbits.RC7 << 1) | (PORTCbits.RC4 << 2) | (PORTCbits.RC5 << 3) | touchState << 4);
+        STATUSDATA[6] = (unsigned char) (tmp5 & 0xFF);
+        STATUSDATA[7] = (unsigned char) ((tmp5 & 0x300) >> 8);
         //STATUSDATA[5] = tmp5 >> 2;
     }
 }
