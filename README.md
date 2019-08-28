@@ -45,7 +45,7 @@ A video covering most of this information can be found at https://www.youtube.co
 
 ### Method ###
 
-* **Order** the Main and Enclosure PCBs, the components, the A13 SoM, and SD Card, and the Aluminium bar.
+* **Order** the Main and Enclosure PCBs, the components, the A13 SoM, and SD Card, and the Aluminium bar. I recommend using ENIG coating for the Jogwheel as you don't really want to be touching solder all day.
 
 * **Assemble the Main PCB.** I recommend assembling/testing the 3.3v power section first, so you don't blow all the other components. Don't connect the A13 module yet.
 
