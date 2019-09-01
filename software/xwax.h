@@ -25,4 +25,31 @@
 extern size_t ndeck;
 extern struct deck deck[];
 
+
+typedef struct SC_SETTINGS {
+
+    // output buffer size, probably 256
+    int buffersize;
+
+    // sample rate, probably 48000
+    int samplerate;
+
+    // fader thresholds for hysteresis
+    int faderopenpoint; // value required to open the fader (when fader is closed)
+    int faderclosepoint; // value required to close the fader (when fader is open)
+
+    // delay between iterations of the input loop
+    int updaterate;
+
+    // 1 when enabled, 0 when not
+    int platterenabled;
+
+    // specifies the ratio of platter movement to sample movement
+    // 4096 = 1 second for every platter rotation
+    // Default 3072 = 1.33 seconds for every platter rotation
+    int platterspeed;
+
+} SC_SETTINGS;
+
+extern SC_SETTINGS scsettings;
 #endif

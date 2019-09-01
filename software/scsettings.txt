@@ -1,0 +1,29 @@
+# SC1000 config file
+
+# Output buffer size, default 256
+buffersize=1024
+
+# Sample Rate, default 48000
+samplerate=48000
+
+
+# Fader thresholds for hysteresis
+
+# Value required to open the fader when it's closed
+faderopenpoint=5
+
+# Value required to close the fader when it's opened
+faderclosepoint=3
+
+
+# Delay between iterations of the input loop, default 1000
+updaterate=1000
+
+# 0 to disable platter, default 1 (enabled)
+platterenabled=1
+
+# Ratio of platter movement to sample movement
+# 4096 = 1 second for every platter rotation
+# 3072 = equivalent to 45rpm record (default)
+# 2275 = equivalent to 33rpm
+platterspeed=3072

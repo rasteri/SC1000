@@ -25,13 +25,14 @@
 #include <unistd.h>
 #include <sys/mman.h> /* mlockall() */
 
-#include <unistd.h>                     //Needed for I2C port
-#include <fcntl.h>                      //Needed for I2C port
-#include <sys/ioctl.h>                  //Needed for I2C port
-#include <linux/i2c-dev.h>              //Needed for I2C port
+#include <unistd.h>		   //Needed for I2C port
+#include <fcntl.h>		   //Needed for I2C port
+#include <sys/ioctl.h>	 //Needed for I2C port
+#include <linux/i2c-dev.h> //Needed for I2C port
 #include <time.h>
 #include <dirent.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "alsa.h"
 #include "controller.h"
@@ -46,92 +47,157 @@
 
 #define DEFAULT_IMPORTER EXECDIR "/xwax-import"
 
-
 struct deck deck[2];
 
 static struct rt rt;
 
 static const char *importer;
 
-int main(int argc, char *argv[]) {
-	
+SC_SETTINGS scsettings;
+
+void loadSettings()
+{
+	FILE *fp;
+	char *line = NULL;
+	size_t len = 0;
+	ssize_t read;
+	char *param;
+	char *value;
+	char delim[] = "=";
+
+	// set defaults
+	scsettings.buffersize = 256;
+	scsettings.faderclosepoint = 2;
+	scsettings.faderopenpoint = 5;
+	scsettings.platterenabled = 1;
+	scsettings.platterspeed = 3072;
+	scsettings.samplerate = 48000;
+	scsettings.updaterate = 1000;
+
+	// Load any settings from config file
+	fp = fopen("scsettings.txt", "r");
+	if (fp == NULL)
+		exit(1);
+
+	while ((read = getline(&line, &len, fp)) != -1)
+	{
+		if (strlen(line) < 2 || line[0] == '#')
+		{ // Comment or blank line
+		}
+		else
+		{
+			param = strtok(line, delim);
+			value = strtok(NULL, delim);
+
+			if (strcmp(param, "buffersize") == 0)
+				scsettings.buffersize = atoi(value);
+			else if (strcmp(param, "faderclosepoint") == 0)
+				scsettings.faderclosepoint = atoi(value);
+			else if (strcmp(param, "faderopenpoint") == 0)
+				scsettings.faderopenpoint = atoi(value);
+			else if (strcmp(param, "platterenabled") == 0)
+				scsettings.platterenabled = atoi(value);
+			else if (strcmp(param, "platterspeed") == 0)
+				scsettings.platterspeed = atoi(value);
+			else if (strcmp(param, "samplerate") == 0)
+				scsettings.samplerate = atoi(value);
+			else if (strcmp(param, "updaterate") == 0)
+				scsettings.updaterate = atoi(value);
+		}
+	}
+
+	printf("bs %d, fcp %d, fop %d, pe %d, ps %d, sr %d, ur %d\n",
+		   scsettings.buffersize,
+		   scsettings.faderclosepoint,
+		   scsettings.faderopenpoint,
+		   scsettings.platterenabled,
+		   scsettings.platterspeed,
+		   scsettings.samplerate,
+		   scsettings.updaterate);
+
+	fclose(fp);
+	if (line)
+		free(line);
+}
+
+int main(int argc, char *argv[])
+{
+
 	int rc = -1, priority;
 	bool use_mlock;
-	
+
 	int alsa_buffer;
 	int rate;
 
-	if (setlocale(LC_ALL, "") == NULL) {
+	if (setlocale(LC_ALL, "") == NULL)
+	{
 		fprintf(stderr, "Could not honour the local encoding\n");
 		return -1;
 	}
-   	if (thread_global_init() == -1)
-        	return -1;
+	if (thread_global_init() == -1)
+		return -1;
 	if (rig_init() == -1)
 		return -1;
 	rt_init(&rt);
 
-	
 	importer = DEFAULT_IMPORTER;
 	use_mlock = false;
 
+	loadSettings();
 
 	// Create two decks, both pointed at the same audio device
-	
-	alsa_buffer = 1;
+
+	alsa_buffer = 2;
 	rate = 48000;
 
-	alsa_init(&deck[0].device, "plughw:0,0", rate, alsa_buffer, 0);
-	alsa_init(&deck[1].device, "plughw:0,0", rate, alsa_buffer, 1);
+	alsa_init(&deck[0].device, "plughw:0,0", rate, scsettings.buffersize, 0);
+	alsa_init(&deck[1].device, "plughw:0,0", rate, scsettings.buffersize, 1);
 
 	deck_init(&deck[0], &rt, importer, 1.0, false, false, 0);
 	deck_init(&deck[1], &rt, importer, 1.0, false, false, 1);
-	
-	
+
 	// point deck1's output at deck0, it will be summed in
 
 	deck[0].device.player2 = deck[1].device.player;
-	
-	
+
 	// Tell deck0 to just play without considering inputs
-	
+
 	deck[0].player.justPlay = 1;
 
 	alsa_clear_config_cache();
 
 	rc = EXIT_FAILURE; /* until clean exit */
-	
-	
+
 	// Start input processing thread
-	
+
 	SC_Input_Start();
 
+	// Start realtime stuff
 
-	// Start realtime stuff 
-	
 	priority = 0;
-	
+
 	if (rt_start(&rt, priority) == -1)
 		return -1;
 
-	if (use_mlock && mlockall(MCL_CURRENT) == -1) {
+	if (use_mlock && mlockall(MCL_CURRENT) == -1)
+	{
 		perror("mlockall");
 		goto out_rt;
 	}
 
-	
 	// Main loop
-	
+
 	if (rig_main() == -1)
 		goto out_interface;
-	
-	
+
 	// Exit
 
 	rc = EXIT_SUCCESS;
 	fprintf(stderr, "Exiting cleanly...\n");
 
-	out_interface: out_rt: rt_stop(&rt);
+out_interface:
+out_rt:
+	rt_stop(&rt);
 
 	deck_clear(&deck[0]);
 	deck_clear(&deck[1]);

@@ -23,7 +23,7 @@
 #include "device.h"
 
 int alsa_init(struct device *dv, const char *name,
-              int rate, int buffer_time, bool slave);
+              int rate, int buffer_size, bool slave);
 
 void alsa_clear_config_cache(void);
 

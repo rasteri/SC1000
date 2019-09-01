@@ -66,7 +66,7 @@ static bool chk(const char *s, int r)
 
 
 static int pcm_open(struct alsa_pcm *alsa, const char *device_name,
-                    snd_pcm_stream_t stream, int rate, int buffer_time)
+                    snd_pcm_stream_t stream, int rate, int buffer_size)
 {
     int r, dir;
     unsigned int p;
@@ -120,7 +120,7 @@ static int pcm_open(struct alsa_pcm *alsa, const char *device_name,
     }*/
 
 
-    if (snd_pcm_hw_params_set_buffer_size(alsa->pcm, hw_params, 256) < 0) {        
+    if (snd_pcm_hw_params_set_buffer_size(alsa->pcm, hw_params, buffer_size) < 0) {        
 	fprintf(stderr, "Error setting buffersize.\n");
         return(-1);
     }
@@ -129,8 +129,7 @@ static int pcm_open(struct alsa_pcm *alsa, const char *device_name,
     dir = 1;
     r = snd_pcm_hw_params_set_periods_min(alsa->pcm, hw_params, &p, &dir);
     if (!chk("hw_params_set_periods_min", r)) {
-        fprintf(stderr, "Buffer of %dms may be too small for this hardware.\n",
-                buffer_time);
+        fprintf(stderr, "Buffer may be too small for this hardware.\n");
         return -1;
     }
 
@@ -359,7 +358,7 @@ static struct device_ops alsa_ops = {
 /* Open ALSA device. Do not operate on audio until device_start() */
 
 int alsa_init(struct device *dv, const char *device_name,
-              int rate, int buffer_time, bool slave)
+              int rate, int buffer_size, bool slave)
 {
     struct alsa *alsa;
 
@@ -371,7 +370,7 @@ int alsa_init(struct device *dv, const char *device_name,
 
     if (!slave){
 		if (pcm_open(&alsa->playback, device_name, SND_PCM_STREAM_PLAYBACK,
-					rate, buffer_time) < 0)
+					rate, buffer_size) < 0)
 		{
 			fputs("Failed to open device for playback.\n", stderr);
 			goto fail_capture;
