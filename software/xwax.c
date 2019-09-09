@@ -165,6 +165,7 @@ int main(int argc, char *argv[])
 	deck[0].player.justPlay = 1;
 
 	// Stop deck1 from looping
+	deck[0].player.looping = 1;
 	deck[1].player.looping = 0;
 
 	alsa_clear_config_cache();

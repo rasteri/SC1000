@@ -15,7 +15,7 @@
 # MA 02110-1301, USA.
 #
 
-#CC=/root/buildroot-2018.08/output/host/usr/bin/arm-linux-gcc
+CC=/root/buildroot-2018.08.4/output/host/usr/bin/arm-linux-gcc
 
 # Libraries and dependencies
 
