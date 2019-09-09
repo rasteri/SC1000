@@ -422,12 +422,12 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 
 	if (pl->justPlay == 1 || pl->capTouch == 0){
 		
-		if (pl->pitch < 0.95)
+		if (pl->pitch < pl->nominal_pitch - 0.05)
 			pl->pitch += (double)samples / 5000; // allow lazers/phasers
-		if (pl->pitch > 1.05)
+		if (pl->pitch > pl->nominal_pitch + 0.05)
 			pl->pitch -= (double)samples / 5000; // allow lazers/phasers
-		if (pl->pitch > 0.95 && pl->pitch < 1.05)
-			pl->pitch = 1.0;
+		if (pl->pitch > pl->nominal_pitch - 0.05 && pl->pitch < pl->nominal_pitch + 0.05)
+			pl->pitch = pl->nominal_pitch;
 	}
 	else {
 		diff = pl->position - pl->target_position;

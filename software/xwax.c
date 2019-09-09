@@ -44,6 +44,7 @@
 #include "track.h"
 #include "xwax.h"
 #include "sc_input.h"
+#include "dicer.h"
 
 #define DEFAULT_IMPORTER EXECDIR "/xwax-import"
 
@@ -54,6 +55,8 @@ static struct rt rt;
 static const char *importer;
 
 SC_SETTINGS scsettings;
+
+static struct controller midiController;
 
 void loadSettings()
 {
@@ -66,7 +69,7 @@ void loadSettings()
 	char delim[] = "=";
 
 	// set defaults
-	scsettings.buffersize = 256;
+	scsettings.buffersize = 512;
 	scsettings.faderclosepoint = 2;
 	scsettings.faderopenpoint = 5;
 	scsettings.platterenabled = 1;
@@ -77,32 +80,36 @@ void loadSettings()
 	// Load any settings from config file
 	fp = fopen("/media/sda/scsettings.txt", "r");
 	if (fp == NULL)
-		exit(1);
-
-	while ((read = getline(&line, &len, fp)) != -1)
 	{
-		if (strlen(line) < 2 || line[0] == '#')
-		{ // Comment or blank line
-		}
-		else
+		// couldn't open settings
+	}
+	else
+	{
+		while ((read = getline(&line, &len, fp)) != -1)
 		{
-			param = strtok(line, delim);
-			value = strtok(NULL, delim);
+			if (strlen(line) < 2 || line[0] == '#')
+			{ // Comment or blank line
+			}
+			else
+			{
+				param = strtok(line, delim);
+				value = strtok(NULL, delim);
 
-			if (strcmp(param, "buffersize") == 0)
-				scsettings.buffersize = atoi(value);
-			else if (strcmp(param, "faderclosepoint") == 0)
-				scsettings.faderclosepoint = atoi(value);
-			else if (strcmp(param, "faderopenpoint") == 0)
-				scsettings.faderopenpoint = atoi(value);
-			else if (strcmp(param, "platterenabled") == 0)
-				scsettings.platterenabled = atoi(value);
-			else if (strcmp(param, "platterspeed") == 0)
-				scsettings.platterspeed = atoi(value);
-			else if (strcmp(param, "samplerate") == 0)
-				scsettings.samplerate = atoi(value);
-			else if (strcmp(param, "updaterate") == 0)
-				scsettings.updaterate = atoi(value);
+				if (strcmp(param, "buffersize") == 0)
+					scsettings.buffersize = atoi(value);
+				else if (strcmp(param, "faderclosepoint") == 0)
+					scsettings.faderclosepoint = atoi(value);
+				else if (strcmp(param, "faderopenpoint") == 0)
+					scsettings.faderopenpoint = atoi(value);
+				else if (strcmp(param, "platterenabled") == 0)
+					scsettings.platterenabled = atoi(value);
+				else if (strcmp(param, "platterspeed") == 0)
+					scsettings.platterspeed = atoi(value);
+				else if (strcmp(param, "samplerate") == 0)
+					scsettings.samplerate = atoi(value);
+				else if (strcmp(param, "updaterate") == 0)
+					scsettings.updaterate = atoi(value);
+			}
 		}
 	}
 
@@ -115,7 +122,8 @@ void loadSettings()
 		   scsettings.samplerate,
 		   scsettings.updaterate);
 
-	fclose(fp);
+	if (fp)
+		fclose(fp);
 	if (line)
 		free(line);
 }
@@ -175,6 +183,11 @@ int main(int argc, char *argv[])
 	// Start input processing thread
 
 	SC_Input_Start();
+
+	if (dicer_init(&midiController, &rt, "hw:1,0,0") == -1)
+		return -1;
+
+	controller_add_deck(&midiController, &deck[1]);
 
 	// Start realtime stuff
 

@@ -44,7 +44,8 @@ long samplesSoFar;
         last_difference, /* last known position minus target_position */
         pitch, /* from timecoder */
         sync_pitch, /* pitch required to sync to timecode signal */
-        volume;
+        volume,
+        nominal_pitch; // Pitch after any note/pitch fader changes
 
     /* Timecode control */
 
