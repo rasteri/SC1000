@@ -57,6 +57,7 @@ long samplesSoFar;
 	bool capTouch;
 	
 	bool GoodToGo;
+	bool looping;
 };
 
 void player_init(struct player *pl, unsigned int sample_rate,

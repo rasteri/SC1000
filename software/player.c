@@ -106,7 +106,7 @@ static double dither(void) {
 
 static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 		struct track *tr, double position, double pitch, double end_pitch, double start_vol,
-		double end_vol) {
+		double end_vol, bool looping) {
 	int s;
 	double sample, step, vol, gradient, pitchGradient;
 
@@ -165,7 +165,7 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 		sample += step;
 
 		// Loop when track gets to end
-		if (sample > tr->length)
+		if (sample > tr->length && looping)
 			sample = 0;
 		vol += gradient;
 		pitch += pitchGradient;
@@ -462,7 +462,7 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	} else {
 
 		r = build_pcm(pcm, samples, pl->sample_dt, pl->track,
-				pl->position - pl->offset, pitch, target_pitch, pl->volume, target_volume);
+				pl->position - pl->offset, pitch, target_pitch, pl->volume, target_volume, pl->looping);
 		spin_unlock(&pl->lock);
 	}
 

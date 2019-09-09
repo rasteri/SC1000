@@ -1,7 +1,7 @@
 # SC1000 config file
 
 # Output buffer size, default 256
-buffersize=1024
+buffersize=4096
 
 # Sample Rate, default 48000
 samplerate=48000
@@ -17,7 +17,7 @@ faderclosepoint=3
 
 
 # Delay between iterations of the input loop, default 1000
-updaterate=1000
+updaterate=1
 
 # 0 to disable platter, default 1 (enabled)
 platterenabled=1

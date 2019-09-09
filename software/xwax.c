@@ -75,7 +75,7 @@ void loadSettings()
 	scsettings.updaterate = 1000;
 
 	// Load any settings from config file
-	fp = fopen("scsettings.txt", "r");
+	fp = fopen("/media/sda/scsettings.txt", "r");
 	if (fp == NULL)
 		exit(1);
 
@@ -150,8 +150,8 @@ int main(int argc, char *argv[])
 	alsa_buffer = 2;
 	rate = 48000;
 
-	alsa_init(&deck[0].device, "plughw:0,0", rate, scsettings.buffersize, 0);
-	alsa_init(&deck[1].device, "plughw:0,0", rate, scsettings.buffersize, 1);
+	alsa_init(&deck[0].device, "hw:0,0", rate, scsettings.buffersize, 0);
+	alsa_init(&deck[1].device, "hw:0,0", rate, scsettings.buffersize, 1);
 
 	deck_init(&deck[0], &rt, importer, 1.0, false, false, 0);
 	deck_init(&deck[1], &rt, importer, 1.0, false, false, 1);
@@ -163,6 +163,9 @@ int main(int argc, char *argv[])
 	// Tell deck0 to just play without considering inputs
 
 	deck[0].player.justPlay = 1;
+
+	// Stop deck1 from looping
+	deck[1].player.looping = 0;
 
 	alsa_clear_config_cache();
 
