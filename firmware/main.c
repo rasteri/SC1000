@@ -89,7 +89,7 @@ unsigned int getADC(unsigned char channel) {
 
     ADCON0bits.CHS = channel;
     ADCON0bits.ADON = 1;
-    __delay_us(20);
+    __delay_us(40);
     ADCON0bits.GO_DONE = 1;
     while (ADCON0bits.GO_DONE);
     return ((signed int) ADRESH << 8) | ADRESL;
@@ -100,9 +100,11 @@ void main(void) {
     char touchState = 0;
     char calibrationMode = 1;
     unsigned int calibrationCount;
-    unsigned int threshold = 0xffff;
+    float threshold = 1023.0;
     unsigned int touchedNum = 0;
     unsigned int tmp1, tmp2, tmp3, tmp4, tmp5;
+    float touchAverage = 1023.0;
+    unsigned int touchAverageInt = 0, thresholdInt = 0;;
 
     // Initialize the device
     SYSTEM_Initialize();
@@ -140,6 +142,9 @@ void main(void) {
     // Delay while we wait for everything to settle
     for (calibrationCount = 0; calibrationCount < 60000; calibrationCount++);
 
+    
+    threshold = 1023.0;
+    
     calibrationCount = 0;
     while (1) {
 
@@ -160,41 +165,42 @@ void main(void) {
         // Now make it an input and get result
         TRISB5 = 1;
         tmp5 = getADC(11);
-
+        #define ALPHA 0.01
+        touchAverage = (ALPHA * tmp5) + (1.0 - ALPHA) * touchAverage;
 
         // First 3000 readings are to calibrate the threshold
         if (calibrationMode) {
 
-            if (tmp5 < threshold)
-                threshold = tmp5;
+            if (touchAverage < threshold)
+                threshold = touchAverage;
 
             calibrationCount++;
             if (calibrationCount > 3000) {
                 calibrationMode = 0;
-                threshold -= 0x60; // Give ourselves some margin
+                threshold -= 100; // Give ourselves some margin
             }
 
         } else {
-
+            
             if (touchState) {
-                if (tmp5 > threshold)
+                if (touchAverage > threshold)
                     touchedNum++;
                 else
                     touchedNum = 0;
 
                 // Require 200 above-threshold readings before we consider the platter released
-                if (touchedNum > 200) {
+                if (touchedNum > 20) {
                     touchState = 0;
                     touchedNum = 0;
                 }
 
             } else {
-                if (tmp5 <= threshold)
+                if (touchAverage <= threshold)
                     touchedNum++;
                 else
                     touchedNum = 0;
 
-                if (touchedNum > 3) {
+                if (touchedNum > 20) {
                     touchState = 1;
                     touchedNum = 0;
                 }
@@ -202,7 +208,7 @@ void main(void) {
             }
 
         }
-
+        
         // ADC LSBs
         STATUSDATA[0] = (unsigned char) (tmp1 & 0xFF);
         STATUSDATA[1] = (unsigned char) (tmp2 & 0xFF);
@@ -214,9 +220,10 @@ void main(void) {
 
         // Digital I/Os and capsense
         STATUSDATA[5] = (unsigned char) ((PORTBbits.RB7) | (PORTCbits.RC7 << 1) | (PORTCbits.RC4 << 2) | (PORTCbits.RC5 << 3) | touchState << 4);
-        STATUSDATA[6] = (unsigned char) (tmp5 & 0xFF);
-        STATUSDATA[7] = (unsigned char) ((tmp5 & 0x300) >> 8);
-        //STATUSDATA[5] = tmp5 >> 2;
+        
+        touchAverageInt = (unsigned int)touchAverage;
+        STATUSDATA[6] = (unsigned char) (touchAverageInt & 0xFF);
+        STATUSDATA[7] = (unsigned char) ((touchAverageInt & 0x300) >> 8);
     }
 }
 /**
