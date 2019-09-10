@@ -226,6 +226,7 @@ void player_init(struct player *pl, unsigned int sample_rate,
 	pl->volume = 0.0;
 	pl->GoodToGo = 0;
 	pl->samplesSoFar=0;
+	pl->nominal_pitch = 1.0;
 }
 
 /*

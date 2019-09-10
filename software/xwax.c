@@ -184,10 +184,9 @@ int main(int argc, char *argv[])
 
 	SC_Input_Start();
 
-	if (dicer_init(&midiController, &rt, "hw:1,0,0") == -1)
-		return -1;
-
-	controller_add_deck(&midiController, &deck[1]);
+	if (dicer_init(&midiController, &rt, "hw:1,0,0") != -1){
+		controller_add_deck(&midiController, &deck[1]);
+	}
 
 	// Start realtime stuff
 

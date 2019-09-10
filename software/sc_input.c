@@ -1,4 +1,4 @@
-// SC1000 input handler 
+// SC1000 input handler
 // Thread that grabs data from the rotary sensor and PIC input processor and processes it
 
 #include <assert.h>
@@ -58,15 +58,16 @@ int setupi2c(char *path, unsigned char address)
 int32_t angleOffset = 0; // Offset between encoder angle and track position, reset every time the platter is touched
 int encoderAngle = 0xffff, newEncoderAngle = 0xffff;
 
-void load_and_sync_encoder(struct player *pl, struct track *track){
-	player_set_track( pl, track);
+void load_and_sync_encoder(struct player *pl, struct track *track)
+{
+	player_set_track(pl, track);
 	pl->target_position = 0;
 	pl->position = 0;
-	
+
 	// If touch sensor is enabled, set the "zero point" to the current encoder angle
 	if (scsettings.platterenabled)
 		angleOffset = (pl->position * scsettings.platterspeed) - encoderAngle;
-	
+
 	else // If touch sensor is disabled, set the "zero point" to encoder zero point so sticker is exactly on each time sample is loaded
 		angleOffset = (pl->position * scsettings.platterspeed) - encoderAngle;
 }
@@ -77,6 +78,7 @@ void *SC_InputThread(void *ptr)
 	int file_i2c_rot, file_i2c_pic;
 
 	unsigned char result;
+	unsigned char picskip = 0;
 
 	int wrappedAngle = 0x0000;
 	unsigned int totalTurns = 0x0001;
@@ -95,7 +97,7 @@ void *SC_InputThread(void *ptr)
 	unsigned int faderCutPoint;
 	unsigned char picpresent = 1;
 	unsigned char rotarypresent = 1;
-	
+
 	int8_t crossedZero; // 0 when we haven't crossed zero, -1 when we've crossed in anti-clockwise direction, 1 when crossed in clockwise
 
 	// Initialise PIC input processor on I2C2
@@ -133,27 +135,25 @@ void *SC_InputThread(void *ptr)
 
 	srand(time(NULL)); // TODO - need better entropy source, SoC is starting up annoyingly deterministically
 
-	
-	struct timeval	tv;
+	struct timeval tv;
 	unsigned long lastTime = 0;
 	unsigned int frameCount = 0;
-	
 
 	while (1)
 	{
-		
+
 		frameCount++;
-		 gettimeofday(&tv, NULL);
-		 if (tv.tv_sec != lastTime) {
+		gettimeofday(&tv, NULL);
+		if (tv.tv_sec != lastTime)
+		{
 			lastTime = tv.tv_sec;
 			printf("\033[H\033[J"); // Clear Screen
-			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\n", 
-			frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3],
-			buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched);
+			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\n",
+				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], encoderAngle,
+				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched);
 
 			frameCount = 0;
-		 }
-		 
+		}
 
 		// Get info from input processor registers
 		// First the ADC values
@@ -163,28 +163,33 @@ void *SC_InputThread(void *ptr)
 
 		if (picpresent)
 		{
-			i2c_read_address(file_i2c_pic, 0x00, &result);
-			ADCs[0] = result;
-			i2c_read_address(file_i2c_pic, 0x01, &result);
-			ADCs[1] = result;
-			i2c_read_address(file_i2c_pic, 0x02, &result);
-			ADCs[2] = result;
-			i2c_read_address(file_i2c_pic, 0x03, &result);
-			ADCs[3] = result;
-			i2c_read_address(file_i2c_pic, 0x04, &result);
-			ADCs[0] |= ((unsigned int)(result & 0x03) << 8);
-			ADCs[1] |= ((unsigned int)(result & 0x0C) << 6);
-			ADCs[2] |= ((unsigned int)(result & 0x30) << 4);
-			ADCs[3] |= ((unsigned int)(result & 0xC0) << 2);
+			picskip++;
+			if (picskip > 4)
+			{
+				picskip = 0;
+				i2c_read_address(file_i2c_pic, 0x00, &result);
+				ADCs[0] = result;
+				i2c_read_address(file_i2c_pic, 0x01, &result);
+				ADCs[1] = result;
+				i2c_read_address(file_i2c_pic, 0x02, &result);
+				ADCs[2] = result;
+				i2c_read_address(file_i2c_pic, 0x03, &result);
+				ADCs[3] = result;
+				i2c_read_address(file_i2c_pic, 0x04, &result);
+				ADCs[0] |= ((unsigned int)(result & 0x03) << 8);
+				ADCs[1] |= ((unsigned int)(result & 0x0C) << 6);
+				ADCs[2] |= ((unsigned int)(result & 0x30) << 4);
+				ADCs[3] |= ((unsigned int)(result & 0xC0) << 2);
 
-			// Now buttons and capsense
+				// Now buttons and capsense
 
-			i2c_read_address(file_i2c_pic, 0x05, &result);
-			buttons[0] = !(result & 0x01);
-			buttons[1] = !(result >> 1 & 0x01);
-			buttons[2] = !(result >> 2 & 0x01);
-			buttons[3] = !(result >> 3 & 0x01);
-			capIsTouched = (result >> 4 & 0x01);
+				i2c_read_address(file_i2c_pic, 0x05, &result);
+				buttons[0] = !(result & 0x01);
+				buttons[1] = !(result >> 1 & 0x01);
+				buttons[2] = !(result >> 2 & 0x01);
+				buttons[3] = !(result >> 3 & 0x01);
+				capIsTouched = (result >> 4 & 0x01);
+			}
 
 			// Apply volume and fader
 
@@ -195,43 +200,42 @@ void *SC_InputThread(void *ptr)
 				deck[1].player.faderTarget = ((double)ADCs[3]) / 1024;
 				faderOpen = 1;
 			}
-			else{
+			else
+			{
 				deck[1].player.faderTarget = 0.0;
 				faderOpen = 0;
 			}
 
 			deck[0].player.faderTarget = ((double)ADCs[2]) / 1024;
 
-
 			// Handle rotary sensor
 
-			i2c_read_address(file_i2c_rot, 0x0e, &result);
+			i2c_read_address(file_i2c_rot, 0x0c, &result);
 			newEncoderAngle = result << 8;
-			i2c_read_address(file_i2c_rot, 0x0f, &result);
+			i2c_read_address(file_i2c_rot, 0x0d, &result);
 			newEncoderAngle = (newEncoderAngle & 0x0f00) | result;
-			
+
 			// First time, make sure there's no difference
-			if (encoderAngle == 0xffff) encoderAngle = newEncoderAngle;
+			if (encoderAngle == 0xffff)
+				encoderAngle = newEncoderAngle;
 
 			// Handle wrapping at zero
 
-			if (newEncoderAngle < 1024 && encoderAngle>= 3072)
+			if (newEncoderAngle < 1024 && encoderAngle >= 3072)
 			{ // We crossed zero in the positive direction
 
 				crossedZero = 1;
 				wrappedAngle = encoderAngle - 4096;
 			}
-			else if (newEncoderAngle >= 3072 && encoderAngle< 1024)
+			else if (newEncoderAngle >= 3072 && encoderAngle < 1024)
 			{ // We crossed zero in the negative direction
 				crossedZero = -1;
 				wrappedAngle = encoderAngle + 4096;
-				
 			}
 			else
 			{
 				crossedZero = 0;
 				wrappedAngle = encoderAngle;
-				
 			}
 
 			// rotary sensor sometimes returns incorrect values, if we skip more than 100 ignore that value
@@ -240,19 +244,20 @@ void *SC_InputThread(void *ptr)
 			{
 				printf("blip! %d %d %d\n", newEncoderAngle, encoderAngle, wrappedAngle);
 				numBlips++;
-				
 			}
-			else {
+			else
+			{
 				numBlips = 0;
 				encoderAngle = newEncoderAngle;
-				
-				if (scsettings.platterenabled){
+
+				if (scsettings.platterenabled)
+				{
 					// Handle touch sensor
 					if (capIsTouched)
 					{
 						// Positive touching edge
 						if (!deck[1].player.capTouch)
-						{ 
+						{
 							angleOffset = (deck[1].player.position * scsettings.platterspeed) - encoderAngle;
 							printf("touch! %d %d\n", encoderAngle, angleOffset);
 							deck[1].player.target_position = deck[1].player.position;
@@ -264,31 +269,29 @@ void *SC_InputThread(void *ptr)
 						deck[1].player.capTouch = 0;
 					}
 				}
-				
-				else deck[1].player.capTouch = 1;
+
+				else
+					deck[1].player.capTouch = 1;
 
 				if (deck[1].player.capTouch)
 				{
 
 					// Handle wrapping at zero
 
-
-					if (crossedZero > 0){
+					if (crossedZero > 0)
+					{
 						angleOffset += 4096;
-								printf("CZ+\n");
-						
+						printf("CZ+\n");
 					}
-					else if (crossedZero < 0){
+					else if (crossedZero < 0)
+					{
 						angleOffset -= 4096;
 						printf("CZ-\n");
 					}
 
-					
-					
 					// Convert the raw value to track position and set player to that pos
 
 					deck[1].player.target_position = (double)(encoderAngle + angleOffset) / scsettings.platterspeed;
-
 				}
 			}
 
@@ -358,7 +361,6 @@ void *SC_InputThread(void *ptr)
 					{
 						CurrentSampleFile = CurrentSampleFile->next;
 						load_and_sync_encoder(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
-						
 					}
 				}
 				else if (totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3])
@@ -491,7 +493,7 @@ void *SC_InputThread(void *ptr)
 			deck[0].player.pitch = 1;
 		}
 
-		usleep(scsettings.updaterate);
+		//usleep(scsettings.updaterate);
 	}
 }
 
