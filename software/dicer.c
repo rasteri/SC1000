@@ -371,12 +371,9 @@ static void event(struct dicer *d, unsigned char buf[3])
         on = false;
         break;
 
-    case 0x7f:
+    default:
         on = true;
         break;
-
-    default:
-        abort();
     }
 
     event_decoded(d->deck, action, shift, button, on);
