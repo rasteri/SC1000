@@ -28,13 +28,14 @@
 #include "device.h"
 #include "player.h"
 #include "track.h"
+#include "sc_queue.h"
 
 /* Bend playback speed to compensate for the difference between our
  * current position and that given by the timecode */
 
 #define SYNC_TIME (1.0 / 2) /* time taken to reach sync */
-#define SYNC_PITCH 0.05 /* don't sync at low pitches */
-#define SYNC_RC 0.05 /* filter to 1.0 when no timecodes available */
+#define SYNC_PITCH 0.05		/* don't sync at low pitches */
+#define SYNC_RC 0.05		/* filter to 1.0 when no timecodes available */
 
 /* If the difference between our current position and that given by
  * the timecode is greater than this value, recover by jumping
@@ -45,21 +46,21 @@
 /* The base volume level. A value of 1.0 leaves no headroom to play
  * louder when the record is going faster than 1.0. */
 
-#define VOLUME (7.0/8)
+#define VOLUME (7.0 / 8)
 
 // Time in seconds fader takes to decay
 #define FADERDECAY 0.020
-#define DECAYSAMPLES FADERDECAY*48000
+#define DECAYSAMPLES FADERDECAY * 48000
 
-
-#define SQ(x) ((x)*(x))
+#define SQ(x) ((x) * (x))
 #define TARGET_UNKNOWN INFINITY
 
 /*
  * Return: the cubic interpolation of the sample at position 2 + mu
  */
 
-static inline double cubic_interpolate(signed short y[4], double mu) {
+static inline double cubic_interpolate(signed short y[4], double mu)
+{
 	signed long a0, a1, a2, a3;
 	double mu2;
 
@@ -76,7 +77,8 @@ static inline double cubic_interpolate(signed short y[4], double mu) {
  * Return: Random dither, between -0.5 and 0.5
  */
 
-static double dither(void) {
+static double dither(void)
+{
 	unsigned int bit, v;
 	static unsigned int x = 0xbeefface;
 
@@ -91,89 +93,7 @@ static double dither(void) {
 
 	v = (x & 0x0000000f) | ((x & 0x000f0000) >> 12) | ((x & 0x0f000000) >> 16);
 
-	return (double) v / 4096 - 0.5; /* not quite whole range */
-}
-
-/*
- * Build a block of PCM audio, resampled from the track
- *
- * This is just a basic resampler which has a small amount of aliasing
- * where pitch > 1.0.
- *
- * Return: number of seconds advanced in the source audio track
- * Post: buffer at pcm is filled with the given number of samples
- */
-
-static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
-		struct track *tr, double position, double pitch, double end_pitch, double start_vol,
-		double end_vol, bool looping) {
-	int s;
-	double sample, step, vol, gradient, pitchGradient;
-
-	sample = position * tr->rate;
-	step = sample_dt * pitch * tr->rate;
-
-	vol = start_vol;
-	gradient = (end_vol - start_vol) / samples;
-
-	pitchGradient = (end_pitch - pitch) / samples;
-
-	for (s = 0; s < samples; s++) {
-
-		step = sample_dt * pitch * tr->rate;
-
-		int c, sa, q;
-		double f;
-		signed short i[PLAYER_CHANNELS][4];
-
-		/* 4-sample window for interpolation */
-
-		sa = (int) sample;
-		if (sample < 0.0)
-			sa--;
-		f = sample - sa;
-		sa--;
-
-		for (q = 0; q < 4; q++, sa++) {
-			if (sa < 0 || sa >= tr->length) {
-				for (c = 0; c < PLAYER_CHANNELS; c++)
-					i[c][q] = 0;
-			} else {
-				signed short *ts;
-				int c;
-
-				ts = track_get_sample(tr, sa);
-				for (c = 0; c < PLAYER_CHANNELS; c++)
-					i[c][q] = ts[c];
-			}
-		}
-
-		for (c = 0; c < PLAYER_CHANNELS; c++) {
-			double v;
-
-			v = vol * cubic_interpolate(i[c], f) + dither();
-
-			if (v > SHRT_MAX) {
-				*pcm++ = SHRT_MAX;
-			} else if (v < SHRT_MIN) {
-				*pcm++ = SHRT_MIN;
-			} else {
-				*pcm++ = (signed short) v;
-			}
-		}
-
-		sample += step;
-
-		// Loop when track gets to end
-		if (sample > tr->length && looping)
-			sample = 0;
-		vol += gradient;
-		pitch += pitchGradient;
-	}
-
-
-	//return sample_dt * pitch * samples;
-	return (sample / tr->rate) - position;
+	return (double)v / 4096 - 0.5; /* not quite whole range */
 }
 
 /*
@@ -185,7 +105,8 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
  */
 
 static double build_silence(signed short *pcm, unsigned samples,
-		double sample_dt, double pitch) {
+							double sample_dt, double pitch)
+{
 	memset(pcm, '\0', sizeof(*pcm) * PLAYER_CHANNELS * samples);
 	return sample_dt * pitch * samples;
 }
@@ -194,7 +115,8 @@ static double build_silence(signed short *pcm, unsigned samples,
  * Change the timecoder used by this playback
  */
 
-void player_set_timecoder(struct player *pl, struct timecoder *tc) {
+void player_set_timecoder(struct player *pl, struct timecoder *tc)
+{
 	assert(tc != NULL);
 	pl->timecoder = tc;
 	pl->recalibrate = true;
@@ -206,7 +128,8 @@ void player_set_timecoder(struct player *pl, struct timecoder *tc) {
  */
 
 void player_init(struct player *pl, unsigned int sample_rate,
-		struct track *track) {
+				 struct track *track)
+{
 	assert(track != NULL);
 	assert(sample_rate != 0);
 
@@ -225,7 +148,7 @@ void player_init(struct player *pl, unsigned int sample_rate,
 	pl->sync_pitch = 1.0;
 	pl->volume = 0.0;
 	pl->GoodToGo = 0;
-	pl->samplesSoFar=0;
+	pl->samplesSoFar = 0;
 	pl->nominal_pitch = 1.0;
 }
 
@@ -234,7 +157,8 @@ void player_init(struct player *pl, unsigned int sample_rate,
  * Post: no resources are allocated by the player
  */
 
-void player_clear(struct player *pl) {
+void player_clear(struct player *pl)
+{
 	spin_clear(&pl->lock);
 	track_release(pl->track);
 }
@@ -243,7 +167,8 @@ void player_clear(struct player *pl) {
  * Enable or disable timecode control
  */
 
-void player_set_timecode_control(struct player *pl, bool on) {
+void player_set_timecode_control(struct player *pl, bool on)
+{
 	if (on && !pl->timecode_control)
 		pl->recalibrate = true;
 	pl->timecode_control = on;
@@ -255,32 +180,37 @@ void player_set_timecode_control(struct player *pl, bool on) {
  * Return: the new state of timecode control
  */
 
-bool player_toggle_timecode_control(struct player *pl) {
+bool player_toggle_timecode_control(struct player *pl)
+{
 	pl->timecode_control = !pl->timecode_control;
 	if (pl->timecode_control)
 		pl->recalibrate = true;
 	return pl->timecode_control;
 }
 
-void player_set_internal_playback(struct player *pl) {
+void player_set_internal_playback(struct player *pl)
+{
 	pl->timecode_control = false;
 	pl->pitch = 1.0;
 }
 
-double player_get_position(struct player *pl) {
+double player_get_position(struct player *pl)
+{
 	return pl->position;
 }
 
-double player_get_elapsed(struct player *pl) {
+double player_get_elapsed(struct player *pl)
+{
 	return pl->position - pl->offset;
 }
 
-double player_get_remain(struct player *pl) {
-	return (double) pl->track->length / pl->track->rate + pl->offset
-			- pl->position;
+double player_get_remain(struct player *pl)
+{
+	return (double)pl->track->length / pl->track->rate + pl->offset - pl->position;
 }
 
-bool player_is_active(const struct player *pl) {
+bool player_is_active(const struct player *pl)
+{
 	return (fabs(pl->pitch) > 0.01);
 }
 
@@ -288,7 +218,8 @@ bool player_is_active(const struct player *pl) {
  * Cue to the zero position of the track
  */
 
-void player_recue(struct player *pl) {
+void player_recue(struct player *pl)
+{
 	pl->offset = pl->position;
 }
 
@@ -299,7 +230,8 @@ void player_recue(struct player *pl) {
  * Post: caller does not hold reference on track
  */
 
-void player_set_track(struct player *pl, struct track *track) {
+void player_set_track(struct player *pl, struct track *track)
+{
 	struct track *x;
 
 	assert(track != NULL);
@@ -318,7 +250,8 @@ void player_set_track(struct player *pl, struct track *track) {
  * for "instant doubles" and beat juggling
  */
 
-void player_clone(struct player *pl, const struct player *from) {
+void player_clone(struct player *pl, const struct player *from)
+{
 	double elapsed;
 	struct track *x, *t;
 
@@ -342,22 +275,24 @@ void player_clone(struct player *pl, const struct player *from) {
  * Return: 0 on success or -1 if the timecoder is not currently valid
  */
 
-
 /*
  * Synchronise to the position given by the timecoder without
  * affecting the audio playback position
  */
 
-static void calibrate_to_timecode_position(struct player *pl) {
+static void calibrate_to_timecode_position(struct player *pl)
+{
 	assert(pl->target_position != TARGET_UNKNOWN);
 	pl->offset += pl->target_position - pl->position;
 	pl->position = pl->target_position;
 }
 
-void retarget(struct player *pl) {
+void retarget(struct player *pl)
+{
 	double diff;
 
-	if (pl->recalibrate) {
+	if (pl->recalibrate)
+	{
 		calibrate_to_timecode_position(pl);
 		pl->recalibrate = false;
 	}
@@ -368,20 +303,21 @@ void retarget(struct player *pl) {
 	diff = pl->position - pl->target_position;
 	pl->last_difference = diff; /* to print in user interface */
 
-	if (fabs(diff) > SKIP_THRESHOLD) {
+	if (fabs(diff) > SKIP_THRESHOLD)
+	{
 
 		/* Jump the track to the time */
 
 		pl->position = pl->target_position;
 		fprintf(stderr, "Seek to new position %.2lfs.\n", pl->position);
-
-	} else if (fabs(pl->pitch) > SYNC_PITCH) {
+	}
+	else if (fabs(pl->pitch) > SYNC_PITCH)
+	{
 
 		/* Re-calculate the drift between the timecoder pitch from
 		 * the sine wave and the timecode values */
 
 		pl->sync_pitch = pl->pitch / (diff / SYNC_TIME + pl->pitch);
-
 	}
 }
 
@@ -389,7 +325,8 @@ void retarget(struct player *pl) {
  * Seek to the given position
  */
 
-void player_seek_to(struct player *pl, double seconds) {
+void player_seek_to(struct player *pl, double seconds)
+{
 	pl->offset = pl->position - seconds;
 }
 
@@ -405,24 +342,181 @@ unsigned long samplesSoFar = 0;
  * Post: buffer at pcm is filled with the given number of samples
  */
 
-bool NearlyEqual(double val1, double val2, double tolerance){
-	if (fabs(val1-val2) < tolerance)
+bool NearlyEqual(double val1, double val2, double tolerance)
+{
+	if (fabs(val1 - val2) < tolerance)
 		return true;
-	else return false;
+	else
+		return false;
 }
 
-void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
+/*
+while (numSamples > 0)
+    {
+        if (! midiIterator.getNextEvent (m, midiEventPos))
+        {
+            if (targetChannels > 0)
+                renderVoices (outputAudio, startSample, numSamples);
+
+            return;
+        }
+
+        const int samplesToNextMidiMessage = midiEventPos - startSample;
+
+        if (samplesToNextMidiMessage >= numSamples)
+        {
+            if (targetChannels > 0)
+                renderVoices (outputAudio, startSample, numSamples);
+
+            handleMidiEvent (m);
+            break;
+        }
+
+        if (samplesToNextMidiMessage < ((firstEvent && ! subBlockSubdivisionIsStrict) ? 1 : minimumSubBlockSize))
+        {
+            handleMidiEvent (m);
+            continue;
+        }
+
+        firstEvent = false;
+
+        if (targetChannels > 0)
+            renderVoices (outputAudio, startSample, samplesToNextMidiMessage);
+
+        handleMidiEvent (m);
+        startSample += samplesToNextMidiMessage;
+        numSamples  -= samplesToNextMidiMessage;
+    }
+
+    while (midiIterator.getNextEvent (m, midiEventPos))
+        handleMidiEvent (m);
+*/
+
+unsigned long long samplesToUsec(int samples)
+{
+	unsigned long long reslt = samples;
+	reslt *= 1000000;
+	reslt /= 48000;
+	return reslt;
+}
+unsigned long long usecToSamples(int samples)
+{
+	unsigned long long reslt = samples;
+	reslt *= 48000;
+	reslt /= 1000000;
+	return reslt;
+}
+
+void handleInput(struct player *pl, inputstate *state)
+{
+	pl->timestamp = state->timestamp;
+	pl->target_position = state->target_position;
+	if (!pl->justPlay)
+		printf("handled - %u - %f, %f - \n", pl->timestamp, pl->position, pl->target_position);
+}
+
+static double build_pcm(struct player *pl, signed short *pcm, unsigned startSample, unsigned samples, double sample_dt,
+						struct track *tr, double position, double target_position, double pitch, double end_pitch, double start_vol,
+						double end_vol, bool looping)
+{
+	int s;
+	double sample, step, vol, gradient, pitchGradient;
+
+	sample = position * tr->rate;
+	step = sample_dt * pitch * tr->rate;
+	step = ((target_position * tr->rate) - (position * tr->rate)) / samples;
+
+	vol = start_vol;
+	gradient = (end_vol - start_vol) / samples;
+
+	pitchGradient = (end_pitch - pitch) / samples;
+
+	//if (pl->justPlay == 0) printf("STEP : %f ---------", step);
+
+	for (s = startSample; s < samples + startSample; s++)
+	{
+		pitch = end_pitch; // TODO remove this
+
+		int c, sa, q;
+		double f;
+		signed short i[PLAYER_CHANNELS][4];
+
+		/* 4-sample window for interpolation */
+
+		sa = (int)sample;
+		if (sample < 0.0)
+			sa--;
+		f = sample - sa;
+		sa--;
+
+		for (q = 0; q < 4; q++, sa++)
+		{
+			if (sa < 0 || sa >= tr->length)
+			{
+				for (c = 0; c < PLAYER_CHANNELS; c++)
+					i[c][q] = 0;
+			}
+			else
+			{
+				signed short *ts;
+				int c;
+
+				ts = track_get_sample(tr, sa);
+				for (c = 0; c < PLAYER_CHANNELS; c++)
+					i[c][q] = ts[c];
+			}
+		}
+
+		for (c = 0; c < PLAYER_CHANNELS; c++)
+		{
+			double v;
+
+			v = vol * cubic_interpolate(i[c], f) + dither();
+
+			signed short *sp;
+			sp = pcm + (2 * s) + c;
+
+			if (v > SHRT_MAX)
+			{
+				*sp = SHRT_MAX;
+			}
+			else if (v < SHRT_MIN)
+			{
+				*sp = SHRT_MIN;
+			}
+			else
+			{
+				*sp = (signed short)v;
+			}
+		}
+
+		sample += step;
+
+		// Loop when track gets to end
+		if (sample > tr->length && looping)
+			sample = 0;
+		vol += gradient;
+		//pitch += pitchGradient;
+	}
+
+	//return sample_dt * pitch * samples;
+	return (sample / tr->rate) - position;
+}
+
+void calcPitchAndBuildPCM(struct player *pl, signed short *pcm, unsigned startSample, unsigned samples)
+{
 	double r, pitch, target_volume, amountToDecay, target_pitch;
 	double diff;
 
 	pitch = pl->pitch; // Original pitch for smoothing
 
 	pl->samplesSoFar += samples;
-	
+
 	//pl->target_position = (sin(((double) pl->samplesSoFar) / 20000) + 1); // Sine wave to simulate scratching, used for debugging
 
-	if (pl->justPlay == 1 || pl->capTouch == 0){
-		
+	if (pl->justPlay == 1 || pl->capTouch == 0)
+	{
+
 		if (pl->pitch < pl->nominal_pitch - 0.05)
 			pl->pitch += (double)samples / 5000; // allow lazers/phasers
 		if (pl->pitch > pl->nominal_pitch + 0.05)
@@ -430,15 +524,15 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 		if (pl->pitch > pl->nominal_pitch - 0.05 && pl->pitch < pl->nominal_pitch + 0.05)
 			pl->pitch = pl->nominal_pitch;
 	}
-	else {
-		diff = pl->position - pl->target_position;
+	else
+	{
+		diff = (pl->position - pl->target_position) * (48000 / samples);
 
-		pl->pitch = (-diff) * 40;
+		pl->pitch = (-diff)/samples;
 	}
 
-
 	target_pitch = pl->pitch;
-	
+
 	amountToDecay = (DECAYSAMPLES) / (double)samples;
 
 	if (NearlyEqual(pl->faderTarget, pl->faderVolume, amountToDecay)) // Make sure to set directly when we're nearly there to avoid oscilation
@@ -446,7 +540,7 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	else if (pl->faderTarget > pl->faderVolume)
 		pl->faderVolume += amountToDecay;
 	else
-		pl->faderVolume -= amountToDecay;	
+		pl->faderVolume -= amountToDecay;
 
 	target_volume = fabs(pl->pitch) * VOLUME * pl->faderVolume;
 
@@ -458,16 +552,198 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	/* We must return audio immediately to stay realtime. A spin
 	 * lock protects us from changes to the audio source */
 
-	if (!spin_try_lock(&pl->lock)) {
+	if (!spin_try_lock(&pl->lock))
+	{
 		r = build_silence(pcm, samples, pl->sample_dt, pitch);
-	} else {
+	}
+	else
+	{
+		//if (pl->justPlay == 0) printf("%f %f %f %f---- ", pl->pitch, pl->position, pl->target_position, pl->target_position - pl->position);
+		r = build_pcm(pl, pcm, startSample, samples, pl->sample_dt, pl->track,
+					  pl->position, pl->target_position, pitch, pl->pitch, 1.0, 1.0, pl->looping);
+		pl->position += r;
+		//if (pl->justPlay == 0) printf("---%f---- ", pl->position);
+		//printf("%d %f\n", samples, r);
 
-		r = build_pcm(pcm, samples, pl->sample_dt, pl->track,
-				pl->position - pl->offset, pitch, target_pitch, pl->volume, target_volume, pl->looping);
 		spin_unlock(&pl->lock);
 	}
 
-	pl->position += r;
+	//pl->position += r;
 
 	pl->volume = target_volume;
 }
+
+void player_collect(struct player *pl, signed short *pcm, unsigned totalSamples)
+{
+
+	printf("-------\n");
+	unsigned startSample = 0;
+
+	unsigned remainingSamples = totalSamples;
+	unsigned samplesToDo = 0;
+
+	while (remainingSamples > 0)
+	{
+		if (remainingSamples > 3)
+		{
+			samplesToDo = 3;
+		}
+		else
+		{
+			// do remaining samples
+			samplesToDo = remainingSamples;
+		}
+
+		double amountToAdd = (samplesToDo / (double)totalSamples) * 0.00504807691894;
+		pl->target_position += amountToAdd;
+
+		calcPitchAndBuildPCM(pl, pcm, startSample, samplesToDo);
+		/*if (pl->justPlay == 0)
+			printf("%f %d %d %d\n", amountToAdd, totalSamples, remainingSamples, startSample);*/
+		startSample += samplesToDo;
+		remainingSamples -= samplesToDo;
+	}
+	//calcPitchAndBuildPCM(pl, pcm, 0, samples);
+	/*while (samples > 0)
+		{
+			// No input events in the fifo, just render the entire remaining block of samples and break
+			if (!fifoRead(pl->scqueue, &hehe))
+			{
+				if (!pl->justPlay)target_pitch
+					printf("None %u - sss:%u sc:%u\n", hehe.timestamp, startSample, samples);
+				r = build_pcm(pl, pcm, samples, pl->track, pl->volume, target_volume, pl->looping, startSample);
+				samples = 0;
+				break;
+			}
+			else
+			{
+				// Next fifo event is too far in the future for this block,
+				unsigned long long samplesToNextMidiMessage = usecToSamples(hehe.timestamp - pl->timestamp);
+				if (samplesToNextMidiMessage >= samples)
+				{
+					if (!pl->justPlay)
+						printf("Next one too far in future - %u %u\n", samplesToNextMidiMessage, samples);
+					r = build_pcm(pl, pcm, samples, pl->track, pl->volume, target_volume, pl->looping, startSample);
+					handleInput(pl, &hehe);
+					break;
+				}
+				// I think this is only needed if there is a minimum sample block size
+				//if (samplesToNextMidiMessage < MINBLOCKSIZE)
+				//{
+				//	handleInput(pl, &hehe);
+				//	continue;
+				//}
+
+				if (!pl->justPlay)
+					printf("Yay %u -  ss:%u sc:%u next:%u\n", hehe.timestamp, startSample, samples, samplesToNextMidiMessage);
+				r = build_pcm(pl, pcm, samplesToNextMidiMessage, pl->track, pl->volume, target_volume, pl->looping, startSample);
+
+				handleInput(pl, &hehe);
+				startSample += samplesToNextMidiMessage;
+				samples -= samplesToNextMidiMessage;
+			}
+		}
+		while (fifoRead(pl->scqueue, &hehe))
+		{
+			handleInput(pl, &hehe);
+			if (!pl->justPlay)
+				printf("Wipin \n");
+		}*/
+	printf("-------\n");
+}
+
+/*void player_collect(struct player *pl, signed short *pcm, unsigned samples)
+{
+	double r, pitch, target_volume, amountToDecay, target_pitch;
+	double diff;
+	inputstate hehe;
+	unsigned startSample = 0;
+
+	pitch = pl->pitch; // Original pitch for smoothing
+
+	//pl->target_position = (sin(((double)pl->samplesSoFar) / 80000) + 1); // Sine wave to simulate scratching, used for debugging
+
+	target_pitch = pl->pitch;
+
+	amountToDecay = (DECAYSAMPLES) / (double)samples;
+
+	if (NearlyEqual(pl->faderTarget, pl->faderVolume, amountToDecay)) // Make sure to set directly when we're nearly there to avoid oscilation
+		pl->faderVolume = pl->faderTarget;
+	else if (pl->faderTarget > pl->faderVolume)
+		pl->faderVolume += amountToDecay;
+	else
+		pl->faderVolume -= amountToDecay;
+
+	target_volume = fabs(pl->pitch) * VOLUME * pl->faderVolume;
+
+	if (target_volume > 1.0)
+		target_volume = 1.0;
+
+	if (!pl->justPlay)
+		printf("--------BLEH------\n");
+
+	if (!spin_try_lock(&pl->lock))
+	{
+		r = build_silence(pcm, samples, pl->sample_dt, pitch);
+		pl->position += r;
+	}
+	else
+	{
+		//r = build_pcm(pl, pcm, 50, pl->track, pl->volume, target_volume, pl->looping, 0);
+		//r = build_pcm(pl, pcm, 50, pl->track, pl->volume, target_volume, pl->looping, 50);
+		//r = build_pcm(pl, pcm, 50, pl->track, pl->volume, target_volume, pl->looping, 100);
+		//r = build_pcm(pl, pcm, 50, pl->track, pl->volume, target_volume, pl->looping, 150);
+		//r = build_pcm(pl, pcm, 41, pl->track, pl->volume, target_volume, pl->looping, 200);
+		while (samples > 0)
+		{
+			// No input events in the fifo, just render the entire remaining block of samples and break
+			if (!fifoRead(pl->scqueue, &hehe))
+			{
+				if (!pl->justPlay)
+					printf("None %u - ss:%u sc:%u\n", hehe.timestamp, startSample, samples);
+				r = build_pcm(pl, pcm, samples, pl->track, pl->volume, target_volume, pl->looping, startSample);
+				samples = 0;
+				break;
+			}
+			else
+			{
+				// Next fifo event is too far in the future for this block,
+				unsigned long long samplesToNextMidiMessage = usecToSamples(hehe.timestamp - pl->timestamp);
+				if (samplesToNextMidiMessage >= samples)
+				{
+					if (!pl->justPlay)
+						printf("Next one too far in future - %u %u\n", samplesToNextMidiMessage, samples);
+					r = build_pcm(pl, pcm, samples, pl->track, pl->volume, target_volume, pl->looping, startSample);
+					handleInput(pl, &hehe);
+					break;
+				}
+				// I think this is only needed if there is a minimum sample block size
+				//if (samplesToNextMidiMessage < MINBLOCKSIZE)
+				//{
+				//	handleInput(pl, &hehe);
+				//	continue;
+				//}
+
+				if (!pl->justPlay)
+					printf("Yay %u -  ss:%u sc:%u next:%u\n", hehe.timestamp, startSample, samples, samplesToNextMidiMessage);
+				r = build_pcm(pl, pcm, samplesToNextMidiMessage, pl->track, pl->volume, target_volume, pl->looping, startSample);
+
+				handleInput(pl, &hehe);
+				startSample += samplesToNextMidiMessage;
+				samples -= samplesToNextMidiMessage;
+			}
+		}
+		while (fifoRead(pl->scqueue, &hehe))
+		{
+			handleInput(pl, &hehe);
+			if (!pl->justPlay)
+				printf("Wipin \n");
+		}
+
+		spin_unlock(&pl->lock);
+	}
+
+	//
+
+	pl->volume = target_volume;
+}*/

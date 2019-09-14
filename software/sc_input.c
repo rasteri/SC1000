@@ -13,6 +13,7 @@
 #include <sys/ioctl.h>	 //Needed for I2C port
 #include <linux/i2c-dev.h> //Needed for I2C port
 #include <sys/time.h>
+#include <time.h>
 #include "sc_playlist.h"
 #include "alsa.h"
 #include "controller.h"
@@ -24,6 +25,8 @@
 #include "track.h"
 #include "xwax.h"
 #include "sc_input.h"
+#include "sc_queue.h"
+
 
 void i2c_read_address(int file_i2c, unsigned char address, unsigned char *result)
 {
@@ -137,7 +140,17 @@ void *SC_InputThread(void *ptr)
 
 	struct timeval tv;
 	unsigned long lastTime = 0;
+	long long int usec =0, lastusec = 0, lastlastusec = 0;
 	unsigned int frameCount = 0;
+	long lastsamplecount = 0;
+
+	struct timespec ts;
+
+	deck[1].player.target_position = 0;
+	sleep(2);
+	double ratioSampleToUsec = 1000000 / 46000;
+	inputstate sq;
+	sq.target_position = 0;
 
 	while (1)
 	{
@@ -147,10 +160,15 @@ void *SC_InputThread(void *ptr)
 		if (tv.tv_sec != lastTime)
 		{
 			lastTime = tv.tv_sec;
+			//printf("%d\n", lastusec);
 			printf("\033[H\033[J"); // Clear Screen
-			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\n",
+			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\n%f %f\n",
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], encoderAngle,
-				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched);
+				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
+				   deck[1].player.position, sq.target_position
+
+			);
+			lastsamplecount = deck[1].player.samplesSoFar;
 
 			frameCount = 0;
 		}
@@ -486,14 +504,28 @@ void *SC_InputThread(void *ptr)
 		}
 		else // couldn't find input processor, just play the tracks
 		{
-			deck[1].player.capTouch = 0;
-			deck[0].player.faderTarget = 0.5;
+
+			deck[1].player.capTouch = 1;
+			deck[0].player.faderTarget = 0.0;
 			deck[1].player.faderTarget = 0.5;
 			deck[0].player.justPlay = 1;
 			deck[0].player.pitch = 1;
+			sq.target_fader = 0.5;
+			
+			clock_gettime(CLOCK_MONOTONIC, &ts);
+			usec = ((long long)ts.tv_sec * 1000000) + (long long)ts.tv_nsec / 1000;
+			sq.timestamp = usec;
+			if (lastusec != 0){
+				//sq.target_position += ((double)(usec - lastusec))/1000000;
+				//deck[1].player.target_position += ((double)(usec - lastusec))/1000000;
+			}
+			//printf("-------------------%u\n",usec - lastusec );
+			
+			lastusec = usec;
+			char res = fifoWrite(deck[1].player.scqueue, &sq);
 		}
 
-		//usleep(scsettings.updaterate);
+		usleep(scsettings.updaterate);
 	}
 }
 

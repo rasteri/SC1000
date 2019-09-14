@@ -15,7 +15,7 @@
 # MA 02110-1301, USA.
 #
 
-CC=/root/buildroot-2018.08.4/output/host/usr/bin/arm-linux-gcc
+#CC=/root/buildroot-2018.08.4/output/host/usr/bin/arm-linux-gcc
 
 # Libraries and dependencies
 
@@ -62,6 +62,7 @@ OBJS = controller.o \
 	sc_playlist.o \
 	dicer.o \
 	midi.o \
+	sc_queue.o \
 	xwax.o
 DEVICE_CPPFLAGS = -DWITH_ALSA
 DEVICE_LIBS = $(ALSA_LIBS)

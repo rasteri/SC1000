@@ -24,6 +24,9 @@
 
 #include "spin.h"
 #include "track.h"
+#include "sc_queue.h"
+
+
 
 #define PLAYER_CHANNELS 2
 
@@ -56,9 +59,13 @@ long samplesSoFar;
 	double faderTarget; // Player should slowly fade to this level
 	double faderVolume; // current fader volume
 	bool capTouch;
+    unsigned long long timestamp; // the last input event timestamp seen by this player
+    unsigned long long lastusec;
 	
 	bool GoodToGo;
 	bool looping;
+    statequeue *scqueue;
+
 };
 
 void player_init(struct player *pl, unsigned int sample_rate,
