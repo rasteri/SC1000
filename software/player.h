@@ -43,6 +43,7 @@ long samplesSoFar;
 
     double position, /* seconds */
         target_position, /* seconds, or TARGET_UNKNOWN */
+        smoothed_target_position,
         offset, /* track start point in timecode */
         last_difference, /* last known position minus target_position */
         pitch, /* from timecoder */
@@ -59,8 +60,7 @@ long samplesSoFar;
 	double faderTarget; // Player should slowly fade to this level
 	double faderVolume; // current fader volume
 	bool capTouch;
-    unsigned long long timestamp; // the last input event timestamp seen by this player
-    unsigned long long lastusec;
+    double timestamp; // the last input event timestamp seen by this player
 	
 	bool GoodToGo;
 	bool looping;

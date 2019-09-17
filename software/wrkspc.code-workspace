@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"player.h": "c",
+			"alsa.h": "c",
+			"xwax.h": "c",
+			"track.h": "c",
+			"*.tcc": "c",
+			"fstream": "c",
+			"ostream": "c"
+		}
+	}
+}

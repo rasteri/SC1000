@@ -75,6 +75,8 @@ void load_and_sync_encoder(struct player *pl, struct track *track)
 		angleOffset = (pl->position * scsettings.platterspeed) - encoderAngle;
 }
 
+unsigned int numblocks = 0;
+
 void *SC_InputThread(void *ptr)
 {
 
@@ -140,7 +142,7 @@ void *SC_InputThread(void *ptr)
 
 	struct timeval tv;
 	unsigned long lastTime = 0;
-	long long int usec =0, lastusec = 0, lastlastusec = 0;
+	double inputtime =0, lastinputtime = 0;
 	unsigned int frameCount = 0;
 	long lastsamplecount = 0;
 
@@ -162,14 +164,16 @@ void *SC_InputThread(void *ptr)
 			lastTime = tv.tv_sec;
 			//printf("%d\n", lastusec);
 			printf("\033[H\033[J"); // Clear Screen
-			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\n%f %f\n",
+			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\n%f %f  -- %f - %f = %f\n%d\n",
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], encoderAngle,
 				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
-				   deck[1].player.position, sq.target_position
+				   deck[1].player.position, sq.target_position, lastinputtime, deck[1].player.timestamp, lastinputtime - deck[1].player.timestamp,
+				   deck[1].player.samplesSoFar
 
 			);
+			deck[1].player.samplesSoFar = 0;
 			lastsamplecount = deck[1].player.samplesSoFar;
-
+			numblocks = 0;
 			frameCount = 0;
 		}
 
@@ -512,20 +516,22 @@ void *SC_InputThread(void *ptr)
 			deck[0].player.pitch = 1;
 			sq.target_fader = 0.5;
 			
-			clock_gettime(CLOCK_MONOTONIC, &ts);
-			usec = ((long long)ts.tv_sec * 1000000) + (long long)ts.tv_nsec / 1000;
-			sq.timestamp = usec;
-			if (lastusec != 0){
-				//sq.target_position += ((double)(usec - lastusec))/1000000;
+			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
+			inputtime = (double)ts.tv_sec + ((double)ts.tv_nsec / 1000000000.0);
+
+			sq.timestamp = inputtime;
+			if (lastinputtime != 0){
+				sq.target_position += ((double)(inputtime - lastinputtime));
+				char res = fifoWrite(deck[1].player.scqueue, &sq);
 				//deck[1].player.target_position += ((double)(usec - lastusec))/1000000;
 			}
 			//printf("-------------------%u\n",usec - lastusec );
 			
-			lastusec = usec;
-			char res = fifoWrite(deck[1].player.scqueue, &sq);
+			lastinputtime = inputtime;
+			
 		}
 
-		usleep(scsettings.updaterate);
+		usleep(400);
 	}
 }
 

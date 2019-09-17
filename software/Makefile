@@ -38,10 +38,10 @@ DOCDIR ?= $(PREFIX)/share/doc
 
 # Build flags
 
-CFLAGS ?= -O3
+CFLAGS ?= -g -O3
 CFLAGS += -Wall
 CPPFLAGS += -MMD
-LDFLAGS ?= -O3
+LDFLAGS ?= -g -O3
 
 # Core objects and libraries
 

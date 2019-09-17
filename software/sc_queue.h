@@ -19,4 +19,5 @@ typedef struct statequeue {
 char fifoRead(statequeue *queue, inputstate *state);
  
 char fifoWrite(statequeue *queue, inputstate *val);
+char InterpolateQueue(statequeue *queue, long long unsigned int *timestamp, double *val);
 #endif

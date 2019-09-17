@@ -21,11 +21,10 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>                             //Needed for I2C port
-#include <fcntl.h>                              //Needed for I2C port
-#include <sys/ioctl.h>                  //Needed for I2C port
-#include <linux/i2c-dev.h>              //Needed for I2C port
-
+#include <unistd.h>        //Needed for I2C port
+#include <fcntl.h>         //Needed for I2C port
+#include <sys/ioctl.h>     //Needed for I2C port
+#include <linux/i2c-dev.h> //Needed for I2C port
 
 #include "controller.h"
 #include "debug.h"
@@ -35,8 +34,8 @@
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*x))
 
-        int file_i2c;
-       unsigned char buf[60] = {0};
+int file_i2c;
+unsigned char buf[60] = {0};
 
 /*
  * Raise the priority of the current thread
@@ -51,19 +50,22 @@ static int raise_priority(int priority)
 
     max_pri = sched_get_priority_max(SCHED_FIFO);
 
-    if (priority > max_pri) {
+    if (priority > max_pri)
+    {
         fprintf(stderr, "Invalid scheduling priority (maximum %d).\n", max_pri);
         return -1;
     }
 
-    if (sched_getparam(0, &sp)) {
+    if (sched_getparam(0, &sp))
+    {
         perror("sched_getparam");
         return -1;
     }
 
     sp.sched_priority = priority;
 
-    if (sched_setscheduler(0, SCHED_FIFO, &sp)) {
+    if (sched_setscheduler(0, SCHED_FIFO, &sp))
+    {
         perror("sched_setscheduler");
         fprintf(stderr, "Failed to get realtime priorities\n");
         return -1;
@@ -85,7 +87,8 @@ static void rt_main(struct rt *rt)
 
     thread_to_realtime();
 
-    if (rt->priority != 0) {
+    if (rt->priority != 0)
+    {
         if (raise_priority(rt->priority) == -1)
             rt->finished = true;
     }
@@ -93,12 +96,17 @@ static void rt_main(struct rt *rt)
     if (sem_post(&rt->sem) == -1)
         abort(); /* under our control; see sem_post(3) */
 
-    while (!rt->finished) {
+    while (!rt->finished)
+    {
         r = poll(rt->pt, rt->npt, -1);
-        if (r == -1) {
-            if (errno == EINTR) {
+        if (r == -1)
+        {
+            if (errno == EINTR)
+            {
                 continue;
-            } else {
+            }
+            else
+            {
                 perror("poll2");
                 abort();
             }
@@ -111,15 +119,15 @@ static void rt_main(struct rt *rt)
             device_handle(rt->dv[n]);
 */
 
-device_handle(rt->dv[0]);
+        device_handle(rt->dv[0]);
 
-/*
+        /*
 
 */
     }
 }
 
-static void* launch(void *p)
+static void *launch(void *p)
 {
     rt_main(p);
     return NULL;
@@ -129,8 +137,6 @@ static void* launch(void *p)
  * Initialise state of realtime handler
  */
 
-
-
 void rt_init(struct rt *rt)
 {
     debug("%p", rt);
@@ -139,8 +145,6 @@ void rt_init(struct rt *rt)
     rt->ndv = 0;
     rt->nctl = 0;
     rt->npt = 0;
-
-
 }
 
 /*
@@ -164,7 +168,8 @@ int rt_add_device(struct rt *rt, struct device *dv)
 
     debug("%p adding device %p", rt, dv);
 
-    if (rt->ndv == ARRAY_SIZE(rt->dv)) {
+    if (rt->ndv == ARRAY_SIZE(rt->dv))
+    {
         fprintf(stderr, "Too many audio devices\n");
         return -1;
     }
@@ -173,7 +178,8 @@ int rt_add_device(struct rt *rt, struct device *dv)
      * entry table before entering the realtime thread */
 
     z = device_pollfds(dv, &rt->pt[rt->npt], sizeof(rt->pt) - rt->npt);
-    if (z == -1) {
+    if (z == -1)
+    {
         fprintf(stderr, "Device failed to return file descriptors.\n");
         return -1;
     }
@@ -198,7 +204,8 @@ int rt_add_controller(struct rt *rt, struct controller *c)
 
     debug("%p adding controller %p", rt, c);
 
-    if (rt->nctl == ARRAY_SIZE(rt->ctl)) {
+    if (rt->nctl == ARRAY_SIZE(rt->ctl))
+    {
         fprintf(stderr, "Too many controllers\n");
         return -1;
     }
@@ -206,7 +213,8 @@ int rt_add_controller(struct rt *rt, struct controller *c)
     /* Similar to adding a PCM device */
 
     z = controller_pollfds(c, &rt->pt[rt->npt], sizeof(rt->pt) - rt->npt);
-    if (z == -1) {
+    if (z == -1)
+    {
         fprintf(stderr, "Controller failed to return file descriptors.\n");
         return -1;
     }
@@ -236,18 +244,21 @@ int rt_start(struct rt *rt, int priority)
     /* If there are any devices which returned file descriptors for
      * poll() then launch the realtime thread to handle them */
 
-    if (rt->npt > 0) {
+    if (rt->npt > 0)
+    {
         int r;
 
         fprintf(stderr, "Launching realtime thread to handle devices...\n");
 
-        if (sem_init(&rt->sem, 0, 0) == -1) {
+        if (sem_init(&rt->sem, 0, 0) == -1)
+        {
             perror("sem_init");
             return -1;
         }
 
-        r = pthread_create(&rt->ph, NULL, launch, (void*)rt);
-        if (r != 0) {
+        r = pthread_create(&rt->ph, NULL, launch, (void *)rt);
+        if (r != 0)
+        {
             errno = r;
             perror("pthread_create");
             if (sem_destroy(&rt->sem) == -1)
@@ -262,7 +273,8 @@ int rt_start(struct rt *rt, int priority)
         if (sem_destroy(&rt->sem) == -1)
             abort();
 
-        if (rt->finished) {
+        if (rt->finished)
+        {
             if (pthread_join(rt->ph, NULL) != 0)
                 abort();
             return -1;
@@ -290,7 +302,8 @@ void rt_stop(struct rt *rt)
     for (n = 0; n < rt->ndv; n++)
         device_stop(rt->dv[n]);
 
-    if (rt->npt > 0) {
+    if (rt->npt > 0)
+    {
         if (pthread_join(rt->ph, NULL) != 0)
             abort();
     }

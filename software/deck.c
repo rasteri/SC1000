@@ -54,7 +54,6 @@ int deck_init(struct deck *d, struct rt *rt,
 	d->protect = protect;
 	assert(importer != NULL);
 	d->importer = importer;
-	if (slave)
 		rate = 48000;
 
 	//timecoder_init(&d->timecoder, timecode, speed, rate, phono);
