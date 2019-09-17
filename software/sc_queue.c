@@ -68,7 +68,7 @@ char InterpolateQueue(statequeue *queue, double *timestamp, double *val)
                 ((firsttotime / totalTime) * secondReading.target_position);
 
          if (*val - lastVal <= 0.0000001){
-				printf("blip\n");
+				//printf("blip\n");
 			}
 			lastVal = *val;
          return 1;

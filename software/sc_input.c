@@ -150,7 +150,6 @@ void *SC_InputThread(void *ptr)
 
 	deck[1].player.target_position = 0;
 	sleep(2);
-	double ratioSampleToUsec = 1000000 / 46000;
 	inputstate sq;
 	sq.target_position = 0;
 
@@ -312,8 +311,21 @@ void *SC_InputThread(void *ptr)
 					}
 
 					// Convert the raw value to track position and set player to that pos
+					
+					clock_gettime(CLOCK_MONOTONIC, &ts);
+					inputtime = (double)ts.tv_sec + ((double)ts.tv_nsec / 1000000000.0);
 
-					deck[1].player.target_position = (double)(encoderAngle + angleOffset) / scsettings.platterspeed;
+					sq.timestamp = inputtime;
+					if (lastinputtime != 0){
+						sq.target_position = (double)(encoderAngle + angleOffset) / scsettings.platterspeed;
+						spin_lock(&deck[1].player.lock); /* Synchronise with the playback thread */
+						char res = fifoWrite(deck[1].player.scqueue, &sq);
+						spin_unlock(&deck[1].player.lock);
+						
+					}
+					lastinputtime = inputtime;
+
+					//deck[1].player.target_position = (double)(encoderAngle + angleOffset) / scsettings.platterspeed;
 				}
 			}
 
@@ -535,7 +547,7 @@ void *SC_InputThread(void *ptr)
 			
 		}
 
-		usleep(400);
+		//usleep(400);
 	}
 }
 
