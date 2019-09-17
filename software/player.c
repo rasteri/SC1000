@@ -150,6 +150,7 @@ void player_init(struct player *pl, unsigned int sample_rate,
 	pl->GoodToGo = 0;
 	pl->samplesSoFar = 0;
 	pl->nominal_pitch = 1.0;
+	pl->timestamp = 0.0;
 }
 
 /*
@@ -350,13 +351,15 @@ bool NearlyEqual(double val1, double val2, double tolerance)
 		return false;
 }
 
+double last_position = 0;
+
 static double build_pcm(struct player *pl, signed short *pcm, unsigned samples, bool looping)
 {
 	int s;
 	double sample, step, vol, gradient, pitchGradient;
 
 	vol = 0.5;
-pl->samplesSoFar ++;
+
 	for (s = 0; s < samples; s++)
 	{
 		
@@ -364,10 +367,15 @@ pl->samplesSoFar ++;
 		int c, sa, q;
 		double f;
 		signed short i[PLAYER_CHANNELS][4];
-
+		
 		// Interpolate between input events
-		/*if (InterpolateQueue(pl->scqueue, &pl->timestamp, &pl->position))
+		if (InterpolateQueue(pl->scqueue, &pl->timestamp, &pl->position))
 		{
+			//printf("%f\n", pl->position - last_position);
+
+
+			pl->samplesSoFar++;
+			//sample = pl->samplesSoFar;
 			sample = pl->position * 48000;
 			// 4-sample window for audio interpolation
 			sa = (int)(sample);
@@ -416,9 +424,11 @@ pl->samplesSoFar ++;
 					*sp = (signed short)v;
 				}
 			}
-		}*/
-		//pl->timestamp += pl->sample_dt;
-		pl->timestamp += 1.0/192000;
+			pl->timestamp += pl->sample_dt;
+		}
+		//printf("%f\n", sample);
+		//printf("%f\n", sample);
+		
 	}
 }
 

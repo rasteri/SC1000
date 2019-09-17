@@ -167,7 +167,7 @@ void *SC_InputThread(void *ptr)
 			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\n%f %f  -- %f - %f = %f\n%d\n",
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], encoderAngle,
 				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
-				   deck[1].player.position, sq.target_position, lastinputtime, deck[1].player.timestamp, lastinputtime - deck[1].player.timestamp,
+				   deck[1].player.position, sq.target_position, inputtime, deck[1].player.timestamp, inputtime - deck[1].player.timestamp,
 				   deck[1].player.samplesSoFar
 
 			);
@@ -516,13 +516,17 @@ void *SC_InputThread(void *ptr)
 			deck[0].player.pitch = 1;
 			sq.target_fader = 0.5;
 			
-			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
+			clock_gettime(CLOCK_MONOTONIC, &ts);
 			inputtime = (double)ts.tv_sec + ((double)ts.tv_nsec / 1000000000.0);
 
 			sq.timestamp = inputtime;
 			if (lastinputtime != 0){
 				sq.target_position += ((double)(inputtime - lastinputtime));
+				spin_lock(&deck[1].player.lock); /* Synchronise with the playback thread */
 				char res = fifoWrite(deck[1].player.scqueue, &sq);
+				spin_unlock(&deck[1].player.lock);
+				
+				//printf("%f\n", sq.target_position);
 				//deck[1].player.target_position += ((double)(usec - lastusec))/1000000;
 			}
 			//printf("-------------------%u\n",usec - lastusec );

@@ -12,7 +12,8 @@
 			"track.h": "c",
 			"*.tcc": "c",
 			"fstream": "c",
-			"ostream": "c"
+			"ostream": "c",
+			"sc_queue.h": "c"
 		}
 	}
 }

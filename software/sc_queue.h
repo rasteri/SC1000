@@ -4,7 +4,7 @@
 #define BUFFER_SIZE 256
 
 typedef struct inputstate {
-    long long unsigned int timestamp;
+    double timestamp;
     double target_position;
     unsigned int target_fader;
 } inputstate;
@@ -19,5 +19,5 @@ typedef struct statequeue {
 char fifoRead(statequeue *queue, inputstate *state);
  
 char fifoWrite(statequeue *queue, inputstate *val);
-char InterpolateQueue(statequeue *queue, long long unsigned int *timestamp, double *val);
+char InterpolateQueue(statequeue *queue, double *timestamp, double *val);
 #endif

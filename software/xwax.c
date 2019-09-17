@@ -71,7 +71,7 @@ void loadSettings()
 	char delim[] = "=";
 
 	// set defaults
-	scsettings.buffersize = 256;
+	scsettings.buffersize = 1024;
 	scsettings.faderclosepoint = 2;
 	scsettings.faderopenpoint = 5;
 	scsettings.platterenabled = 1;
