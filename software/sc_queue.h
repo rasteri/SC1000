@@ -1,7 +1,8 @@
 #ifndef SC_QUEUE_H
 #define SC_QUEUE_H
 
-#define BUFFER_SIZE 256
+
+#define BUFFER_SIZE 20000
 
 typedef struct inputstate {
     double timestamp;
@@ -17,7 +18,8 @@ typedef struct statequeue {
 
 
 char fifoRead(statequeue *queue, inputstate *state);
- 
+void fifoInit(statequeue *queue);
 char fifoWrite(statequeue *queue, inputstate *val);
-char InterpolateQueue(statequeue *queue, double *timestamp, double *val);
+char fifoPeek(statequeue *queue, unsigned int aheadby, inputstate *state);
+
 #endif

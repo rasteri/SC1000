@@ -27,7 +27,6 @@
 #include "sc_input.h"
 #include "sc_queue.h"
 
-
 void i2c_read_address(int file_i2c, unsigned char address, unsigned char *result)
 {
 
@@ -77,8 +76,18 @@ void load_and_sync_encoder(struct player *pl, struct track *track)
 
 unsigned int numblocks = 0;
 
+extern statequeue queues[2];
+
 void *SC_InputThread(void *ptr)
 {
+	char stuff[200];
+	FILE *fptr;
+	if ((fptr = fopen("rotout.csv", "r")) == NULL)
+	{
+		printf("Error! opening file");
+		// Program exits if file pointer returns NULL.
+		exit(1);
+	}
 
 	int file_i2c_rot, file_i2c_pic;
 
@@ -142,9 +151,13 @@ void *SC_InputThread(void *ptr)
 
 	struct timeval tv;
 	unsigned long lastTime = 0;
-	double inputtime =0, lastinputtime = 0;
+	double inputtime = 0, lastinputtime = 0;
 	unsigned int frameCount = 0;
 	long lastsamplecount = 0;
+	char *line = NULL;
+	char *param;
+	char *value;
+	char delim[] = ",";
 
 	struct timespec ts;
 
@@ -153,6 +166,11 @@ void *SC_InputThread(void *ptr)
 	double ratioSampleToUsec = 1000000 / 46000;
 	inputstate sq;
 	sq.target_position = 0;
+
+	double lasttargetpos, lasttimestamp;
+	size_t len = 0;
+		char waitingToSend = 0;
+		double lastPos;
 
 	while (1)
 	{
@@ -515,14 +533,14 @@ void *SC_InputThread(void *ptr)
 			deck[0].player.justPlay = 1;
 			deck[0].player.pitch = 1;
 			sq.target_fader = 0.5;
-			
-			clock_gettime(CLOCK_MONOTONIC, &ts);
+
+			/*clock_gettime(CLOCK_MONOTONIC, &ts);
 			inputtime = (double)ts.tv_sec + ((double)ts.tv_nsec / 1000000000.0);
 
 			sq.timestamp = inputtime;
 			if (lastinputtime != 0){
 				sq.target_position += ((double)(inputtime - lastinputtime));
-				spin_lock(&deck[1].player.lock); /* Synchronise with the playback thread */
+				spin_lock(&deck[1].player.lock); 
 				char res = fifoWrite(deck[1].player.scqueue, &sq);
 				spin_unlock(&deck[1].player.lock);
 				
@@ -531,11 +549,45 @@ void *SC_InputThread(void *ptr)
 			}
 			//printf("-------------------%u\n",usec - lastusec );
 			
-			lastinputtime = inputtime;
-			
-		}
+			lastinputtime = inputtime;*/
 
-		usleep(400);
+			//fscanf(fptr, "%f", &lasttargetpos, &lasttimestamp); // >= 0)
+			//printf("%f %f\n", lasttargetpos, lasttimestamp);
+			//fscanf(fptr, "%f", &lasttargetpos);
+
+			if (waitingToSend){
+
+			}
+			else {
+				getline(&line, &len, fptr);
+
+				param = strtok(line, delim);
+				value = strtok(NULL, delim);
+
+				lasttimestamp = atof(param);
+				lasttargetpos = atof(value);
+
+				//printf("%f %f\n", lasttimestamp, lasttargetpos);
+
+				if (lasttargetpos != lastPos){
+					sq.target_position = lasttargetpos;
+					sq.timestamp = lasttimestamp;
+					waitingToSend = 1;
+					lastPos = lasttargetpos;
+				} //else printf("blip2\n");
+			}
+			if (waitingToSend){
+				//spin_lock(&deck[1].player.lock);
+				if (fifoWrite(deck[1].player.scqueue, &sq)){
+					waitingToSend = 0;
+				}
+				//spin_unlock(&deck[1].player.lock);
+			}
+
+			//}
+
+			usleep(200);
+		}
 	}
 }
 

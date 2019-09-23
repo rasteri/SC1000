@@ -49,7 +49,8 @@ long samplesSoFar;
         pitch, /* from timecoder */
         sync_pitch, /* pitch required to sync to timecode signal */
         volume,
-        nominal_pitch; // Pitch after any note/pitch fader changes
+        nominal_pitch, // Pitch after any note/pitch fader changes
+        target_pitch;
 
     /* Timecode control */
 

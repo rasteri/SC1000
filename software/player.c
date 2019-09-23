@@ -141,7 +141,7 @@ void player_init(struct player *pl, unsigned int sample_rate,
 
 	pl->position = 0.0;
 	pl->offset = 0.0;
-	pl->target_position = TARGET_UNKNOWN;
+	pl->target_position = 0.0;
 	pl->last_difference = 0.0;
 
 	pl->pitch = 0.0;
@@ -351,85 +351,154 @@ bool NearlyEqual(double val1, double val2, double tolerance)
 		return false;
 }
 
+char FindNextState(struct player *pl, double *timestamp, double *value)
+{
+	inputstate firstReading, secondReading;
+	while (1) // will end when returning value
+	{
+		if (!fifoPeek(pl->scqueue, 0, &firstReading))
+			return 0;
+		if (!fifoPeek(pl->scqueue, 1, &secondReading))
+			return 0;
+
+		// If the timestamp requested is before the first time in the buffer, move us forward
+		if (pl->timestamp < firstReading.timestamp)
+		{
+			pl->timestamp = firstReading.timestamp;
+		}
+
+		// Sanity check, make sure the timestamp requested is between firstTime and secondTime
+		if (pl->timestamp < secondReading.timestamp)
+		{
+			*timestamp = secondReading.timestamp;
+			*value = secondReading.target_position;
+			return 1;
+		}
+
+		// We need to move up the queue, so calculatye
+
+		// move up the queue
+		fifoRead(pl->scqueue, &firstReading);
+	}
+}
+
+/*char InterpolateQueue(struct player *pl, int samplesTillNext)
+{
+   inputstate firstReading, secondReading;
+   while (1) // will end when returning value
+   {
+      if (!fifoPeek(&pl->scqueue, 0, &firstReading))
+         return 0;
+      if (!fifoPeek(&pl->scqueue, 1, &secondReading))
+         return 0;
+
+      // If the timestamp requested is before the first time in the buffer, move us forward
+      if (pl->timestamp < firstReading.timestamp){
+         pl->timestamp = firstReading.timestamp;
+      }
+
+      // Sanity check, make sure the timestamp requested is between firstTime and secondTime
+      if (pl->timestamp <= secondReading.timestamp)
+      {
+         //interpolate
+         double firsttotime = ((pl->timestamp) - firstReading.timestamp);
+         double timetosecond = (secondReading.timestamp - (pl->timestamp));
+         double totalTime = (secondReading.timestamp - firstReading.timestamp);
+
+         *val = ((timetosecond / totalTime) * firstReading.target_position) +
+                ((firsttotime / totalTime) * secondReading.target_position);
+
+         pl->target_pitch = timetosecond * 0.0001;
+
+         return 1;
+      }
+
+      // We need to move up the queue, so calculatye 
+
+      // move up the queue
+      fifoRead(&pl->scqueue, &firstReading);
+   }
+}*/
+
 double last_position = 0;
 
-static double build_pcm(struct player *pl, signed short *pcm, unsigned samples, bool looping)
+static double build_pcm(struct player *pl, signed short *pcm, unsigned sampleStart, unsigned totalSamples, bool looping)
 {
 	int s;
 	double sample, step, vol, gradient, pitchGradient;
 
 	vol = 0.5;
+	pitchGradient = (pl->target_pitch - pl->pitch) / totalSamples;
+	//pl->pitch = pl->target_pitch;
 
-	for (s = 0; s < samples; s++)
+	//printf("%f %f\n", pl->target_positi, pl->pitch);
+
+	for (s = sampleStart; s < sampleStart + totalSamples; s++)
 	{
-		
 
 		int c, sa, q;
 		double f;
 		signed short i[PLAYER_CHANNELS][4];
-		
-		// Interpolate between input events
-		if (InterpolateQueue(pl->scqueue, &pl->timestamp, &pl->position))
-		{
-			//printf("%f\n", pl->position - last_position);
 
+		//printf("%f\n", pl->position - last_position);
 
-			pl->samplesSoFar++;
-			//sample = pl->samplesSoFar;
-			sample = pl->position * 48000;
-			// 4-sample window for audio interpolation
-			sa = (int)(sample);
-			if (sample < 0.0)
-				sa--;
-			f = sample - sa;
+		pl->samplesSoFar++;
+		//sample = pl->samplesSoFar;
+		sample = pl->position * 48000;
+		// 4-sample window for audio interpolation
+		sa = (int)(sample);
+		if (sample < 0.0)
 			sa--;
+		f = sample - sa;
+		sa--;
 
-			for (q = 0; q < 4; q++, sa++)
+		for (q = 0; q < 4; q++, sa++)
+		{
+			if (sa < 0 || sa >= pl->track->length)
 			{
-				if (sa < 0 || sa >= pl->track->length)
-				{
-					for (c = 0; c < PLAYER_CHANNELS; c++)
-						i[c][q] = 0;
-				}
-				else
-				{
-					signed short *ts;
-					int c;
-
-					ts = track_get_sample(pl->track, sa);
-					for (c = 0; c < PLAYER_CHANNELS; c++)
-						i[c][q] = ts[c];
-				}
+				for (c = 0; c < PLAYER_CHANNELS; c++)
+					i[c][q] = 0;
 			}
-
-			for (c = 0; c < PLAYER_CHANNELS; c++)
+			else
 			{
-				double v;
+				signed short *ts;
+				int c;
 
-				v = vol * cubic_interpolate(i[c], f) + dither();
-
-				signed short *sp;
-				sp = pcm + (2 * s) + c;
-
-				if (v > SHRT_MAX)
-				{
-					*sp = SHRT_MAX;
-				}
-				else if (v < SHRT_MIN)
-				{
-					*sp = SHRT_MIN;
-				}
-				else
-				{
-					*sp = (signed short)v;
-				}
+				ts = track_get_sample(pl->track, sa);
+				for (c = 0; c < PLAYER_CHANNELS; c++)
+					i[c][q] = ts[c];
 			}
-			pl->timestamp += pl->sample_dt;
 		}
-		//printf("%f\n", sample);
-		//printf("%f\n", sample);
-		
+
+		for (c = 0; c < PLAYER_CHANNELS; c++)
+		{
+			double v;
+
+			v = vol * cubic_interpolate(i[c], f) + dither();
+
+			signed short *sp;
+			sp = pcm + (2 * s) + c;
+
+			if (v > SHRT_MAX)
+			{
+				*sp = SHRT_MAX;
+			}
+			else if (v < SHRT_MIN)
+			{
+				*sp = SHRT_MIN;
+			}
+			else
+			{
+				*sp = (signed short)v;
+			}
+		}
+		pl->timestamp += pl->sample_dt;
+		pl->position += (pl->pitch / 48000);
+		//printf("%f\n", pl->position);
+		pl->pitch += pitchGradient;
 	}
+	//printf("%f\n", sample);
+	//printf("%f\n", sample);
 }
 
 void handleInput(struct player *pl, inputstate *state)
@@ -439,20 +508,62 @@ void handleInput(struct player *pl, inputstate *state)
 	if (!pl->justPlay)
 		printf("Got Event - pos:%f, target_pos:%f - \n", pl->position, pl->target_position);
 }
+
+double SamplesToTimeStamp(double samples)
+{
+	return samples / 48000;
+}
+double TimeStampToSamples(double timestamp)
+{
+	return timestamp * 48000;
+}
+
 extern unsigned int numblocks;
 void player_collect(struct player *pl, signed short *pcm, unsigned totalSamples)
 {
+	inputstate nextState;
 	double r;
+	unsigned samplesRemaining = totalSamples;
 	if (!spin_try_lock(&pl->lock))
 	{
-		//r = build_silence(pcm, totalSamples, pl->sample_dt, 1.0); THis won't work anymore, but could still run interpolation algorithm 
+		//r = build_silence(pcm, totalSamples, pl->sample_dt, 1.0); THis won't work anymore, but could still run interpolation algorithm
 	}
 	else
 	{
-		r = build_pcm(pl, pcm, totalSamples, 0);
-		spin_unlock(&pl->lock);
+		unsigned startSample = 0;
+		unsigned samplesToDo = 0;
+		while (samplesRemaining > 0)
+		{
+			// Get next state and the pitch neccesary to reach it at the specified time
+			double nextTimeStamp, nextValue;
+			if (FindNextState(pl, &nextTimeStamp, &nextValue))
+			{
+				//printf("%f\n", nextValue);
+				double timedifference = nextTimeStamp - pl->timestamp;
+				double distance = nextValue - pl->position;
+				samplesToDo = TimeStampToSamples(timedifference);
+				if (samplesToDo == 0){
+					pl->timestamp = nextTimeStamp;
+				}
+				else
+				{
+					pl->target_pitch = (distance / timedifference) * 1; // s = d/t! high school physics
+					printf("----nv:%f pos:%f ts:%f nts:%f dist:%f td:%f tp:%f\n", nextValue, pl->position, pl->timestamp, nextTimeStamp, distance, timedifference, pl->target_pitch);
+																			/*pl->pitch = 1.0;
+				pl->target_pitch = 1.0;*/
+					if (startSample + samplesToDo > totalSamples)
+					{
+						samplesToDo = totalSamples - startSample;
+					}
+					//printf("----nts:%f ss:%d std:%d sr:%d ts:%d td:%f\n", nextTimeStamp, startSample, samplesToDo, samplesRemaining, totalSamples, timedifference);
+					r = build_pcm(pl, pcm, startSample, samplesToDo, 0);
+					samplesRemaining -= samplesToDo;
+					startSample += samplesToDo;
+				}
+			}
+			spin_unlock(&pl->lock);
+		}
 	}
-
 }
 
 /*void player_collect(struct player *pl, signed short *pcm, unsigned samples)
