@@ -428,8 +428,8 @@ static double build_pcm(struct player *pl, signed short *pcm, unsigned sampleSta
 	double sample, step, vol, gradient, pitchGradient;
 
 	vol = 0.5;
-	pitchGradient = (pl->target_pitch - pl->pitch) / totalSamples;
-	//pl->pitch = pl->target_pitch;
+	//pitchGradient = (pl->target_pitch - pl->pitch) / totalSamples;
+	pl->pitch = pl->target_pitch;
 
 	//printf("%f %f\n", pl->target_positi, pl->pitch);
 
@@ -495,7 +495,7 @@ static double build_pcm(struct player *pl, signed short *pcm, unsigned sampleSta
 		pl->timestamp += pl->sample_dt;
 		pl->position += (pl->pitch / 48000);
 		//printf("%f\n", pl->position);
-		pl->pitch += pitchGradient;
+		//pl->pitch += pitchGradient;
 	}
 	//printf("%f\n", sample);
 	//printf("%f\n", sample);
@@ -547,7 +547,7 @@ void player_collect(struct player *pl, signed short *pcm, unsigned totalSamples)
 				}
 				else
 				{
-					pl->target_pitch = (distance / timedifference) * 1; // s = d/t! high school physics
+					pl->target_pitch = (distance / timedifference) * 0.1; // s = d/t! high school physics
 					printf("----nv:%f pos:%f ts:%f nts:%f dist:%f td:%f tp:%f\n", nextValue, pl->position, pl->timestamp, nextTimeStamp, distance, timedifference, pl->target_pitch);
 																			/*pl->pitch = 1.0;
 				pl->target_pitch = 1.0;*/
