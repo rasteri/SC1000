@@ -371,7 +371,7 @@ static double build_pcm(struct player *pl, signed short *pcm, unsigned samples, 
 		// Interpolate between input events
 		if (InterpolateQueue(pl->scqueue, &pl->timestamp, &pl->position))
 		{
-			//printf("%f\n", pl->position - last_position);
+			printf("%f\n", pl->position);
 
 
 			pl->samplesSoFar++;
