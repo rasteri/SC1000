@@ -51,6 +51,7 @@
 
 struct deck deck[2];
 statequeue queues[2];
+statequeue filterqueues[2];
 
 static struct rt rt;
 
@@ -160,22 +161,33 @@ int main(int argc, char *argv[])
 	alsa_buffer = 2;
 	rate = 48000;
 
+	// Tell deck0 to just play without considering inputs
+
+	deck[0].player.justPlay = 1;
+
+	deck[0].player.scqueue = &queues[0];
+	deck[1].player.scqueue = &queues[1];
+
+	deck[0].player.filterqueue = &filterqueues[0];
+	deck[1].player.filterqueue = &filterqueues[1];
+
+	fifoInit(&queues[0], 1024);
+	fifoInit(&queues[1], 1024);
+	fifoInit(&filterqueues[0], 1024);
+	fifoInit(&filterqueues[1], 1024);
+
 	alsa_init(&deck[0].device, "hw:0,0", rate, scsettings.buffersize, 0);
 	alsa_init(&deck[1].device, "hw:0,0", rate, scsettings.buffersize, 1);
 
 	deck_init(&deck[0], &rt, importer, 1.0, false, false, 0);
 	deck_init(&deck[1], &rt, importer, 1.0, false, false, 1);
 
-	deck[0].player.scqueue = &queues[0];
-	deck[1].player.scqueue = &queues[1];
 
 	// point deck1's output at deck0, it will be summed in
 
 	deck[0].device.player2 = deck[1].device.player;
 
-	// Tell deck0 to just play without considering inputs
 
-	deck[0].player.justPlay = 1;
 
 	// Stop deck1 from looping
 	deck[0].player.looping = 1;

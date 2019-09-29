@@ -11,7 +11,7 @@ typedef struct inputstate {
 
 
 typedef struct statequeue {
-    unsigned int tail, head;
+    unsigned int tail, head, size;
     inputstate buffer[BUFFER_SIZE];
 } statequeue;
 
@@ -19,6 +19,7 @@ typedef struct statequeue {
 char fifoRead(statequeue *queue, inputstate *state);
  
 char fifoWrite(statequeue *queue, inputstate *val, char overwriteold);
-
+double fcubic_interpolate(double y0, double y1, double y2, double y3, double mu);
 char InterpolateQueue(statequeue *queue, double *timestamp, double *val);
+void fifoInit(statequeue *queue, unsigned int size);
 #endif

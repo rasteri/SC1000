@@ -151,6 +151,30 @@ void player_init(struct player *pl, unsigned int sample_rate,
 	pl->samplesSoFar = 0;
 	pl->nominal_pitch = 1.0;
 	pl->timestamp = 0.0;
+	double lastval = 0;
+
+	if (!pl->justPlay)
+	{
+		pl->debugout = fopen("pitchvals.csv", "w");
+		for (double i = 0.0; i < 1.0; i += 0.05)
+			printf(
+				"%f,%f\n",
+				i,
+				fcubic_interpolate(0, 0.5, 1, 2, i));
+		for (double i = 0.0; i < 1.0; i += 0.05)
+			printf(
+				"%f,%f\n",
+				i+1.0,
+				fcubic_interpolate(0.5, 1, 2, 7, i));
+
+		for (double i = 0.0; i < 1.0; i += 0.05)
+			printf(
+				"%f,%f\n",
+				i+2.0,
+				fcubic_interpolate(1, 2, 7, 7, i));
+	}
+
+
 }
 
 /*
@@ -357,22 +381,37 @@ static double build_pcm(struct player *pl, signed short *pcm, unsigned samples, 
 {
 	int s;
 	double sample, step, vol, gradient, pitchGradient;
+	inputstate is;
+	double av = 0;
 
 	vol = 0.5;
 
 	for (s = 0; s < samples; s++)
 	{
-		
 
 		int c, sa, q;
 		double f;
 		signed short i[PLAYER_CHANNELS][4];
-		
-		// Interpolate between input events
-		if (InterpolateQueue(pl->scqueue, &pl->timestamp, &pl->position))
-		{
-			printf("%f\n", pl->position);
 
+		// Interpolate between input events
+		if (InterpolateQueue(pl->scqueue, &pl->timestamp, &is.target_position))
+		{
+			//is.target_position = pl->position;
+			fifoWrite(pl->filterqueue, &is, 1);
+
+			av = 0;
+			for (int i=0; i < pl->filterqueue->size; i++){
+				av += pl->filterqueue->buffer[i].target_position;
+			}
+
+			pl->position = av / pl->filterqueue->size;
+			//pl->position = is.target_position;
+
+			//printf("%f, %f\n", pl->position);
+			if (!pl->justPlay){	
+				fprintf(pl->debugout, "%.10f,%.10f\n", pl->position, (pl->position - last_position)*48000);
+				last_position = pl->position;
+			}
 
 			pl->samplesSoFar++;
 			//sample = pl->samplesSoFar;
@@ -428,7 +467,6 @@ static double build_pcm(struct player *pl, signed short *pcm, unsigned samples, 
 		}
 		//printf("%f\n", sample);
 		//printf("%f\n", sample);
-		
 	}
 }
 
@@ -445,14 +483,13 @@ void player_collect(struct player *pl, signed short *pcm, unsigned totalSamples)
 	double r;
 	if (!spin_try_lock(&pl->lock))
 	{
-		//r = build_silence(pcm, totalSamples, pl->sample_dt, 1.0); THis won't work anymore, but could still run interpolation algorithm 
+		//r = build_silence(pcm, totalSamples, pl->sample_dt, 1.0); THis won't work anymore, but could still run interpolation algorithm
 	}
 	else
 	{
 		r = build_pcm(pl, pcm, totalSamples, 0);
 		spin_unlock(&pl->lock);
 	}
-
 }
 
 /*void player_collect(struct player *pl, signed short *pcm, unsigned samples)

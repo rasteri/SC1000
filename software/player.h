@@ -65,6 +65,9 @@ long samplesSoFar;
 	bool GoodToGo;
 	bool looping;
     statequeue *scqueue;
+    statequeue *filterqueue;
+
+    FILE* debugout;
 
 };
 
