@@ -63,6 +63,9 @@ OBJS = controller.o \
 	dicer.o \
 	midi.o \
 	sc_queue.o \
+	rb.o \
+	BiquadFactory.o \
+	biquad.o \
 	xwax.o
 DEVICE_CPPFLAGS = -DWITH_ALSA
 DEVICE_LIBS = $(ALSA_LIBS)

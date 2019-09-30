@@ -100,14 +100,15 @@ char InterpolateQueue(statequeue *queue, double *timestamp, double *val)
       if (*timestamp < y2.timestamp)
       {
          //interpolate
-         double firsttotime = ((*timestamp) - y1.timestamp);
+         /*double firsttotime = ((*timestamp) - y1.timestamp);
          double timetosecond = (y2.timestamp - (*timestamp));
          double totalTime = (y2.timestamp - y1.timestamp);
 
          *val = ((timetosecond / totalTime) * y1.target_position) +
                 ((firsttotime / totalTime) * y2.target_position);
 
-         lastVal = *val;
+         lastVal = *val;*/
+         *val = y2.target_position;
 
          /**val = fcubic_interpolate(
             y0.target_position,

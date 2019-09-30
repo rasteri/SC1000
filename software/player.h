@@ -25,6 +25,7 @@
 #include "spin.h"
 #include "track.h"
 #include "sc_queue.h"
+#include "biquad.h"
 
 
 
@@ -61,11 +62,12 @@ long samplesSoFar;
 	double faderVolume; // current fader volume
 	bool capTouch;
     double timestamp; // the last input event timestamp seen by this player
-	
+    double last_position, last_unf_position;
 	bool GoodToGo;
 	bool looping;
     statequeue *scqueue;
     statequeue *filterqueue;
+    biquad_t filter, filter2;
 
     FILE* debugout;
 

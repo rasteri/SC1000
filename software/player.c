@@ -29,6 +29,7 @@
 #include "player.h"
 #include "track.h"
 #include "sc_queue.h"
+#include "biquad.h"
 
 /* Bend playback speed to compensate for the difference between our
  * current position and that given by the timecode */
@@ -126,6 +127,8 @@ void player_set_timecoder(struct player *pl, struct timecoder *tc)
 /*
  * Post: player is initialised
  */
+#define status_t int
+status_t lowpass(biquad_t *filter, double center_freq, double Q);
 
 void player_init(struct player *pl, unsigned int sample_rate,
 				 struct track *track)
@@ -156,23 +159,26 @@ void player_init(struct player *pl, unsigned int sample_rate,
 	if (!pl->justPlay)
 	{
 		pl->debugout = fopen("pitchvals.csv", "w");
-		for (double i = 0.0; i < 1.0; i += 0.05)
-			printf(
-				"%f,%f\n",
-				i,
-				fcubic_interpolate(0, 0.5, 1, 2, i));
-		for (double i = 0.0; i < 1.0; i += 0.05)
-			printf(
-				"%f,%f\n",
-				i+1.0,
-				fcubic_interpolate(0.5, 1, 2, 7, i));
-
-		for (double i = 0.0; i < 1.0; i += 0.05)
-			printf(
-				"%f,%f\n",
-				i+2.0,
-				fcubic_interpolate(1, 2, 7, 7, i));
 	}
+
+	/*lowpass(&pl->filter, 5000, 0.7071);
+	lowpass(&pl->filter2, 5000, 0.7071);*/
+
+	BQ_init(&pl->filter);
+	BQ_setNum(&pl->filter, 0.0000008870817623267249, 0.0000017741635246534498, 0.0000008870817623267249);
+	BQ_setDen(&pl->filter, -1.997334246315892, 0.9973377946429413);
+
+	BQ_init(&pl->filter2);
+	BQ_setNum(&pl->filter2, 0.0000008870817623267249, 0.0000017741635246534498, 0.0000008870817623267249);
+	BQ_setDen(&pl->filter2, -1.997334246315892, 0.9973377946429413);
+
+	/*BQ_init(&pl->filter);
+	BQ_setNum(&pl->filter, 0.00000009865221032426577, 0.00000019730442064853154, 0.00000009865221032426577);
+	BQ_setDen(&pl->filter, -1.9991114149567926,  0.9991118095656341);
+
+	BQ_init(&pl->filter2);
+	BQ_setNum(&pl->filter2, 0.00000009865221032426577, 0.00000019730442064853154, 0.00000009865221032426577);
+	BQ_setDen(&pl->filter2, -1.9991114149567926,  0.9991118095656341);*/
 
 
 }
@@ -375,7 +381,7 @@ bool NearlyEqual(double val1, double val2, double tolerance)
 		return false;
 }
 
-double last_position = 0;
+
 
 static double build_pcm(struct player *pl, signed short *pcm, unsigned samples, bool looping)
 {
@@ -397,20 +403,25 @@ static double build_pcm(struct player *pl, signed short *pcm, unsigned samples, 
 		if (InterpolateQueue(pl->scqueue, &pl->timestamp, &is.target_position))
 		{
 			//is.target_position = pl->position;
-			fifoWrite(pl->filterqueue, &is, 1);
+			/*fifoWrite(pl->filterqueue, &is, 1);
 
 			av = 0;
 			for (int i=0; i < pl->filterqueue->size; i++){
 				av += pl->filterqueue->buffer[i].target_position;
 			}
 
-			pl->position = av / pl->filterqueue->size;
+			pl->position = av / pl->filterqueue->size;*/
 			//pl->position = is.target_position;
 
+			pl->position = BQ_process(&pl->filter, is.target_position);
+			pl->position = BQ_process(&pl->filter2, pl->position);
+
 			//printf("%f, %f\n", pl->position);
-			if (!pl->justPlay){	
-				fprintf(pl->debugout, "%.10f,%.10f\n", pl->position, (pl->position - last_position)*48000);
-				last_position = pl->position;
+			if (!pl->justPlay)
+			{
+				fprintf(pl->debugout, "%.10f,%.10f,%.10f\n", pl->position, (pl->position - pl->last_position) * 48000, (is.target_position - pl->last_unf_position)* 48000);
+				pl->last_position = pl->position;
+				pl->last_unf_position = is.target_position;
 			}
 
 			pl->samplesSoFar++;
