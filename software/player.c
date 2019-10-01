@@ -395,6 +395,7 @@ static double build_pcm(struct player *pl, signed short *pcm, unsigned samples, 
 	for (s = 0; s < samples; s++)
 	{
 
+
 		int c, sa, q;
 		double f;
 		signed short i[PLAYER_CHANNELS][4];
