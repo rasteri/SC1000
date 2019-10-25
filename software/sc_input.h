@@ -3,6 +3,4 @@
 
 void SC_Input_Start();
 
-
-
 #endif

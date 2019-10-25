@@ -24,10 +24,6 @@
 
 #include "spin.h"
 #include "track.h"
-#include "sc_queue.h"
-#include "biquad.h"
-
-
 
 #define PLAYER_CHANNELS 2
 
@@ -44,7 +40,6 @@ long samplesSoFar;
 
     double position, /* seconds */
         target_position, /* seconds, or TARGET_UNKNOWN */
-        smoothed_target_position,
         offset, /* track start point in timecode */
         last_difference, /* last known position minus target_position */
         pitch, /* from timecoder */
@@ -61,16 +56,9 @@ long samplesSoFar;
 	double faderTarget; // Player should slowly fade to this level
 	double faderVolume; // current fader volume
 	bool capTouch;
-    double timestamp; // the last input event timestamp seen by this player
-    double last_position, last_unf_position;
+	
 	bool GoodToGo;
 	bool looping;
-    statequeue *scqueue;
-    statequeue *filterqueue;
-    biquad_t filter, filter2;
-
-    FILE* debugout;
-
 };
 
 void player_init(struct player *pl, unsigned int sample_rate,

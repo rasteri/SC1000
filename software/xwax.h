@@ -33,10 +33,17 @@ typedef struct SC_SETTINGS {
 
     // sample rate, probably 48000
     int samplerate;
+	
+	// fader options
+	char singleVCA;
+	char doublecut;
+	char hamster;
 
     // fader thresholds for hysteresis
     int faderopenpoint; // value required to open the fader (when fader is closed)
     int faderclosepoint; // value required to close the fader (when fader is open)
+
+
 
     // delay between iterations of the input loop
     int updaterate;
@@ -48,6 +55,8 @@ typedef struct SC_SETTINGS {
     // 4096 = 1 second for every platter rotation
     // Default 3072 = 1.33 seconds for every platter rotation
     int platterspeed;
+
+
 
 } SC_SETTINGS;
 

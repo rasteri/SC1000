@@ -262,8 +262,7 @@ static int playback(struct device *dv)
 
 	dv->player->GoodToGo = 1;dv->player2->GoodToGo = 1;*/
 
-    memset(alsa->playback.buf, 0x00, alsa->playback.period * 2 * sizeof(signed short));
-    //player_collect(dv->player, alsa->playback.buf, alsa->playback.period);
+    player_collect(dv->player, alsa->playback.buf, alsa->playback.period);
     player_collect(dv->player2, alsa->playback.buf2, alsa->playback.period);
 
     // mix 2 players together

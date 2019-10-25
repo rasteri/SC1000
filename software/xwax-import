@@ -22,7 +22,17 @@ case "$FILE" in
 
 *.mp3)
 	echo "Calling MP3 decoder..." >&2
-	exec mpg123 -q -s --rate "$RATE" --stereo "$FILE"
+	exec nice --1 mpg123 -q -s --rate "$RATE" --stereo "$FILE"
+	;;
+
+*.raw)
+	echo "Loading RAW file" >&2
+	exec cat "$FILE"
+	;;
+
+*.wav)
+	echo "Loading WAV file" >&2
+	exec dd if="$FILE" iflag=skip_bytes bs=1k skip=44
 	;;
 
 *)
@@ -39,3 +49,4 @@ case "$FILE" in
 	;;
 
 esac
+

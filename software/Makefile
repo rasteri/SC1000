@@ -38,10 +38,10 @@ DOCDIR ?= $(PREFIX)/share/doc
 
 # Build flags
 
-CFLAGS ?= -g
+CFLAGS ?= -O3
 CFLAGS += -Wall
 CPPFLAGS += -MMD
-LDFLAGS ?= -g
+LDFLAGS ?= -O3
 
 # Core objects and libraries
 
@@ -62,10 +62,6 @@ OBJS = controller.o \
 	sc_playlist.o \
 	dicer.o \
 	midi.o \
-	sc_queue.o \
-	rb.o \
-	BiquadFactory.o \
-	biquad.o \
 	xwax.o
 DEVICE_CPPFLAGS = -DWITH_ALSA
 DEVICE_LIBS = $(ALSA_LIBS)

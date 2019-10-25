@@ -13,7 +13,6 @@
 #include <sys/ioctl.h>	 //Needed for I2C port
 #include <linux/i2c-dev.h> //Needed for I2C port
 #include <sys/time.h>
-#include <time.h>
 #include "sc_playlist.h"
 #include "alsa.h"
 #include "controller.h"
@@ -25,7 +24,6 @@
 #include "track.h"
 #include "xwax.h"
 #include "sc_input.h"
-#include "sc_queue.h"
 
 void i2c_read_address(int file_i2c, unsigned char address, unsigned char *result)
 {
@@ -74,8 +72,6 @@ void load_and_sync_encoder(struct player *pl, struct track *track)
 		angleOffset = (pl->position * scsettings.platterspeed) - encoderAngle;
 }
 
-unsigned int numblocks = 0;
-
 void *SC_InputThread(void *ptr)
 {
 
@@ -101,8 +97,11 @@ void *SC_InputThread(void *ptr)
 	unsigned int faderCutPoint;
 	unsigned char picpresent = 1;
 	unsigned char rotarypresent = 1;
+	int pitchMode = 0; // If we're in pitch-change mode
+	int oldPitchMode = 0;
 
 	int8_t crossedZero; // 0 when we haven't crossed zero, -1 when we've crossed in anti-clockwise direction, 1 when crossed in clockwise
+
 
 	// Initialise PIC input processor on I2C2
 
@@ -126,7 +125,7 @@ void *SC_InputThread(void *ptr)
 	//DumpFileStructure(FirstBeatFolder);
 	CurrentBeatFolder = FirstBeatFolder;
 	CurrentBeatFile = CurrentBeatFolder->FirstFile;
-
+printf("Here\n");
 	FirstSampleFolder = LoadFileStructure("/media/sda/samples/", &NumSamples);
 	//DumpFileStructure(FirstSampleFolder);
 	CurrentSampleFolder = FirstSampleFolder;
@@ -141,58 +140,21 @@ void *SC_InputThread(void *ptr)
 
 	struct timeval tv;
 	unsigned long lastTime = 0;
-	double inputtime = 0, lastinputtime = 0;
 	unsigned int frameCount = 0;
-	long lastsamplecount = 0;
-
-	struct timespec ts;
-
-	deck[1].player.target_position = 0;
-	sleep(2);
-	inputstate sq;
-	sq.target_position = 0;
-
-
-	char waitingToSend = 0;
-	double lasttargetpos, lasttimestamp;
-	char *line = NULL;
-	char *param;
-	char *value;
-	char delim[] = ",";
-	size_t len = 0;
-	double lastPos;
-
-
-
-	char stuff[200];
-	FILE *fptr;
-	if ((fptr = fopen("rotout.csv", "r")) == NULL)
-	{
-		printf("Error! opening file");
-		// Program exits if file pointer returns NULL.
-		exit(1);
-	}
 
 	while (1)
 	{
-
+		
 		frameCount++;
 		gettimeofday(&tv, NULL);
 		if (tv.tv_sec != lastTime)
 		{
 			lastTime = tv.tv_sec;
-			//printf("%d\n", lastusec);
 			printf("\033[H\033[J"); // Clear Screen
-			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\n%f %f  -- %f - %f = %f\n%d\n",
+			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\n",
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], encoderAngle,
-				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
-				   deck[1].player.position, sq.target_position, inputtime, deck[1].player.timestamp, inputtime - deck[1].player.timestamp,
-				   deck[1].player.samplesSoFar
+				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched);
 
-			);
-			deck[1].player.samplesSoFar = 0;
-			lastsamplecount = deck[1].player.samplesSoFar;
-			numblocks = 0;
 			frameCount = 0;
 		}
 
@@ -290,62 +252,78 @@ void *SC_InputThread(void *ptr)
 			{
 				numBlips = 0;
 				encoderAngle = newEncoderAngle;
-
-				if (scsettings.platterenabled)
-				{
-					// Handle touch sensor
-					if (capIsTouched)
-					{
-						// Positive touching edge
-						if (!deck[1].player.capTouch)
-						{
-							angleOffset = (deck[1].player.position * scsettings.platterspeed) - encoderAngle;
-							printf("touch! %d %d\n", encoderAngle, angleOffset);
-							deck[1].player.target_position = deck[1].player.position;
-							deck[1].player.capTouch = 1;
-						}
+				
+				if (pitchMode){
+					
+					
+					if (!oldPitchMode) { // We just entered pitchmode, set offset etc
+					
+						deck[(pitchMode-1)].player.nominal_pitch = 1.0;
+						angleOffset = -encoderAngle;
+						oldPitchMode = 1;
+						capIsTouched = 0;
 					}
-					else
-					{
-						deck[1].player.capTouch = 0;
-					}
-				}
-
-				else
-					deck[1].player.capTouch = 1;
-
-				if (deck[1].player.capTouch)
-				{
-
+					
 					// Handle wrapping at zero
 
 					if (crossedZero > 0)
 					{
 						angleOffset += 4096;
-						printf("CZ+\n");
 					}
 					else if (crossedZero < 0)
 					{
 						angleOffset -= 4096;
-						printf("CZ-\n");
 					}
-
-					// Convert the raw value to track position and set player to that pos
 					
-					clock_gettime(CLOCK_MONOTONIC, &ts);
-					inputtime = (double)ts.tv_sec + ((double)ts.tv_nsec / 1000000000.0);
+					// Use the angle of the platter to control sample pitch
+					deck[(pitchMode-1)].player.nominal_pitch = (((double)(encoderAngle + angleOffset)) / 16384) + 1.0;
+					
+				}
+				else {
 
-					sq.timestamp = inputtime;
-					if (lastinputtime != 0){
-						sq.target_position = (double)(encoderAngle + angleOffset) / scsettings.platterspeed;
-						spin_lock(&deck[1].player.lock); /* Synchronise with the playback thread */
-						char res = fifoWrite(deck[1].player.scqueue, &sq);
-						spin_unlock(&deck[1].player.lock);
-						
+					if (scsettings.platterenabled)
+					{
+						// Handle touch sensor
+						if (capIsTouched)
+						{
+							// Positive touching edge
+							if (!deck[1].player.capTouch)
+							{
+								angleOffset = (deck[1].player.position * scsettings.platterspeed) - encoderAngle;
+								printf("touch! %d %d\n", encoderAngle, angleOffset);
+								deck[1].player.target_position = deck[1].player.position;
+								deck[1].player.capTouch = 1;
+							}
+						}
+						else
+						{
+							deck[1].player.capTouch = 0;
+						}
 					}
-					lastinputtime = inputtime;
 
-					//deck[1].player.target_position = (double)(encoderAngle + angleOffset) / scsettings.platterspeed;
+					else
+						deck[1].player.capTouch = 1;
+
+					if (deck[1].player.capTouch)
+					{
+
+						// Handle wrapping at zero
+
+						if (crossedZero > 0)
+						{
+							angleOffset += 4096;
+							printf("CZ+\n");
+						}
+						else if (crossedZero < 0)
+						{
+							angleOffset -= 4096;
+							printf("CZ-\n");
+						}
+
+						// Convert the raw value to track position and set player to that pos
+
+						deck[1].player.target_position = (double)(encoderAngle + angleOffset) / scsettings.platterspeed;
+					}
 				}
 			}
 
@@ -399,13 +377,17 @@ void *SC_InputThread(void *ptr)
 
 			// Act on instantaneous (i.e. not held) button press
 			case BUTTONSTATE_ACTING_INSTANT:
-				if (totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3])
+			
+				// Any button to stop pitch mode
+				if (pitchMode){ pitchMode = 0; oldPitchMode = 0; printf("Pitch mode Disabled\n");}
+				else if (totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3])
 				{
 					printf("Samples - Up pushed\n");
 					if (CurrentSampleFile->prev != NULL)
 					{
 						CurrentSampleFile = CurrentSampleFile->prev;
 						load_and_sync_encoder(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
+						deck[1].player.nominal_pitch = 1.0;
 					}
 				}
 				else if (!totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3])
@@ -415,14 +397,13 @@ void *SC_InputThread(void *ptr)
 					{
 						CurrentSampleFile = CurrentSampleFile->next;
 						load_and_sync_encoder(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
+						deck[1].player.nominal_pitch = 1.0;
 					}
 				}
 				else if (totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3])
 				{
 					printf("Samples - both buttons pushed\n");
-					r = rand() % NumSamples;
-					printf("Playing file %d/%d\n", r, NumSamples);
-					load_and_sync_encoder(&deck[1].player, track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstSampleFolder)->FullPath));
+					pitchMode = 2;
 				}
 
 				else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && !totalbuttons[3])
@@ -446,13 +427,12 @@ void *SC_InputThread(void *ptr)
 				else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && totalbuttons[3])
 				{
 					printf("Beats - both buttons pushed\n");
-					r = rand() % NumBeats;
-					printf("Playing file %d/%d\n", r, NumBeats);
-					player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstBeatFolder)->FullPath));
+					pitchMode = 1;
 				}
 
-				else if (totalbuttons[0] && totalbuttons[1] && totalbuttons[2] && totalbuttons[3])
+				else if (totalbuttons[0] && totalbuttons[1] && totalbuttons[2] && totalbuttons[3]){
 					printf("All buttons pushed!\n");
+				}
 
 				else
 					printf("Sod knows what you were trying to do there\n");
@@ -483,8 +463,13 @@ void *SC_InputThread(void *ptr)
 						load_and_sync_encoder(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
 					}
 				}
-				else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3])
+				else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3]){
 					printf("Samples - both buttons held\n");
+					r = rand() % NumSamples;
+					printf("Playing file %d/%d\n", r, NumSamples);
+					load_and_sync_encoder(&deck[1].player, track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstSampleFolder)->FullPath));
+					deck[1].player.nominal_pitch = 1.0;
+				}
 
 				else if (!buttons[0] && !buttons[1] && buttons[2] && !buttons[3])
 				{
@@ -506,8 +491,13 @@ void *SC_InputThread(void *ptr)
 						player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 					}
 				}
-				else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3])
+				else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3]){
 					printf("Beats - both buttons held\n");
+					r = rand() % NumBeats;
+					printf("Playing file %d/%d\n", r, NumBeats);
+					player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstBeatFolder)->FullPath));
+					
+				}
 
 				else if (buttons[0] && buttons[1] && buttons[2] && buttons[3])
 					printf("All buttons held!\n");
@@ -540,66 +530,14 @@ void *SC_InputThread(void *ptr)
 		}
 		else // couldn't find input processor, just play the tracks
 		{
-
-			deck[1].player.capTouch = 1;
-			deck[0].player.faderTarget = 0.0;
+			deck[1].player.capTouch = 0;
+			deck[0].player.faderTarget = 0.5;
 			deck[1].player.faderTarget = 0.5;
 			deck[0].player.justPlay = 1;
 			deck[0].player.pitch = 1;
-			sq.target_fader = 0.5;
-
-			/*clock_gettime(CLOCK_MONOTONIC, &ts);
-			inputtime = (double)ts.tv_sec + ((double)ts.tv_nsec / 1000000000.0);
-
-			sq.timestamp = inputtime;
-			if (lastinputtime != 0){
-				sq.target_position += ((double)(inputtime - lastinputtime));
-				spin_lock(&deck[1].player.lock);
-				char res = fifoWrite(deck[1].player.scqueue, &sq);
-				spin_unlock(&deck[1].player.lock);
-				
-				//printf("%f\n", sq.target_position);
-				//deck[1].player.target_position += ((double)(usec - lastusec))/1000000;
-			}
-			//printf("-------------------%u\n",usec - lastusec );
-			
-			lastinputtime = inputtime;*/
-
-			if (waitingToSend)
-			{
-			}
-			else
-			{
-				getline(&line, &len, fptr);
-
-				param = strtok(line, delim);
-				value = strtok(NULL, delim);
-
-				lasttimestamp = atof(param);
-				lasttargetpos = atof(value);
-
-				//printf("%f %f\n", lasttimestamp, lasttargetpos);
-
-				if (lasttargetpos != lastPos)
-				{
-					sq.target_position = lasttargetpos;
-					sq.timestamp = lasttimestamp;
-					waitingToSend = 1;
-					lastPos = lasttargetpos;
-				} //else printf("blip2\n");
-			}
-			if (waitingToSend)
-			{
-				//spin_lock(&deck[1].player.lock);
-				if (fifoWrite(deck[1].player.scqueue, &sq, 0))
-				{
-					waitingToSend = 0;
-				}
-				//spin_unlock(&deck[1].player.lock);
-			}
 		}
 
-		//usleep(400);
+		//usleep(scsettings.updaterate);
 	}
 }
 
