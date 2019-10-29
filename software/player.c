@@ -218,7 +218,7 @@ void player_init(struct player *pl, unsigned int sample_rate,
 
 	pl->position = 0.0;
 	pl->offset = 0.0;
-	pl->target_position = TARGET_UNKNOWN;
+	pl->target_position = 0.0;
 	pl->last_difference = 0.0;
 
 	pl->pitch = 0.0;
@@ -412,10 +412,8 @@ bool NearlyEqual(double val1, double val2, double tolerance){
 }
 
 void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
-	double r, pitch, target_volume, amountToDecay, target_pitch;
+	double r, pitch, target_volume, amountToDecay, target_pitch, filtered_pitch;
 	double diff;
-
-	pitch = pl->pitch; // Original pitch for smoothing
 
 	pl->samplesSoFar += samples;
 	
@@ -423,21 +421,25 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 
 	if (pl->justPlay == 1 || pl->capTouch == 0){
 		
-		if (pl->pitch < pl->nominal_pitch - 0.05)
-			pl->pitch += (double)samples / 5000; // allow lazers/phasers
+		/*if (pl->pitch < pl->nominal_pitch - 0.05)
+			target_pitch = pl->pitch +(double)samples / 5000; // allow lazers/phasers
 		if (pl->pitch > pl->nominal_pitch + 0.05)
-			pl->pitch -= (double)samples / 5000; // allow lazers/phasers
-		if (pl->pitch > pl->nominal_pitch - 0.05 && pl->pitch < pl->nominal_pitch + 0.05)
-			pl->pitch = pl->nominal_pitch;
+			target_pitch = pl->pitch - (double)samples / 5000; // allow lazers/phasers
+		if (pl->pitch > pl->nominal_pitch - 0.05 && pl->pitch < pl->nominal_pitch + 0.05)*/
+			target_pitch = pl->nominal_pitch;
 	}
 	else {
 		diff = pl->position - pl->target_position;
 
-		pl->pitch = (-diff) * 40;
+		target_pitch = (-diff) * 40;
 	}
+	
+	filtered_pitch = (0.1 * target_pitch) + (0.9 * pl->pitch);
 
-
-	target_pitch = pl->pitch;
+	//target_pitch = (0.1 * pl->pitch) + (0.9 * pitch);
+	/*if (!pl->justPlay)
+		printf("%f %f\n", pl->pitch, pl->nominal_pitch);*/
+	//target_pitch = pl->pitch;
 	
 	amountToDecay = (DECAYSAMPLES) / (double)samples;
 
@@ -463,7 +465,8 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	} else {
 
 		r = build_pcm(pcm, samples, pl->sample_dt, pl->track,
-				pl->position - pl->offset, pitch, target_pitch, pl->volume, target_volume, pl->looping);
+				pl->position - pl->offset, pl->pitch, filtered_pitch, pl->volume, target_volume, pl->looping);
+		pl->pitch = filtered_pitch;
 		spin_unlock(&pl->lock);
 	}
 

@@ -77,7 +77,7 @@ void loadSettings()
 	scsettings.platterenabled = 1;
 	scsettings.platterspeed = 2275;
 	scsettings.samplerate = 48000;
-	scsettings.updaterate = 1000;
+	scsettings.updaterate = 2000;
 	
 
 	// Load any settings from config file

@@ -141,7 +141,8 @@ printf("Here\n");
 	struct timeval tv;
 	unsigned long lastTime = 0;
 	unsigned int frameCount = 0;
-
+	struct timespec ts;
+	double inputtime = 0, lastinputtime = 0;
 	while (1)
 	{
 		
@@ -151,9 +152,10 @@ printf("Here\n");
 		{
 			lastTime = tv.tv_sec;
 			printf("\033[H\033[J"); // Clear Screen
-			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\n",
+			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\nTP: %f, P : %f\n",
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], encoderAngle,
-				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched);
+				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
+				   deck[1].player.target_position, deck[1].player.position);
 
 			frameCount = 0;
 		}
@@ -530,11 +532,21 @@ printf("Here\n");
 		}
 		else // couldn't find input processor, just play the tracks
 		{
-			deck[1].player.capTouch = 0;
-			deck[0].player.faderTarget = 0.5;
+			deck[1].player.capTouch = 1;
+			deck[0].player.faderTarget = 0.0;
 			deck[1].player.faderTarget = 0.5;
 			deck[0].player.justPlay = 1;
 			deck[0].player.pitch = 1;
+			
+			clock_gettime(CLOCK_MONOTONIC, &ts);
+			inputtime = (double)ts.tv_sec + ((double)ts.tv_nsec / 1000000000.0);
+
+			if (lastinputtime != 0){
+				deck[1].player.target_position += (inputtime - lastinputtime);
+				
+			}
+			
+			lastinputtime = inputtime;
 		}
 
 		//usleep(scsettings.updaterate);
