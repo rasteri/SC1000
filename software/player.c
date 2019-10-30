@@ -413,11 +413,13 @@ static double build_pcm(struct player *pl, signed short *pcm, unsigned samples, 
 			pl->position = av / pl->filterqueue->size;*/
 			//pl->position = is.target_position;
 
-			pl->position = BQ_process(&pl->filter, is.target_position);
-			pl->position = BQ_process(&pl->filter2, pl->position);
+			//pl->position = BQ_process(&pl->filter, is.target_position);
+			//pl->position = BQ_process(&pl->filter2, pl->position);
+			
+			pl->position = is.target_position;
 			//pl->position = is.target_position;
 
-			//printf("%f, %f\n", pl->position);
+			//if (!pl->justPlay) printf("%f\n", pl->position);
 			/*if (!pl->justPlay)
 			{
 				fprintf(pl->debugout, "%.10f,%.10f,%.10f\n", pl->position, (pl->position - pl->last_position) * 48000, (is.target_position - pl->last_unf_position)* 48000);
