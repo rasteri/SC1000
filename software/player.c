@@ -144,7 +144,7 @@ void player_init(struct player *pl, unsigned int sample_rate,
 
 	pl->position = 0.0;
 	pl->offset = 0.0;
-	pl->target_position = TARGET_UNKNOWN;
+	pl->target_position = 0.0;;
 	pl->last_difference = 0.0;
 
 	pl->pitch = 0.0;
@@ -415,67 +415,78 @@ static double build_pcm(struct player *pl, signed short *pcm, unsigned samples, 
 
 			pl->position = BQ_process(&pl->filter, is.target_position);
 			pl->position = BQ_process(&pl->filter2, pl->position);
+			//pl->position = is.target_position;
 
 			//printf("%f, %f\n", pl->position);
-			if (!pl->justPlay)
+			/*if (!pl->justPlay)
 			{
 				fprintf(pl->debugout, "%.10f,%.10f,%.10f\n", pl->position, (pl->position - pl->last_position) * 48000, (is.target_position - pl->last_unf_position)* 48000);
 				pl->last_position = pl->position;
 				pl->last_unf_position = is.target_position;
-			}
-
-			pl->samplesSoFar++;
-			//sample = pl->samplesSoFar;
-			sample = pl->position * 48000;
-			// 4-sample window for audio interpolation
-			sa = (int)(sample);
-			if (sample < 0.0)
-				sa--;
-			f = sample - sa;
-			sa--;
-
-			for (q = 0; q < 4; q++, sa++)
-			{
-				if (sa < 0 || sa >= pl->track->length)
-				{
-					for (c = 0; c < PLAYER_CHANNELS; c++)
-						i[c][q] = 0;
-				}
-				else
-				{
-					signed short *ts;
-					int c;
-
-					ts = track_get_sample(pl->track, sa);
-					for (c = 0; c < PLAYER_CHANNELS; c++)
-						i[c][q] = ts[c];
-				}
-			}
-
-			for (c = 0; c < PLAYER_CHANNELS; c++)
-			{
-				double v;
-
-				v = vol * cubic_interpolate(i[c], f) + dither();
-
-				signed short *sp;
-				sp = pcm + (2 * s) + c;
-
-				if (v > SHRT_MAX)
-				{
-					*sp = SHRT_MAX;
-				}
-				else if (v < SHRT_MIN)
-				{
-					*sp = SHRT_MIN;
-				}
-				else
-				{
-					*sp = (signed short)v;
-				}
-			}
+			}*/
+			pl->pitch = pl->position - pl->last_position;
+			pl->last_position = pl->position;
 			pl->timestamp += pl->sample_dt;
 		}
+
+		else {
+			//printf("Underflowing\n");
+			// Keep playing if we haven't got data
+			pl->position += pl->pitch;
+		}
+
+		pl->samplesSoFar++;
+		//sample = pl->samplesSoFar;
+		sample = pl->position * 48000;
+		// 4-sample window for audio interpolation
+		sa = (int)(sample);
+		if (sample < 0.0)
+			sa--;
+		f = sample - sa;
+		sa--;
+
+		for (q = 0; q < 4; q++, sa++)
+		{
+			if (sa < 0 || sa >= pl->track->length)
+			{
+				for (c = 0; c < PLAYER_CHANNELS; c++)
+					i[c][q] = 0;
+			}
+			else
+			{
+				signed short *ts;
+				int c;
+
+				ts = track_get_sample(pl->track, sa);
+				for (c = 0; c < PLAYER_CHANNELS; c++)
+					i[c][q] = ts[c];
+			}
+		}
+
+		for (c = 0; c < PLAYER_CHANNELS; c++)
+		{
+			double v;
+
+			v = vol * cubic_interpolate(i[c], f) + dither();
+
+			signed short *sp;
+			sp = pcm + (2 * s) + c;
+
+			if (v > SHRT_MAX)
+			{
+				*sp = SHRT_MAX;
+			}
+			else if (v < SHRT_MIN)
+			{
+				*sp = SHRT_MIN;
+			}
+			else
+			{
+				*sp = (signed short)v;
+			}
+		}
+		
+
 		//printf("%f\n", sample);
 		//printf("%f\n", sample);
 	}

@@ -72,7 +72,7 @@ void loadSettings()
 	char delim[] = "=";
 
 	// set defaults
-	scsettings.buffersize = 1024;
+	scsettings.buffersize = 256;
 	scsettings.faderclosepoint = 2;
 	scsettings.faderopenpoint = 5;
 	scsettings.platterenabled = 1;
@@ -171,8 +171,8 @@ int main(int argc, char *argv[])
 	deck[0].player.filterqueue = &filterqueues[0];
 	deck[1].player.filterqueue = &filterqueues[1];
 
-	fifoInit(&queues[0], 1024);
-	fifoInit(&queues[1], 1024);
+	fifoInit(&queues[0], 9);
+	fifoInit(&queues[1], 9);
 	fifoInit(&filterqueues[0], 1024);
 	fifoInit(&filterqueues[1], 1024);
 

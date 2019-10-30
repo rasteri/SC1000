@@ -334,6 +334,20 @@ void *SC_InputThread(void *ptr)
 					// Convert the raw value to track position and set player to that pos
 
 					deck[1].player.target_position = (double)(encoderAngle + angleOffset) / scsettings.platterspeed;
+					
+					clock_gettime(CLOCK_MONOTONIC, &ts);
+					inputtime = (double)ts.tv_sec + ((double)ts.tv_nsec / 1000000000.0);
+
+					sq.timestamp = inputtime;
+					if (lastinputtime != 0){
+						sq.target_position = (double)(encoderAngle + angleOffset) / scsettings.platterspeed;
+						spin_lock(&deck[1].player.lock);
+						char res = fifoWrite(deck[1].player.scqueue, &sq, 1);
+						//printf("wrote %f\n", sq.target_position);
+						spin_unlock(&deck[1].player.lock);
+						
+					}
+					lastinputtime = inputtime;
 				}
 			}
 
@@ -536,14 +550,14 @@ void *SC_InputThread(void *ptr)
 			deck[0].player.pitch = 1;
 			sq.target_fader = 0.5;
 
-			/*clock_gettime(CLOCK_MONOTONIC, &ts);
+			clock_gettime(CLOCK_MONOTONIC, &ts);
 			inputtime = (double)ts.tv_sec + ((double)ts.tv_nsec / 1000000000.0);
 
 			sq.timestamp = inputtime;
 			if (lastinputtime != 0){
 				sq.target_position += ((double)(inputtime - lastinputtime));
 				spin_lock(&deck[1].player.lock);
-				char res = fifoWrite(deck[1].player.scqueue, &sq);
+				char res = fifoWrite(deck[1].player.scqueue, &sq, 1);
 				spin_unlock(&deck[1].player.lock);
 				
 				//printf("%f\n", sq.target_position);
@@ -551,9 +565,9 @@ void *SC_InputThread(void *ptr)
 			}
 			//printf("-------------------%u\n",usec - lastusec );
 			
-			lastinputtime = inputtime;*/
+			lastinputtime = inputtime;
 
-			if (waitingToSend)
+			/*if (waitingToSend)
 			{
 			}
 			else
@@ -584,10 +598,10 @@ void *SC_InputThread(void *ptr)
 					waitingToSend = 0;
 				}
 				//spin_unlock(&deck[1].player.lock);
-			}
+			}*/
 		}
 
-		usleep(400);
+		usleep(3000);
 	}
 }
 

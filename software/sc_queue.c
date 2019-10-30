@@ -61,7 +61,7 @@ char fifoWrite(statequeue *queue, inputstate *val, char overwriteold)
    {
       if (overwriteold)
       {
-         //printf("OVERFLOWING :%d %d\n", queue->head, queue->tail);
+         printf("OVERFLOWING :%d %d\n", queue->head, queue->tail);
          queue->tail = (queue->tail + 1) % queue->size;
       }
       else
