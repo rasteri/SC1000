@@ -78,6 +78,7 @@ void loadSettings()
 	scsettings.platterspeed = 2275;
 	scsettings.samplerate = 48000;
 	scsettings.updaterate = 2000;
+	scsettings.debouncetime = 100;
 	
 
 	// Load any settings from config file
@@ -112,6 +113,8 @@ void loadSettings()
 					scsettings.samplerate = atoi(value);
 				else if (strcmp(param, "updaterate") == 0)
 					scsettings.updaterate = atoi(value);
+				else if (strcmp(param, "debouncetime") == 0)
+					scsettings.debouncetime = atoi(value);
 				
 				
 				/*

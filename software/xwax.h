@@ -57,6 +57,10 @@ typedef struct SC_SETTINGS {
     int platterspeed;
 
 
+    // How long to debounce external GPIO switches
+    int debouncetime;
+
+
 
 } SC_SETTINGS;
 

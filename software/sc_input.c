@@ -36,6 +36,17 @@ void i2c_read_address(int file_i2c, unsigned char address, unsigned char *result
 		exit(1);
 }
 
+void i2c_write_address(int file_i2c, unsigned char address, unsigned char value)
+{
+	char buf[2];
+	buf[0] = address;
+	buf[1] = value;
+	if (write(file_i2c, buf, 2) != 1){
+		printf("I2C Write Error\n");
+		exit(1);
+	}
+}
+
 int setupi2c(char *path, unsigned char address)
 {
 
@@ -75,7 +86,7 @@ void load_and_sync_encoder(struct player *pl, struct track *track)
 void *SC_InputThread(void *ptr)
 {
 
-	int file_i2c_rot, file_i2c_pic;
+	int file_i2c_rot, file_i2c_pic, file_i2c_gpio;
 
 	unsigned char result;
 	unsigned char picskip = 0;
@@ -97,11 +108,30 @@ void *SC_InputThread(void *ptr)
 	unsigned int faderCutPoint;
 	unsigned char picpresent = 1;
 	unsigned char rotarypresent = 1;
+	unsigned char gpiopresent = 1;
+	unsigned int i, gpios;
 	int pitchMode = 0; // If we're in pitch-change mode
 	int oldPitchMode = 0;
 
+	unsigned int gpiodebounce[16];
+
 	int8_t crossedZero; // 0 when we haven't crossed zero, -1 when we've crossed in anti-clockwise direction, 1 when crossed in clockwise
 
+	// Initialise rotary sensor on I2C0
+
+	if ((file_i2c_rot = setupi2c("/dev/i2c-0", 0x36)) < 0)
+	{
+		printf("Couldn't init rotary sensor\n");
+		rotarypresent = 0;
+	}
+
+	// Initialise external MCP23017 GPIO on I2C1 (TODO : GET REAL ADDRESS)
+
+	if ((file_i2c_gpio = setupi2c("/dev/i2c-1", 0x69)) < 0)
+	{
+		printf("Couldn't init external GPIO\n");
+		gpiopresent = 0;
+	}
 
 	// Initialise PIC input processor on I2C2
 
@@ -111,13 +141,9 @@ void *SC_InputThread(void *ptr)
 		picpresent = 0;
 	}
 
-	// Initialise rotary sensor on I2C1
-
-	if ((file_i2c_rot = setupi2c("/dev/i2c-0", 0x36)) < 0)
-	{
-		printf("Couldn't init rotary sensor\n");
-		rotarypresent = 0;
-	}
+	// Configure GPIO
+	i2c_write_address(file_i2c_gpio, 0x06, 0xFF); // Bank A pullups enabled
+	i2c_write_address(file_i2c_gpio, 0x16, 0xFF); // Bank B pullups enabled
 
 	// Build index of all audio files on the USB stick
 
@@ -194,6 +220,34 @@ printf("Here\n");
 				buttons[2] = !(result >> 2 & 0x01);
 				buttons[3] = !(result >> 3 & 0x01);
 				capIsTouched = (result >> 4 & 0x01);
+
+				if (gpiopresent){
+					i2c_read_address(file_i2c_gpio, 0x09, &result); // Read bank A
+					gpios = ((unsigned int)result) << 8;
+					i2c_read_address(file_i2c_gpio, 0x19, &result); // Read bank B
+					gpios |= result;
+
+					// invert logic
+					gpios ^= 0xFF;
+
+					for (i = 0; i < 16; i++){
+						// gpiodebounce = 0 when button not pressed, >0 when debouncing
+						// Positive switching edge
+						if (gpiodebounce[i] == 0 && gpios & (0x01 << i)){
+							gpiodebounce[i] = 1;
+							deck_cue(&deck[1].player, i);
+						}
+						else if (gpiodebounce[i] > 0){
+							gpiodebounce[i]++;
+							if (gpiodebounce[i] > scsettings.debouncetime)
+								gpiodebounce[i] = 0;
+						}
+					}
+					
+					deck_cue(&deck[1].player, i);
+				}
+
+
 			}
 
 			// Apply volume and fader
