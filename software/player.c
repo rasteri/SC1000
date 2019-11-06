@@ -391,6 +391,7 @@ void retarget(struct player *pl) {
 
 void player_seek_to(struct player *pl, double seconds) {
 	pl->offset = pl->position - seconds;
+	printf("Seek'n %f %f %f\n", seconds, pl->position, pl->offset);
 }
 
 unsigned long samplesSoFar = 0;

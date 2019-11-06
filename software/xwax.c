@@ -78,7 +78,8 @@ void loadSettings()
 	scsettings.platterspeed = 2275;
 	scsettings.samplerate = 48000;
 	scsettings.updaterate = 2000;
-	scsettings.debouncetime = 100;
+	scsettings.debouncetime = 5;
+	scsettings.holdtime = 100;
 	
 
 	// Load any settings from config file
@@ -115,7 +116,8 @@ void loadSettings()
 					scsettings.updaterate = atoi(value);
 				else if (strcmp(param, "debouncetime") == 0)
 					scsettings.debouncetime = atoi(value);
-				
+				else if (strcmp(param, "holdtime") == 0)
+					scsettings.holdtime = atoi(value);
 				
 				/*
 VCA Channel modes : 

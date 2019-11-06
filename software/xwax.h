@@ -59,6 +59,10 @@ typedef struct SC_SETTINGS {
 
     // How long to debounce external GPIO switches
     int debouncetime;
+	
+	// How long a button press counts as a hold
+    int holdtime;
+
 
 
 

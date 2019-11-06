@@ -25,6 +25,19 @@
 #include "xwax.h"
 #include "sc_input.h"
 
+#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
+#define BYTE_TO_BINARY(byte)  \
+  (byte & 0x80 ? '1' : '0'), \
+  (byte & 0x40 ? '1' : '0'), \
+  (byte & 0x20 ? '1' : '0'), \
+  (byte & 0x10 ? '1' : '0'), \
+  (byte & 0x08 ? '1' : '0'), \
+  (byte & 0x04 ? '1' : '0'), \
+  (byte & 0x02 ? '1' : '0'), \
+  (byte & 0x01 ? '1' : '0') 
+
+
+
 void i2c_read_address(int file_i2c, unsigned char address, unsigned char *result)
 {
 
@@ -41,7 +54,7 @@ void i2c_write_address(int file_i2c, unsigned char address, unsigned char value)
 	char buf[2];
 	buf[0] = address;
 	buf[1] = value;
-	if (write(file_i2c, buf, 2) != 1){
+	if (write(file_i2c, buf, 2) != 2){
 		printf("I2C Write Error\n");
 		exit(1);
 	}
@@ -100,7 +113,7 @@ void *SC_InputThread(void *ptr)
 	unsigned char buttonState = 0;
 	unsigned char buttons[4] = {0, 0, 0, 0}, totalbuttons[4] = {0, 0, 0, 0};
 	unsigned int butCounter = 0;
-	unsigned char i = 0;
+	unsigned int i = 0;
 	unsigned int NumBeats, NumSamples;
 	struct Folder *FirstBeatFolder, *CurrentBeatFolder, *FirstSampleFolder, *CurrentSampleFolder;
 	struct File *CurrentBeatFile, *CurrentSampleFile;
@@ -109,11 +122,11 @@ void *SC_InputThread(void *ptr)
 	unsigned char picpresent = 1;
 	unsigned char rotarypresent = 1;
 	unsigned char gpiopresent = 1;
-	unsigned int i, gpios;
+	unsigned int gpios;
 	int pitchMode = 0; // If we're in pitch-change mode
 	int oldPitchMode = 0;
 
-	unsigned int gpiodebounce[16];
+	int gpiodebounce[16];
 
 	int8_t crossedZero; // 0 when we haven't crossed zero, -1 when we've crossed in anti-clockwise direction, 1 when crossed in clockwise
 
@@ -127,7 +140,7 @@ void *SC_InputThread(void *ptr)
 
 	// Initialise external MCP23017 GPIO on I2C1 (TODO : GET REAL ADDRESS)
 
-	if ((file_i2c_gpio = setupi2c("/dev/i2c-1", 0x69)) < 0)
+	if ((file_i2c_gpio = setupi2c("/dev/i2c-1", 0x20)) < 0)
 	{
 		printf("Couldn't init external GPIO\n");
 		gpiopresent = 0;
@@ -142,8 +155,8 @@ void *SC_InputThread(void *ptr)
 	}
 
 	// Configure GPIO
-	i2c_write_address(file_i2c_gpio, 0x06, 0xFF); // Bank A pullups enabled
-	i2c_write_address(file_i2c_gpio, 0x16, 0xFF); // Bank B pullups enabled
+	i2c_write_address(file_i2c_gpio, 0x0C, 0xFF); // Bank A pullups enabled
+	i2c_write_address(file_i2c_gpio, 0x0D, 0xFF); // Bank B pullups enabled
 
 	// Build index of all audio files on the USB stick
 
@@ -169,6 +182,9 @@ printf("Here\n");
 	unsigned int frameCount = 0;
 	struct timespec ts;
 	double inputtime = 0, lastinputtime = 0;
+	
+	for (i=0; i < 16; i++)
+		gpiodebounce[i] = 0;
 	while (1)
 	{
 		
@@ -222,29 +238,78 @@ printf("Here\n");
 				capIsTouched = (result >> 4 & 0x01);
 
 				if (gpiopresent){
-					i2c_read_address(file_i2c_gpio, 0x09, &result); // Read bank A
+					i2c_read_address(file_i2c_gpio, 0x13, &result); // Read bank A
 					gpios = ((unsigned int)result) << 8;
-					i2c_read_address(file_i2c_gpio, 0x19, &result); // Read bank B
+					//printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(result));
+					i2c_read_address(file_i2c_gpio, 0x12, &result); // Read bank B
 					gpios |= result;
+					//printf(" - ");
+					//printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(result));
+					//printf("\n");
 
 					// invert logic
-					gpios ^= 0xFF;
+					gpios ^= 0xFFFF;
+					
+					
 
 					for (i = 0; i < 16; i++){
-						// gpiodebounce = 0 when button not pressed, >0 when debouncing
-						// Positive switching edge
-						if (gpiodebounce[i] == 0 && gpios & (0x01 << i)){
-							gpiodebounce[i] = 1;
-							deck_cue(&deck[1].player, i);
+						// gpiodebounce = 0 when button not pressed, 
+						// > 0 and < scsettings.debouncetime when debouncing positive edge
+						// > scsettings.debouncetime and < scsettings.holdtime when holding
+						// = scsettings.holdtime when continuing to hold
+						// > scsettings.holdtime when waiting for release
+						// > -scsettings.debouncetime and < 0 when debouncing negative edge
+						
+						// Button not pressed, check for button
+						if (gpiodebounce[i] == 0){
+							if (gpios & (0x01 << i)){
+								printf ("Button %d pressed\n", i);
+								deck_cue(&deck[1], i);
+								
+								// start the counter
+								gpiodebounce[i]++;
+							}
 						}
-						else if (gpiodebounce[i] > 0){
+						
+						// Debouncing positive edge, increment value
+						else if (gpiodebounce[i] > 0 && gpiodebounce[i] < scsettings.debouncetime){
 							gpiodebounce[i]++;
-							if (gpiodebounce[i] > scsettings.debouncetime)
-								gpiodebounce[i] = 0;
+						}
+						// debounce finished, keep incrementing until hold reached
+						else if (gpiodebounce[i] >= scsettings.debouncetime  && gpiodebounce[i] < scsettings.holdtime){
+							// check to see if unpressed
+							if (!(gpios & (0x01 << i))){
+								printf ("Button %d released\n", i);
+								
+								// start the counter
+								gpiodebounce[i] = -scsettings.debouncetime;
+							}
+
+							else gpiodebounce[i]++;
+							
+						}
+						else if (gpiodebounce[i] == scsettings.holdtime){
+							printf ("Button %d held\n", i);
+							deck_unset_cue(&deck[1], i);
+							gpiodebounce[i]++;
+						}
+						else if (gpiodebounce[i] > scsettings.holdtime){
+							// check to see if unpressed
+							if (!(gpios & (0x01 << i))){
+								printf ("Button %d released\n", i);
+								
+								// start the counter
+								gpiodebounce[i] = -scsettings.debouncetime;
+							}
+						}
+
+						// Debouncing negative edge, increment value
+						else if (gpiodebounce[i] < 0){
+							gpiodebounce[i]++;
+
 						}
 					}
 					
-					deck_cue(&deck[1].player, i);
 				}
 
 
