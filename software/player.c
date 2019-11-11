@@ -28,6 +28,7 @@
 #include "device.h"
 #include "player.h"
 #include "track.h"
+#include "xwax.h"
 
 /* Bend playback speed to compensate for the difference between our
  * current position and that given by the timecode */
@@ -415,6 +416,7 @@ bool NearlyEqual(double val1, double val2, double tolerance){
 void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	double r, pitch, target_volume, amountToDecay, target_pitch, filtered_pitch;
 	double diff;
+	double goal_pitch = 1.0;
 
 	pl->samplesSoFar += samples;
 	
@@ -422,12 +424,18 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 
 	if (pl->justPlay == 1 || pl->capTouch == 0){
 		
-		/*if (pl->pitch < pl->nominal_pitch - 0.05)
-			target_pitch = pl->pitch +(double)samples / 5000; // allow lazers/phasers
-		if (pl->pitch > pl->nominal_pitch + 0.05)
-			target_pitch = pl->pitch - (double)samples / 5000; // allow lazers/phasers
-		if (pl->pitch > pl->nominal_pitch - 0.05 && pl->pitch < pl->nominal_pitch + 0.05)*/
-			target_pitch = pl->nominal_pitch;
+		if (pl->stopped)
+			goal_pitch = 0.0;
+		else
+			goal_pitch = pl->nominal_pitch;
+		
+		// Simulate torque
+		if (pl->pitch < goal_pitch - 0.1)
+			target_pitch = pl->pitch + (double)samples / scsettings.slippiness;
+		else if (pl->pitch > goal_pitch + 0.1)
+			target_pitch = pl->pitch - (double)samples / scsettings.slippiness;
+		else
+			target_pitch = goal_pitch;
 	}
 	else {
 		diff = pl->position - pl->target_position;
@@ -436,11 +444,6 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	}
 	
 	filtered_pitch = (0.1 * target_pitch) + (0.9 * pl->pitch);
-
-	//target_pitch = (0.1 * pl->pitch) + (0.9 * pitch);
-	/*if (!pl->justPlay)
-		printf("%f %f\n", pl->pitch, pl->nominal_pitch);*/
-	//target_pitch = pl->pitch;
 	
 	amountToDecay = (DECAYSAMPLES) / (double)samples;
 

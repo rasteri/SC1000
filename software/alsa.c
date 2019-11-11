@@ -257,6 +257,7 @@ static int playback(struct device *dv)
 {
     int r, i;
     struct alsa *alsa = (struct alsa*)dv->local;
+	int32_t adder = 0; 
 
 	/*if ((dv->player->GoodToGo && dv->player2->GoodToGo) || (dv->player->track->finished == 1 && dv->player2->track->finished)){
 
@@ -267,7 +268,12 @@ static int playback(struct device *dv)
 
     // mix 2 players together
     for (i=0; i < alsa->playback.period * 2; i++){
-    	alsa->playback.buf[i] += alsa->playback.buf2[i];
+		adder = (int32_t)alsa->playback.buf[i] + (int32_t)alsa->playback.buf2[i];
+		
+		// saturate add
+    	if (adder > INT16_MAX) adder = INT16_MAX;
+		if (adder < INT16_MIN) adder = INT16_MIN;
+		alsa->playback.buf[i] = (int16_t)adder;
     }
 //}
     r = snd_pcm_writei(alsa->playback.pcm, alsa->playback.buf,

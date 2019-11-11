@@ -62,6 +62,10 @@ typedef struct SC_SETTINGS {
 	
 	// How long a button press counts as a hold
     int holdtime;
+	
+	// Virtual slipmat slippiness - how quickly the sample returns to normal speed after you let go of the jog wheel
+	// Also controls how quickly the start-stop buttons work
+    int slippiness;
 
 
 

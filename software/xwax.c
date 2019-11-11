@@ -80,6 +80,7 @@ void loadSettings()
 	scsettings.updaterate = 2000;
 	scsettings.debouncetime = 5;
 	scsettings.holdtime = 100;
+	scsettings.slippiness = 400;
 	
 
 	// Load any settings from config file
@@ -118,6 +119,9 @@ void loadSettings()
 					scsettings.debouncetime = atoi(value);
 				else if (strcmp(param, "holdtime") == 0)
 					scsettings.holdtime = atoi(value);
+				else if (strcmp(param, "slippiness") == 0)
+					scsettings.slippiness = atoi(value);
+
 				
 				/*
 VCA Channel modes : 

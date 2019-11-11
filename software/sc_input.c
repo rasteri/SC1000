@@ -138,7 +138,7 @@ void *SC_InputThread(void *ptr)
 		rotarypresent = 0;
 	}
 
-	// Initialise external MCP23017 GPIO on I2C1 (TODO : GET REAL ADDRESS)
+	// Initialise external MCP23017 GPIO on I2C1
 
 	if ((file_i2c_gpio = setupi2c("/dev/i2c-1", 0x20)) < 0)
 	{
@@ -238,10 +238,10 @@ printf("Here\n");
 				capIsTouched = (result >> 4 & 0x01);
 
 				if (gpiopresent){
-					i2c_read_address(file_i2c_gpio, 0x13, &result); // Read bank A
+					i2c_read_address(file_i2c_gpio, 0x13, &result); // Read bank B
 					gpios = ((unsigned int)result) << 8;
 					//printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(result));
-					i2c_read_address(file_i2c_gpio, 0x12, &result); // Read bank B
+					i2c_read_address(file_i2c_gpio, 0x12, &result); // Read bank A
 					gpios |= result;
 					//printf(" - ");
 					//printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(result));
@@ -264,7 +264,20 @@ printf("Here\n");
 						if (gpiodebounce[i] == 0){
 							if (gpios & (0x01 << i)){
 								printf ("Button %d pressed\n", i);
-								deck_cue(&deck[1], i);
+								
+								
+								// A7 and B7 are start/stop
+								if (i == 7)
+									deck[0].player.stopped = !deck[0].player.stopped;
+								else if (i == 15)
+									deck[1].player.stopped = !deck[1].player.stopped;
+								// A0-6 are deck 0 (beat) cue points
+								else if (i < 7)
+									deck_cue(&deck[0], i);
+								// B0-6 are deck 1 (sample) cue points
+								else
+									deck_cue(&deck[1], i - 8);
+									
 								
 								// start the counter
 								gpiodebounce[i]++;

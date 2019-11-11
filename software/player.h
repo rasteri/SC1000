@@ -12,7 +12,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * version 2 along with this program; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, 
  * MA 02110-1301, USA.
  *
  */
@@ -59,6 +59,7 @@ long samplesSoFar;
 	
 	bool GoodToGo;
 	bool looping;
+	bool stopped; 
 };
 
 void player_init(struct player *pl, unsigned int sample_rate,
