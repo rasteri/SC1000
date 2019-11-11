@@ -228,6 +228,7 @@ void player_init(struct player *pl, unsigned int sample_rate,
 	pl->GoodToGo = 0;
 	pl->samplesSoFar=0;
 	pl->nominal_pitch = 1.0;
+	pl->stopped = 0;
 }
 
 /*
@@ -416,26 +417,34 @@ bool NearlyEqual(double val1, double val2, double tolerance){
 void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	double r, pitch, target_volume, amountToDecay, target_pitch, filtered_pitch;
 	double diff;
-	double goal_pitch = 1.0;
 
 	pl->samplesSoFar += samples;
 	
 	//pl->target_position = (sin(((double) pl->samplesSoFar) / 20000) + 1); // Sine wave to simulate scratching, used for debugging
+	
+	// figure out motor speed
+	if (pl->stopped){
+		// Simulate braking
+		if (pl->motor_speed > 0.1)
+			pl->motor_speed = pl->motor_speed - (double)samples / (scsettings.brakespeed * 10);
+		else {
+			pl->motor_speed = 0.0;
+		}
+	}
+	else {
+		pl->motor_speed = pl->nominal_pitch;
+	}
+
 
 	if (pl->justPlay == 1 || pl->capTouch == 0){
 		
-		if (pl->stopped)
-			goal_pitch = 0.0;
-		else
-			goal_pitch = pl->nominal_pitch;
-		
-		// Simulate torque
-		if (pl->pitch < goal_pitch - 0.1)
+		// Simulate slipmat for lasers/phasers
+		if (pl->pitch < pl->motor_speed - 0.1)
 			target_pitch = pl->pitch + (double)samples / scsettings.slippiness;
-		else if (pl->pitch > goal_pitch + 0.1)
+		else if (pl->pitch > pl->motor_speed + 0.1)
 			target_pitch = pl->pitch - (double)samples / scsettings.slippiness;
 		else
-			target_pitch = goal_pitch;
+			target_pitch = pl->motor_speed;
 	}
 	else {
 		diff = pl->position - pl->target_position;

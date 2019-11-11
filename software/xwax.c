@@ -80,7 +80,8 @@ void loadSettings()
 	scsettings.updaterate = 2000;
 	scsettings.debouncetime = 5;
 	scsettings.holdtime = 100;
-	scsettings.slippiness = 400;
+	scsettings.slippiness = 300;
+	scsettings.brakespeed = 1500;
 	
 
 	// Load any settings from config file
@@ -121,6 +122,8 @@ void loadSettings()
 					scsettings.holdtime = atoi(value);
 				else if (strcmp(param, "slippiness") == 0)
 					scsettings.slippiness = atoi(value);
+				else if (strcmp(param, "brakespeed") == 0)
+					scsettings.brakespeed = atoi(value);
 
 				
 				/*

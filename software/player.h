@@ -45,7 +45,8 @@ long samplesSoFar;
         pitch, /* from timecoder */
         sync_pitch, /* pitch required to sync to timecode signal */
         volume,
-        nominal_pitch; // Pitch after any note/pitch fader changes
+        nominal_pitch, // Pitch after any note/pitch fader changes
+		motor_speed; // speed of virtual motor, usually same as nominal_pitch but affected by start/stop
 
     /* Timecode control */
 

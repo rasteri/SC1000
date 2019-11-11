@@ -126,6 +126,7 @@ void *SC_InputThread(void *ptr)
 	int pitchMode = 0; // If we're in pitch-change mode
 	int oldPitchMode = 0;
 
+
 	int gpiodebounce[16];
 
 	int8_t crossedZero; // 0 when we haven't crossed zero, -1 when we've crossed in anti-clockwise direction, 1 when crossed in clockwise
@@ -267,10 +268,12 @@ printf("Here\n");
 								
 								
 								// A7 and B7 are start/stop
-								if (i == 7)
+								if (i == 7){
 									deck[0].player.stopped = !deck[0].player.stopped;
-								else if (i == 15)
+								}
+								else if (i == 15){
 									deck[1].player.stopped = !deck[1].player.stopped;
+								}
 								// A0-6 are deck 0 (beat) cue points
 								else if (i < 7)
 									deck_cue(&deck[0], i);
@@ -288,6 +291,7 @@ printf("Here\n");
 						else if (gpiodebounce[i] > 0 && gpiodebounce[i] < scsettings.debouncetime){
 							gpiodebounce[i]++;
 						}
+						
 						// debounce finished, keep incrementing until hold reached
 						else if (gpiodebounce[i] >= scsettings.debouncetime  && gpiodebounce[i] < scsettings.holdtime){
 							// check to see if unpressed
@@ -301,11 +305,24 @@ printf("Here\n");
 							else gpiodebounce[i]++;
 							
 						}
+						// Button has been held for a while, wipe the cue point (if not a start/stop button)
 						else if (gpiodebounce[i] == scsettings.holdtime){
 							printf ("Button %d held\n", i);
-							deck_unset_cue(&deck[1], i);
+							
+								// A7 and B7 are start/stop, do nothing if held
+								if (i == 7 || i == 15){
+								}
+								// A0-6 are deck 0 (beat) cue points, unset cue
+								else if (i < 7)
+									deck_unset_cue(&deck[0], i);
+								// B0-6 are deck 1 (sample) cue points, again unset cue
+								else
+									deck_unset_cue(&deck[1], i - 8);
+							
 							gpiodebounce[i]++;
 						}
+						
+						// Button still holding, check for release
 						else if (gpiodebounce[i] > scsettings.holdtime){
 							// check to see if unpressed
 							if (!(gpios & (0x01 << i))){
@@ -316,7 +333,7 @@ printf("Here\n");
 							}
 						}
 
-						// Debouncing negative edge, increment value
+						// Debouncing negative edge, increment value - will reset when zero is reached
 						else if (gpiodebounce[i] < 0){
 							gpiodebounce[i]++;
 
