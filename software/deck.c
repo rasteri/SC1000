@@ -54,6 +54,7 @@ int deck_init(struct deck *d, struct rt *rt,
 	d->protect = protect;
 	assert(importer != NULL);
 	d->importer = importer;
+	d->shifted = 0;
 	if (slave)
 		rate = 48000;
 
@@ -111,7 +112,6 @@ void deck_recue(struct deck *d) {
 }
 
 void deck_clone(struct deck *d, const struct deck *from) {
-	d->record = from->record;
 	player_clone(&d->player, &from->player);
 }
 
@@ -174,3 +174,4 @@ void deck_punch_out(struct deck *d) {
 	player_seek_to(&d->player, e - d->punch);
 	d->punch = NO_PUNCH;
 }
+

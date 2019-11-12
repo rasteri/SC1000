@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Mark Hills <mark@xwax.org>
+ * Copyright (C) 2014 Mark Hills <mark@xwax.org>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 
 #include <math.h>
 
-#define MAX_CUES 16
+#define MAX_CUES 128
 #define CUE_UNSET (HUGE_VAL)
 
 /*
@@ -40,5 +40,9 @@ void cues_set(struct cues *q, unsigned int label, double position);
 double cues_get(const struct cues *q, unsigned int label);
 double cues_prev(const struct cues *q, double current);
 double cues_next(const struct cues *q, double current);
+
+void cues_load_from_file(struct cues *q, char const* pathname);
+void cues_save_to_file(struct cues *q, char const* pathname);
+char* replace_path_ext(char const* pathname);
 
 #endif

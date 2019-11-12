@@ -68,7 +68,7 @@ struct Folder * LoadFileStructure(char *BaseFolderPath,
 			prevFile = NULL;
 
 			for (p = 0; p < m; p++) {
-				if (fileList[p]->d_name[0] != '.') {
+				if (fileList[p]->d_name[0] != '.' && strstr(fileList[p]->d_name, ".cue") == NULL) {
 
 					new_file = (struct File*) malloc(sizeof(struct File));
 					snprintf(new_file->FullPath, 256, "%s/%s", tempName,

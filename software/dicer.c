@@ -41,9 +41,13 @@
 #define NBUTTONS 5
 
 #define CUE 0
-#define LOOP 1
+#define NOTE 1
+
+/*#define LOOP 1
 #define ROLL 2
-#define NOTE 3
+#define NOTE 3*/
+
+#define NUMDECKS 2
 
 #ifdef DEBUG
 static const char *actions[] = {
@@ -63,7 +67,7 @@ typedef unsigned char led_t;
 struct dicer
 {
     struct midi midi;
-    struct deck *deck;
+    struct deck *decks[NUMDECKS];
 
     char obuf[180];
     size_t ofill;
@@ -78,10 +82,16 @@ struct dicer
 static int add_deck(struct controller *c, struct deck *k)
 {
     struct dicer *d = c->local;
+	int i;
 
     debug("%p add deck %p", d, k);
-
-    d->deck = k;
+	
+	for (i = 0; i < NUMDECKS; i++){
+		if (d->decks[i] == NULL){
+			d->decks[i] = k;
+			break;
+		}
+	}
 
     return 0;
 }
@@ -99,6 +109,7 @@ static void event_decoded(struct deck *d,
     if (shift && on)
     {
         deck_unset_cue(d, button);
+		deck_cue(d, button); 
     }
 
     if (shift)
@@ -106,11 +117,10 @@ static void event_decoded(struct deck *d,
 
     if (action == CUE && on)
     {
-        deck_cue(d, button);
-        printf("Cue: %x \n", button);
+        deck_cue(d, button); 
     }
 
-    if (action == LOOP)
+    /*if (action == LOOP)
     {
         if (on)
         {
@@ -120,10 +130,10 @@ static void event_decoded(struct deck *d,
         {
             deck_punch_out(d);
         }
-    }
+    }*/
 
     if (action == NOTE){
-        //center is 0x?3C?
+        //Middle is 0x3C
         
         d->player.nominal_pitch = pow(pow(2, (double)1/12), button - 0x3C); // equal temperament
         printf("Button: %x %f\n", button, d->player.nominal_pitch);
@@ -138,15 +148,25 @@ static void event(struct dicer *d, unsigned char buf[3])
 {
     unsigned char action, button;
     bool on, shift;
+	struct deck *affdeck;
 
     switch (buf[0])
     {
     case 0x90:
         action = NOTE;
+		affdeck = d->decks[0];
         break;
-    case 0x91:
-
+	case 0x91:
+        action = NOTE;
+		affdeck = d->decks[1];
+        break;
+    case 0x92:
         action = CUE;
+		affdeck = d->decks[0];
+        break;
+	case 0x93:
+        action = CUE;
+		affdeck = d->decks[1];
         break;
 
     default:
@@ -154,47 +174,25 @@ static void event(struct dicer *d, unsigned char buf[3])
         return;
     }
 
-    if (action == CUE || action == LOOP)
-    {
-        switch (buf[1])
-        {
-        case 0x24:
-        case 0x25:
-        case 0x26:
-        case 0x27:
-            button = buf[1] - 0x24;
-            shift = false;
-            break;
-
-        case 0x28:
-        case 0x29:
-        case 0x30:
-        case 0x31:
-            button = buf[1] - 0x28;
-            shift = true;
-            break;
-
-        default:
-            return;
-        }
-    }
-    else if (action == NOTE)
-    {
-        button = buf[1];
-    }
+	button = buf[1];
 
     switch (buf[2])
     {
-    case 0x00:
-        on = false;
-        break;
+		case 0x00:
+			on = false;
+			break;
 
-    default:
-        on = true;
-        break;
+		default:
+			on = true;
+			break;
     }
+	
+	// If deck0 is shifted, engage shift
+	shift = d->decks[0]->shifted;
 
-    event_decoded(d->deck, action, shift, button, on);
+    event_decoded(affdeck, action, shift, button, on);
+	
+	 d->decks[0]->shifted = 0;
 }
 
 static ssize_t pollfds(struct controller *c, struct pollfd *pe, size_t z)
@@ -257,6 +255,7 @@ int dicer_init(struct controller *c, struct rt *rt, const char *hw)
 {
     size_t n;
     struct dicer *d;
+	int i;
 
     printf("init %p from %s\n", c, hw);
 
@@ -271,6 +270,10 @@ int dicer_init(struct controller *c, struct rt *rt, const char *hw)
         goto fail;
 
     d->ofill = 0;
+	
+	for (i = 0; i < NUMDECKS; i++){
+		d->decks[i] = NULL;
+	}
 
 
     if (controller_init(c, &dicer_ops, d, rt) == -1)

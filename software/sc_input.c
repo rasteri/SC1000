@@ -82,15 +82,19 @@ int setupi2c(char *path, unsigned char address)
 int32_t angleOffset = 0; // Offset between encoder angle and track position, reset every time the platter is touched
 int encoderAngle = 0xffff, newEncoderAngle = 0xffff;
 
-void load_and_sync_encoder(struct player *pl, struct track *track)
+void load_and_sync_encoder(struct deck *d, struct track *track)
 {
+	struct player *pl = &d->player;
+	cues_save_to_file(&d->cues, pl->track->path);
 	player_set_track(pl, track);
 	pl->target_position = 0;
 	pl->position = 0;
-
+	pl->offset = 0;
+	cues_load_from_file(&d->cues, pl->track->path);
+	pl->nominal_pitch = 1.0;
 	// If touch sensor is enabled, set the "zero point" to the current encoder angle
 	if (scsettings.platterenabled)
-		angleOffset = (pl->position * scsettings.platterspeed) - encoderAngle;
+		angleOffset = 0 - encoderAngle;
 
 	else // If touch sensor is disabled, set the "zero point" to encoder zero point so sticker is exactly on each time sample is loaded
 		angleOffset = (pl->position * scsettings.platterspeed) - encoderAngle;
@@ -174,7 +178,9 @@ printf("Here\n");
 	// Load the first track
 
 	player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+	cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
 	player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
+	cues_load_from_file(&deck[1].cues, deck[1].player.track->path);
 
 	srand(time(NULL)); // TODO - need better entropy source, SoC is starting up annoyingly deterministically
 
@@ -183,6 +189,7 @@ printf("Here\n");
 	unsigned int frameCount = 0;
 	struct timespec ts;
 	double inputtime = 0, lastinputtime = 0;
+	int decknum = 0, cuepointnum = 0;
 	
 	for (i=0; i < 16; i++)
 		gpiodebounce[i] = 0;
@@ -270,17 +277,31 @@ printf("Here\n");
 								// A7 and B7 are start/stop
 								if (i == 7){
 									deck[0].player.stopped = !deck[0].player.stopped;
-								}
-								else if (i == 15){
+								} else if (i == 15){
 									deck[1].player.stopped = !deck[1].player.stopped;
 								}
-								// A0-6 are deck 0 (beat) cue points
-								else if (i < 7)
-									deck_cue(&deck[0], i);
-								// B0-6 are deck 1 (sample) cue points
-								else
-									deck_cue(&deck[1], i - 8);
+								// All others are cue points
+								else {
+								
+									// A0-6 are deck 0 (beat) cue points
+									if (i < 7){
+										decknum = 0;
+										cuepointnum = i;
+									}
 									
+									// B0-6 are deck 1 (sample) cue points
+									else {
+										decknum = 1;
+										cuepointnum = i - 8;
+									}
+									if (deck[0].shifted){
+										deck_unset_cue(&deck[decknum], cuepointnum);	
+										deck_cue(&deck[decknum], cuepointnum);
+										deck[0].shifted = 0;
+									}
+									else 
+										deck_cue(&deck[decknum], cuepointnum);	
+								}
 								
 								// start the counter
 								gpiodebounce[i]++;
@@ -308,17 +329,17 @@ printf("Here\n");
 						// Button has been held for a while, wipe the cue point (if not a start/stop button)
 						else if (gpiodebounce[i] == scsettings.holdtime){
 							printf ("Button %d held\n", i);
-							
+							/*
 								// A7 and B7 are start/stop, do nothing if held
 								if (i == 7 || i == 15){
 								}
 								// A0-6 are deck 0 (beat) cue points, unset cue
-								else if (i < 7)
+								else if (i < 7)		
 									deck_unset_cue(&deck[0], i);
 								// B0-6 are deck 1 (sample) cue points, again unset cue
 								else
 									deck_unset_cue(&deck[1], i - 8);
-							
+							*/
 							gpiodebounce[i]++;
 						}
 						
@@ -396,7 +417,7 @@ printf("Here\n");
 			// If we see 3 blips in a row, then I guess we better accept the new value
 			if (abs(newEncoderAngle - wrappedAngle) > 100 && numBlips < 2)
 			{
-				printf("blip! %d %d %d\n", newEncoderAngle, encoderAngle, wrappedAngle);
+				//printf("blip! %d %d %d\n", newEncoderAngle, encoderAngle, wrappedAngle);
 				numBlips++;
 			}
 			else
@@ -441,7 +462,7 @@ printf("Here\n");
 							if (!deck[1].player.capTouch)
 							{
 								angleOffset = (deck[1].player.position * scsettings.platterspeed) - encoderAngle;
-								printf("touch! %d %d\n", encoderAngle, angleOffset);
+								//printf("touch! %d %d\n", encoderAngle, angleOffset);
 								deck[1].player.target_position = deck[1].player.position;
 								deck[1].player.capTouch = 1;
 							}
@@ -537,9 +558,8 @@ printf("Here\n");
 					if (CurrentSampleFile->prev != NULL)
 					{
 						CurrentSampleFile = CurrentSampleFile->prev;
-						load_and_sync_encoder(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
-						deck[1].player.nominal_pitch = 1.0;
 					}
+					load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
 				}
 				else if (!totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3])
 				{
@@ -547,9 +567,8 @@ printf("Here\n");
 					if (CurrentSampleFile->next != NULL)
 					{
 						CurrentSampleFile = CurrentSampleFile->next;
-						load_and_sync_encoder(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
-						deck[1].player.nominal_pitch = 1.0;
 					}
+					load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
 				}
 				else if (totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3])
 				{
@@ -563,8 +582,8 @@ printf("Here\n");
 					if (CurrentBeatFile->prev != NULL)
 					{
 						CurrentBeatFile = CurrentBeatFile->prev;
-						player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 					}
+					load_and_sync_encoder(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 				}
 				else if (!totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && totalbuttons[3])
 				{
@@ -572,8 +591,8 @@ printf("Here\n");
 					if (CurrentBeatFile->next != NULL)
 					{
 						CurrentBeatFile = CurrentBeatFile->next;
-						player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 					}
+					load_and_sync_encoder(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 				}
 				else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && totalbuttons[3])
 				{
@@ -583,6 +602,7 @@ printf("Here\n");
 
 				else if (totalbuttons[0] && totalbuttons[1] && totalbuttons[2] && totalbuttons[3]){
 					printf("All buttons pushed!\n");
+					deck[0].shifted = 1;
 				}
 
 				else
@@ -601,7 +621,7 @@ printf("Here\n");
 					{
 						CurrentSampleFolder = CurrentSampleFolder->prev;
 						CurrentSampleFile = CurrentSampleFolder->FirstFile;
-						load_and_sync_encoder(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
+						load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
 					}
 				}
 				else if (!buttons[0] && buttons[1] && !buttons[2] && !buttons[3])
@@ -611,14 +631,14 @@ printf("Here\n");
 					{
 						CurrentSampleFolder = CurrentSampleFolder->next;
 						CurrentSampleFile = CurrentSampleFolder->FirstFile;
-						load_and_sync_encoder(&deck[1].player, track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
+						load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
 					}
 				}
 				else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3]){
 					printf("Samples - both buttons held\n");
 					r = rand() % NumSamples;
 					printf("Playing file %d/%d\n", r, NumSamples);
-					load_and_sync_encoder(&deck[1].player, track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstSampleFolder)->FullPath));
+					load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstSampleFolder)->FullPath));
 					deck[1].player.nominal_pitch = 1.0;
 				}
 
@@ -629,7 +649,7 @@ printf("Here\n");
 					{
 						CurrentBeatFolder = CurrentBeatFolder->prev;
 						CurrentBeatFile = CurrentBeatFolder->FirstFile;
-						player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+						player_set_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 					}
 				}
 				else if (!buttons[0] && !buttons[1] && !buttons[2] && buttons[3])
@@ -639,14 +659,14 @@ printf("Here\n");
 					{
 						CurrentBeatFolder = CurrentBeatFolder->next;
 						CurrentBeatFile = CurrentBeatFolder->FirstFile;
-						player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+						player_set_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 					}
 				}
 				else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3]){
 					printf("Beats - both buttons held\n");
 					r = rand() % NumBeats;
 					printf("Playing file %d/%d\n", r, NumBeats);
-					player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstBeatFolder)->FullPath));
+					player_set_track(&deck[0], track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstBeatFolder)->FullPath));
 					
 				}
 

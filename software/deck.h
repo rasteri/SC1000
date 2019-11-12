@@ -35,7 +35,6 @@ struct deck {
     bool protect;
 
     struct player player;
-    const struct record *record;
     struct cues cues;
 
     /* Punch */
@@ -46,6 +45,9 @@ struct deck {
 
     size_t ncontrol;
     struct controller *control[4];
+	
+	// If a shift modifier has been pressed recently
+	bool shifted;
 };
 
 int deck_init(struct deck *deck, struct rt *rt,

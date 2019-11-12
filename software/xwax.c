@@ -215,6 +215,7 @@ int main(int argc, char *argv[])
 	SC_Input_Start();
 
 	if (dicer_init(&midiController, &rt, "hw:1,0,0") != -1){
+		controller_add_deck(&midiController, &deck[0]);
 		controller_add_deck(&midiController, &deck[1]);
 	}
 
