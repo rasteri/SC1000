@@ -125,8 +125,19 @@ void loadSettings()
 				else if (strcmp(param, "brakespeed") == 0)
 					scsettings.brakespeed = atoi(value);
 
-				
 				/*
+
+MIDI mapping format : 
+
+midin=channel,notenum,action
+or
+midic=channel,ccnum,action
+
+Actions = CHx_CUE, CHx_STARTSTOP, CHx_PITCH, CHx_NOTE-y
+
+If ANY midimap command is specified, clear all default mappings
+otherwise CH1=note0, CH2=note1, CH3=CUE0, CH4=cue1, CH5=start0, CH6=start1
+
 VCA Channel modes : 
 vca1beatsleft
 vca1beatsright
