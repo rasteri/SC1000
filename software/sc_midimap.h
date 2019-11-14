@@ -27,8 +27,10 @@
 #define ACTION_SHIFTON 1
 #define ACTION_SHIFTOFF 2
 #define ACTION_STARTSTOP 3
-#define ACTION_PITCH 4
-#define ACTION_NOTE 5
+#define ACTION_START 4
+#define ACTION_STOP 5
+#define ACTION_PITCH 6
+#define ACTION_NOTE 7
 
 // Defines a mapping between a MIDI event and an action
 struct mapping {

@@ -42,7 +42,7 @@ int midi_open(struct midi *m, const char *name)
         return -1;
     }
 	
-	snd_rawmidi_params_alloca(&params); 
+	/*snd_rawmidi_params_alloca(&params); 
 	
 	r = snd_rawmidi_params_current(m->in, params);
 	if (r < 0) {
@@ -68,7 +68,7 @@ int midi_open(struct midi *m, const char *name)
         return -1;
     }
 	
-	printf("--------------MIDI BUFFAH SIZE : %d ----------\n", snd_rawmidi_params_get_buffer_size (params));
+	printf("--------------MIDI BUFFAH SIZE : %d ----------\n", snd_rawmidi_params_get_buffer_size (params));*/
 
     return 0;
 }

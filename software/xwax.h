@@ -69,6 +69,9 @@ typedef struct SC_SETTINGS {
 
 	// How long the the platter takes to stop after you hit a stop button, higher values are longer
 	int brakespeed;
+	
+	// Pitch range of MIDI commands
+	int pitchrange;
 
 
 } SC_SETTINGS;

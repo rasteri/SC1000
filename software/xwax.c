@@ -74,6 +74,7 @@ void loadSettings()
 	char delimc[] = ",";
 	unsigned char midicommand[3];
 	char *linetok, *valuetok;
+	bool midiRemapped = 0;
 	// set defaults
 	scsettings.buffersize = 256;
 	scsettings.faderclosepoint = 2;
@@ -86,6 +87,7 @@ void loadSettings()
 	scsettings.holdtime = 100;
 	scsettings.slippiness = 300;
 	scsettings.brakespeed = 3000;
+	scsettings.pitchrange = 50;
 	
 
 	// Load any settings from config file
@@ -128,8 +130,11 @@ void loadSettings()
 					scsettings.slippiness = atoi(value);
 				else if (strcmp(param, "brakespeed") == 0)
 					scsettings.brakespeed = atoi(value);
+				else if (strcmp(param, "pitchrange") == 0)
+					scsettings.pitchrange = atoi(value);
 				else if (strstr(param, "midi") != NULL)
 				{
+					midiRemapped = 1;
 					controlType = atoi(strtok_r(value, delimc, &valuetok));
 					channel = atoi(strtok_r(NULL, delimc, &valuetok));
 					notenum = atoi(strtok_r(NULL, delimc, &valuetok));
@@ -199,6 +204,36 @@ vca2samplesright
 			}
 		}
 	}
+	
+	// If we got no MIDI remaps, set up a default map
+	if (!midiRemapped){
+		
+		// Set up per-deck cue/startstop/pitchbend mappings
+		for (deckno = 0; deckno < 2; deckno++){
+			// Notes on channels 0 and 1 are cue points
+			for (notenum = 0; notenum < 128; notenum++){
+				midicommand[0] = 0x90 + deckno;
+				midicommand[1] = notenum;
+				add_mapping(&maps, midicommand, deckno, ACTION_CUE, 0);
+			}
+			
+			// Pitch bend on channels 0 and 1 is, well, pitchbend
+			midicommand[0] = 0xE0 + deckno; midicommand[1] = 0; midicommand[2] = 0;
+			add_mapping(&maps, midicommand, deckno, ACTION_PITCH, 0);
+			
+			// Notes 0-1 of channel 2 are startstop
+			midicommand[0] = 0x92; midicommand[1] = deckno;
+			add_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+		}
+		
+		// note 7F of channel 2 is shift
+		midicommand[0] = 0x92; midicommand[1] = 0x7F;
+		add_mapping(&maps, midicommand, deckno, ACTION_SHIFTON, 0);
+		midicommand[0] = 0x82; midicommand[1] = 0x7F;
+		add_mapping(&maps, midicommand, deckno, ACTION_SHIFTOFF, 0);
+		
+	}
+	
 
 	printf("bs %d, fcp %d, fop %d, pe %d, ps %d, sr %d, ur %d\n",
 		   scsettings.buffersize,

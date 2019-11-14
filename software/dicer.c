@@ -38,7 +38,7 @@
 #include "midi.h"
 #include "realtime.h"
 #include "sc_midimap.h"
-
+#include "xwax.h"
 #define NBUTTONS 5
 
 #define CUE 0
@@ -158,8 +158,7 @@ static void event(struct dicer *d)
 {
 	printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
 	struct mapping *map = find_mapping(maps, d->MidiBuffer);
-	
-	
+	unsigned int pval;
 	
 	if (map != NULL){
 		
@@ -181,6 +180,23 @@ static void event(struct dicer *d)
 			printf("shiftoff\n");
 			d->shifted = 0;
 		}
+		else if (map->Action == ACTION_PITCH){
+			double pitch = 0.0;
+			printf("pitchn\n");
+			// If this came from a pitch bend message, use 14 bit accuracy
+			if ((d->MidiBuffer[0]  & 0xF0) == 0xE0){
+				pval = (((unsigned int)d->MidiBuffer[2]) << 7) | ((unsigned int)d->MidiBuffer[1]);
+				pitch = (((double)pval - 8192.0) * ((double)scsettings.pitchrange / 819200.0) )+ 1;
+			}
+			// Otherwise 7bit (boo) 
+			else {
+				pitch = (((double)d->MidiBuffer[2] - 64.0) * ((double)scsettings.pitchrange / 6400.0) + 1);
+			}
+			
+			d->decks[map->DeckNo]->player.nominal_pitch = pitch;
+			printf("pitchn %d %f %f %f\n", pval, ((double)pval - 8192.0), ((double)scsettings.pitchrange / 819200.0),  pitch);
+		}
+		
 		
 	}
 }
