@@ -1,7 +1,7 @@
 # SC1000 config file
 
 # Output buffer size, default 256
-buffersize=4096
+buffersize=256
 
 # Sample Rate, default 48000
 samplerate=48000
@@ -27,3 +27,21 @@ platterenabled=1
 # 3072 = equivalent to 45rpm record (default)
 # 2275 = equivalent to 33rpm
 platterspeed=3072
+
+midin=9,0,36,CH0_SHIFTON
+midin=8,0,36,CH0_SHIFTOFF
+midin=9,0,37,CH0_CUE
+midin=9,0,38,CH0_CUE
+midin=9,0,39,CH0_CUE
+midin=9,0,40,CH0_STARTSTOP
+midin=9,0,41,CH0_CUE
+midin=9,0,42,CH0_CUE
+midin=9,0,43,CH0_CUE
+midin=9,0,44,CH1_CUE
+midin=9,0,45,CH1_CUE
+midin=9,0,46,CH1_CUE
+midin=9,0,47,CH1_CUE
+midin=9,0,48,CH1_STARTSTOP
+midin=9,0,49,CH1_CUE
+midin=9,0,50,CH1_CUE
+midin=9,0,51,CH1_CUE

@@ -38,10 +38,10 @@ DOCDIR ?= $(PREFIX)/share/doc
 
 # Build flags
 
-CFLAGS ?= -O3 -g
+CFLAGS ?= -O3
 CFLAGS += -Wall
 CPPFLAGS += -MMD
-LDFLAGS ?= -O3 -g
+LDFLAGS ?= -O3
 
 # Core objects and libraries
 
@@ -60,6 +60,7 @@ OBJS = controller.o \
 	alsa.o \
 	sc_input.o \
 	sc_playlist.o \
+	sc_midimap.o \
 	dicer.o \
 	midi.o \
 	xwax.o

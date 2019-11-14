@@ -44,6 +44,7 @@
 #include "track.h"
 #include "xwax.h"
 #include "sc_input.h"
+#include "sc_midimap.h"
 #include "dicer.h"
 
 #define DEFAULT_IMPORTER EXECDIR "/xwax-import"
@@ -58,7 +59,7 @@ SC_SETTINGS scsettings;
 
 static struct controller midiController;
 
-
+struct mapping *maps = NULL;
 
 void loadSettings()
 {
@@ -66,10 +67,13 @@ void loadSettings()
 	char *line = NULL;
 	size_t len = 0;
 	ssize_t read;
-	char *param;
+	char *param, *actions;
 	char *value;
+	unsigned char channel, notenum, action=69, deckno, parameter, controlType;
 	char delim[] = "=";
-
+	char delimc[] = ",";
+	unsigned char midicommand[3];
+	char *linetok, *valuetok;
 	// set defaults
 	scsettings.buffersize = 256;
 	scsettings.faderclosepoint = 2;
@@ -81,11 +85,11 @@ void loadSettings()
 	scsettings.debouncetime = 5;
 	scsettings.holdtime = 100;
 	scsettings.slippiness = 300;
-	scsettings.brakespeed = 1500;
+	scsettings.brakespeed = 3000;
 	
 
 	// Load any settings from config file
-	fp = fopen("/media/sda/scsettings.txt", "r");
+	fp = fopen("scsettings.txt", "r");
 	if (fp == NULL)
 	{
 		// couldn't open settings
@@ -99,8 +103,8 @@ void loadSettings()
 			}
 			else
 			{
-				param = strtok(line, delim);
-				value = strtok(NULL, delim);
+				param = strtok_r(line, delim, &linetok);
+				value = strtok_r(NULL, delim, &linetok);
 
 				if (strcmp(param, "buffersize") == 0)
 					scsettings.buffersize = atoi(value);
@@ -124,7 +128,46 @@ void loadSettings()
 					scsettings.slippiness = atoi(value);
 				else if (strcmp(param, "brakespeed") == 0)
 					scsettings.brakespeed = atoi(value);
-
+				else if (strstr(param, "midi") != NULL)
+				{
+					controlType = atoi(strtok_r(value, delimc, &valuetok));
+					channel = atoi(strtok_r(NULL, delimc, &valuetok));
+					notenum = atoi(strtok_r(NULL, delimc, &valuetok));
+					actions = strtok_r(NULL, delimc, &valuetok);
+					parameter = 0;
+					
+					// Extract deck no from action (CHx)
+					if (actions[2] == '0') deckno = 0;
+					if (actions[2] == '1') deckno = 1;
+					
+					// figure out which action it is
+					if (strstr(actions+4, "CUE") != NULL) action = ACTION_CUE;
+					else if (strstr(actions+4, "SHIFTON") != NULL) action = ACTION_SHIFTON;
+					else if (strstr(actions+4, "SHIFTOFF") != NULL) action = ACTION_SHIFTOFF;
+					else if (strstr(actions+4, "STARTSTOP") != NULL) action = ACTION_STARTSTOP;
+					else if (strstr(actions+4, "PITCH") != NULL) action = ACTION_PITCH;
+					else if (strstr(actions+4, "NOTE") != NULL) {
+						action = ACTION_NOTE;
+						parameter = atoi(actions+9);
+					}
+					
+					// Build MIDI command
+					midicommand[0] = (controlType << 4) | channel;
+					midicommand[1] = notenum;
+					midicommand[2] = 0;
+					
+					add_mapping(
+						&maps, 
+						midicommand,
+						deckno,
+						action, 
+						parameter
+					);
+					
+				}
+				else {
+					printf("Unrecognised configuration line - Param : %s , value : %s\n", param, value);
+				}
 				/*
 
 MIDI mapping format : 
@@ -133,7 +176,10 @@ midin=channel,notenum,action
 or
 midic=channel,ccnum,action
 
-Actions = CHx_CUE, CHx_STARTSTOP, CHx_PITCH, CHx_NOTE-y
+Actions = CHx_CUE, CHx_SHIFT, CHx_STARTSTOP, CHx_PITCH, CHx_NOTE-y
+
+midin=0,60,CH1_CUE
+midin=0,30,CH2_NOTE-60
 
 If ANY midimap command is specified, clear all default mappings
 otherwise CH1=note0, CH2=note1, CH3=CUE0, CH4=cue1, CH5=start0, CH6=start1
