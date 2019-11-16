@@ -91,7 +91,7 @@ void loadSettings()
 	
 
 	// Load any settings from config file
-	fp = fopen("scsettings.txt", "r");
+	fp = fopen("/media/sda/scsettings.txt", "r");
 	if (fp == NULL)
 	{
 		// couldn't open settings
@@ -132,7 +132,7 @@ void loadSettings()
 					scsettings.brakespeed = atoi(value);
 				else if (strcmp(param, "pitchrange") == 0)
 					scsettings.pitchrange = atoi(value);
-				else if (strstr(param, "midi") != NULL)
+				else if (strstr(param, "midii") != NULL)
 				{
 					midiRemapped = 1;
 					controlType = atoi(strtok_r(value, delimc, &valuetok));

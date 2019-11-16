@@ -1,13 +1,10 @@
 # SC1000 config file
-
-# Output buffer size, default 256
-buffersize=256
-
-# Sample Rate, default 48000
-samplerate=48000
-
+# Any lines beginning with # are ignored
 
 # Fader thresholds for hysteresis
+# You might need to adjust these for different faders
+# faderopenpoint should always be 
+# more than or equal to faderclosepoint
 
 # Value required to open the fader when it's closed
 faderopenpoint=5
@@ -15,9 +12,6 @@ faderopenpoint=5
 # Value required to close the fader when it's opened
 faderclosepoint=3
 
-
-# Delay between iterations of the input loop, default 1000
-updaterate=1
 
 # 0 to disable platter, default 1 (enabled)
 platterenabled=1
@@ -28,21 +22,57 @@ platterenabled=1
 # 2275 = equivalent to 33rpm
 platterspeed=3072
 
-#midin=9,0,36,CH0_SHIFTON
-#midin=8,0,36,CH0_SHIFTOFF
-#midin=9,0,37,CH0_CUE
-#midin=9,0,38,CH0_CUE
-#midin=9,0,39,CH0_CUE
-#midin=9,0,40,CH0_STARTSTOP
-#midin=9,0,41,CH0_CUE
-#midin=9,0,42,CH0_CUE
-#midin=9,0,43,CH0_CUE
-#midin=9,0,44,CH1_CUE
-#midin=9,0,45,CH1_CUE
-#midin=9,0,46,CH1_CUE
-#midin=9,0,47,CH1_CUE
-#midin=9,0,48,CH1_STARTSTOP
-#midin=9,0,49,CH1_CUE
-#midin=9,0,50,CH1_CUE
-#midin=9,0,51,CH1_CUE
-#midin=14,0,0,CH0_PITCH
+# How long the stop button takes to stop the track
+# Higher is longer, default = 3000
+brakespeed = 3000
+
+# Pitch range % of pitch bend MIDI command, default 50%
+pitchrange = 50
+
+# MIDI Mapping - format is :
+# Status,channel,data,action
+# 
+# Status can be : 
+# 8 - Note OFF (will also match zero-velocity Note ON)
+# 9 - Note ON
+# 11 - Control Change
+# 14 - Pitch Bend
+#
+# Channel is the MIDI channel of the incoming MIDI message
+#
+# Data is the note or CC number
+#
+# Action can be (replace x with 0 for beats or 1 for samples) :
+# CHx_CUE - Set and trigger cue points
+# CHx_SHIFTON - Activate shift mode (ignores x)
+# CHx_SHIFTOFF - Deactivate shift mode (also ignores x)
+# CHx_STARTSTOP - Start or Stop the track
+# PITCH - Change the speed of the track
+# NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
+
+# Hold down shift and a cue button to delete a cue point
+
+# Here's an annotated example for my Akai MPD18
+# Which has 16 pads from C2(36) to Eb3(51)
+# And a fader on CC #0
+
+#Bottom 2 rows (8 pads) are cue points for track 1 (samples)
+midii=9,0,36,CH1_CUE
+midii=9,0,37,CH1_CUE
+midii=9,0,38,CH1_CUE
+midii=9,0,39,CH1_CUE
+midii=9,0,40,CH1_CUE
+midii=9,0,41,CH1_CUE
+midii=9,0,42,CH1_CUE
+midii=9,0,43,CH1_CUE
+
+# Top left and top-middle-left pads are Start/Stop for beat and sample respectively
+midii=9,0,48,CH0_STARTSTOP
+midii=9,0,49,CH1_STARTSTOP
+
+# Top Right is shift key, need to define both NOTE OFF and NOTE ON commands
+midii=9,0,51,CH0_SHIFTON
+midii=8,0,51,CH0_SHIFTFF
+
+# Fader is assigned to sample pitch
+midii=11,0,0,CH1_PITCH

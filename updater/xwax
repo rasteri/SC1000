@@ -1,0 +1,20 @@
+#!/bin/sh
+
+echo "---SC1000 Update Script v0.3---"
+
+mkdir /tmp/bootpart
+
+mount /dev/mmcblk0p1 /tmp/bootpart
+
+if test -f "/tmp/bootpart/version"; then
+	echo "ERROR : Can only upgrade the original SCOS"
+else
+	if tar -C /tmp/bootpart/ -xf /media/sda/sc.tar zImage && tar -C /tmp/bootpart/ -xf /media/sda/sc.tar sun5i-a13-olinuxino.dtb && tar -C /usr/bin -xf /media/sda/sc.tar xwax; then
+		touch /tmp/bootpart/version
+	else
+		echo "ERROR : Could not un-tar files"
+	fi
+fi
+
+umount /tmp/bootpart
+sync
