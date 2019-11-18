@@ -56,7 +56,7 @@ void i2c_write_address(int file_i2c, unsigned char address, unsigned char value)
 	buf[1] = value;
 	if (write(file_i2c, buf, 2) != 2){
 		printf("I2C Write Error\n");
-		exit(1);
+		//exit(1);
 	}
 }
 
@@ -125,7 +125,7 @@ void *SC_InputThread(void *ptr)
 	unsigned int faderCutPoint;
 	unsigned char picpresent = 1;
 	unsigned char rotarypresent = 1;
-	unsigned char gpiopresent = 1;
+	unsigned char gpiopresent = 0;
 	unsigned int gpios;
 	int pitchMode = 0; // If we're in pitch-change mode
 	int oldPitchMode = 0;
@@ -169,7 +169,7 @@ void *SC_InputThread(void *ptr)
 	//DumpFileStructure(FirstBeatFolder);
 	CurrentBeatFolder = FirstBeatFolder;
 	CurrentBeatFile = CurrentBeatFolder->FirstFile;
-printf("Here\n");
+	
 	FirstSampleFolder = LoadFileStructure("/media/sda/samples/", &NumSamples);
 	//DumpFileStructure(FirstSampleFolder);
 	CurrentSampleFolder = FirstSampleFolder;
