@@ -9,7 +9,7 @@ void add_mapping(struct mapping **maps, unsigned char buf[3], unsigned char Deck
 	new_map->Action = Action;
 	new_map->Param = Param;
 	new_map->next = NULL;
-	printf("Adding Mapping - %x %x - dn:%d, a:%d, p:%d\n", buf[0], buf[1], buf[2], DeckNo, Action, Param); 
+//	printf("Adding Mapping - %x %x - dn:%d, a:%d, p:%d\n", buf[0], buf[1], buf[2], DeckNo, Action, Param); 
 	if (*maps == NULL){
 		*maps = new_map;
 	}

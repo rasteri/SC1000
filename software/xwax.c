@@ -217,19 +217,26 @@ vca2samplesright
 				add_mapping(&maps, midicommand, deckno, ACTION_CUE, 0);
 			}
 			
+			// Notes on channels 2 and 3 are C1-style notes
+			for (notenum = 0; notenum < 128; notenum++){
+				midicommand[0] = 0x92 + deckno;
+				midicommand[1] = notenum;
+				add_mapping(&maps, midicommand, deckno, ACTION_NOTE, notenum);
+			}
+			
 			// Pitch bend on channels 0 and 1 is, well, pitchbend
 			midicommand[0] = 0xE0 + deckno; midicommand[1] = 0; midicommand[2] = 0;
 			add_mapping(&maps, midicommand, deckno, ACTION_PITCH, 0);
 			
-			// Notes 0-1 of channel 2 are startstop
-			midicommand[0] = 0x92; midicommand[1] = deckno;
+			// Notes 0-1 of channel 4 are startstop
+			midicommand[0] = 0x94; midicommand[1] = deckno;
 			add_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
 		}
 		
 		// note 7F of channel 2 is shift
-		midicommand[0] = 0x92; midicommand[1] = 0x7F;
+		midicommand[0] = 0x94; midicommand[1] = 0x7F;
 		add_mapping(&maps, midicommand, deckno, ACTION_SHIFTON, 0);
-		midicommand[0] = 0x82; midicommand[1] = 0x7F;
+		midicommand[0] = 0x84; midicommand[1] = 0x7F;
 		add_mapping(&maps, midicommand, deckno, ACTION_SHIFTOFF, 0);
 		
 	}
