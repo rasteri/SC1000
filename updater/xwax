@@ -8,13 +8,26 @@ mount /dev/mmcblk0p1 /tmp/bootpart
 
 if test -f "/tmp/bootpart/version"; then
 	echo "ERROR : Can only upgrade the original SCOS"
+	umount /tmp/bootpart
+	sync
+	tar -C /tmp/ -xf /media/sda/sc.tar existing.mp3
+	mpg123 --loop -1 /tmp/existing.mp3
 else
 	if tar -C /tmp/bootpart/ -xf /media/sda/sc.tar zImage && tar -C /tmp/bootpart/ -xf /media/sda/sc.tar sun5i-a13-olinuxino.dtb && tar -C /usr/bin -xf /media/sda/sc.tar xwax; then
 		touch /tmp/bootpart/version
+		echo "SC1000 software updated!"
+		umount /tmp/bootpart
+		sync
+		tar -C /tmp/ -xf /media/sda/sc.tar successful.mp3
+		mpg123 --loop -1 /tmp/successful.mp3
+		
 	else
 		echo "ERROR : Could not un-tar files"
+		umount /tmp/bootpart
+		sync
+		tar -C /tmp/ -xf /media/sda/sc.tar failed.mp3
+		mpg123 --loop -1 /tmp/failed.mp3
 	fi
 fi
 
-umount /tmp/bootpart
-sync
+

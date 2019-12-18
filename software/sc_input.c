@@ -165,6 +165,8 @@ void *SC_InputThread(void *ptr)
 	unsigned int gpios;
 	int pitchMode = 0; // If we're in pitch-change mode
 	int oldPitchMode = 0;
+	unsigned int pullups = 0, iodirs = 0;
+	struct mapping *map;
 
 
 	int gpiodebounce[16];
@@ -197,8 +199,41 @@ void *SC_InputThread(void *ptr)
 
 	// Configure GPIO
 	if (gpiopresent){
-		i2c_write_address(file_i2c_gpio, 0x0C, 0xFF); // Bank A pullups enabled
-		i2c_write_address(file_i2c_gpio, 0x0D, 0xFF); // Bank B pullups enabled
+		pullups = 0;
+		iodirs = 0;
+
+		// For each pin
+		for (i = 0; i < 16; i++)
+		{
+			map = find_IO_mapping(maps, i, 1);
+			// If pin is marked as ground
+			if (map != NULL && map->Action == ACTION_GND){
+				// leave iodir/pullup zero, so output and disable pullup
+			}
+			// else make it input and enable pullup
+			else {
+				iodirs |= (0x01 << i);
+				pullups |= (0x01 << i);
+			}
+		}
+		
+		unsigned char tmpchar;
+
+		// Bank A pullups
+		tmpchar = (unsigned char) (pullups & 0xFF);
+		i2c_write_address(file_i2c_gpio, 0x0C, tmpchar); 
+
+		// Bank B pullups
+		tmpchar = (unsigned char) ((pullups >> 8) & 0xFF);
+		i2c_write_address(file_i2c_gpio, 0x0D, 0xFF); 
+
+		// Bank A direction
+		tmpchar = (unsigned char) (iodirs & 0xFF);
+		i2c_write_address(file_i2c_gpio, 0x00, tmpchar); 
+
+		// Bank B direction
+		tmpchar = (unsigned char) ((iodirs >> 8) & 0xFF);
+		i2c_write_address(file_i2c_gpio, 0x01, 0xFF); 
 	}
 
 	// Build index of all audio files on the USB stick

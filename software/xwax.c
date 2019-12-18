@@ -186,6 +186,7 @@ void loadSettings()
 					else if (strstr(actions+4, "SHIFTON") != NULL) action = ACTION_SHIFTON;
 					else if (strstr(actions+4, "SHIFTOFF") != NULL) action = ACTION_SHIFTOFF;
 					else if (strstr(actions+4, "STARTSTOP") != NULL) action = ACTION_STARTSTOP;
+					else if (strstr(actions+4, "GND") != NULL) action = ACTION_GND;
 					else if (strstr(actions+4, "NOTE") != NULL) {
 						action = ACTION_NOTE;
 						parameter = atoi(actions+9);
