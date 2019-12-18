@@ -22,6 +22,7 @@
 #include <string.h>
 #include <sys/poll.h>
 #include <alsa/asoundlib.h>
+#include <stdint.h>
 
 #include "alsa.h"
 #include "player.h"

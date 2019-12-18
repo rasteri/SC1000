@@ -69,7 +69,8 @@ void loadSettings()
 	ssize_t read;
 	char *param, *actions;
 	char *value;
-	unsigned char channel, notenum, action=69, deckno, parameter, controlType;
+	unsigned char channel, notenum, action=69, deckno, parameter, controlType, pin;
+	char *edge;
 	char delim[] = "=";
 	char delimc[] = ",";
 	unsigned char midicommand[3];
@@ -161,7 +162,7 @@ void loadSettings()
 					midicommand[1] = notenum;
 					midicommand[2] = 0;
 					
-					add_mapping(
+					add_MIDI_mapping(
 						&maps, 
 						midicommand,
 						deckno,
@@ -169,6 +170,35 @@ void loadSettings()
 						parameter
 					);
 					
+				}
+				else if (strstr(param, "io") != NULL){
+					pin = atoi(strtok_r(value, delimc, &valuetok));
+					edge = atoi(strtok_r(NULL, delimc, &valuetok));
+					actions = strtok_r(NULL, delimc, &valuetok);
+					parameter = 0;
+
+					// Extract deck no from action (CHx)
+					if (actions[2] == '0') deckno = 0;
+					if (actions[2] == '1') deckno = 1;
+
+					// figure out which action it is
+					if (strstr(actions+4, "CUE") != NULL) action = ACTION_CUE;
+					else if (strstr(actions+4, "SHIFTON") != NULL) action = ACTION_SHIFTON;
+					else if (strstr(actions+4, "SHIFTOFF") != NULL) action = ACTION_SHIFTOFF;
+					else if (strstr(actions+4, "STARTSTOP") != NULL) action = ACTION_STARTSTOP;
+					else if (strstr(actions+4, "NOTE") != NULL) {
+						action = ACTION_NOTE;
+						parameter = atoi(actions+9);
+					}
+
+					add_IO_mapping(
+						&maps, 
+						pin,
+						edge,
+						deckno,
+						action, 
+						parameter
+					);
 				}
 				else {
 					printf("Unrecognised configuration line - Param : %s , value : %s\n", param, value);
@@ -214,30 +244,30 @@ vca2samplesright
 			for (notenum = 0; notenum < 128; notenum++){
 				midicommand[0] = 0x90 + deckno;
 				midicommand[1] = notenum;
-				add_mapping(&maps, midicommand, deckno, ACTION_CUE, 0);
+				add_MIDI_mapping(&maps, midicommand, deckno, ACTION_CUE, 0);
 			}
 			
 			// Notes on channels 2 and 3 are C1-style notes
 			for (notenum = 0; notenum < 128; notenum++){
 				midicommand[0] = 0x92 + deckno;
 				midicommand[1] = notenum;
-				add_mapping(&maps, midicommand, deckno, ACTION_NOTE, notenum);
+				add_MIDI_mapping(&maps, midicommand, deckno, ACTION_NOTE, notenum);
 			}
 			
 			// Pitch bend on channels 0 and 1 is, well, pitchbend
 			midicommand[0] = 0xE0 + deckno; midicommand[1] = 0; midicommand[2] = 0;
-			add_mapping(&maps, midicommand, deckno, ACTION_PITCH, 0);
+			add_MIDI_mapping(&maps, midicommand, deckno, ACTION_PITCH, 0);
 			
 			// Notes 0-1 of channel 4 are startstop
 			midicommand[0] = 0x94; midicommand[1] = deckno;
-			add_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
 		}
 		
 		// note 7F of channel 2 is shift
 		midicommand[0] = 0x94; midicommand[1] = 0x7F;
-		add_mapping(&maps, midicommand, deckno, ACTION_SHIFTON, 0);
+		add_MIDI_mapping(&maps, midicommand, deckno, ACTION_SHIFTON, 0);
 		midicommand[0] = 0x84; midicommand[1] = 0x7F;
-		add_mapping(&maps, midicommand, deckno, ACTION_SHIFTOFF, 0);
+		add_MIDI_mapping(&maps, midicommand, deckno, ACTION_SHIFTOFF, 0);
 		
 	}
 	

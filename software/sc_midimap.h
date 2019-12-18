@@ -17,6 +17,8 @@
  *
  */
 
+#include <stdbool.h>
+
 #ifndef SC_MIDIMAP_H
 #define SC_MIDIMAP_H
 
@@ -31,11 +33,23 @@
 #define ACTION_STOP 5
 #define ACTION_PITCH 6
 #define ACTION_NOTE 7
+#define ACTION_GND 8
+
+#define MAP_MIDI 0
+#define MAP_IO 1
 
 // Defines a mapping between a MIDI event and an action
 struct mapping {
-	// MIDI event
+
+	// Event type (MIDI or IO)
+	unsigned char Type;
+
+	// MIDI event info for matching
 	unsigned char MidiBytes[3];
+
+	// IO event info
+	unsigned char Pin; // IO Pin Number
+	bool Edge; // Edge (1 for unpressed-to-pressed)
 
 	// Action
 	unsigned char DeckNo; // Which deck to apply this action to
@@ -45,6 +59,8 @@ struct mapping {
 	struct mapping *next;
 };
 
-void add_mapping(struct mapping **maps, unsigned char buf[3], unsigned char DeckNo, unsigned char Action, unsigned char Param);
-
+void add_MIDI_mapping(struct mapping **maps, unsigned char buf[3], unsigned char DeckNo, unsigned char Action, unsigned char Param);
+void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param);
+struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3]);
+struct mapping *find_IO_mapping(struct mapping *maps, unsigned char pin, bool edge);
 #endif

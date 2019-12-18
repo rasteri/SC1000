@@ -157,7 +157,7 @@ static void event_decoded(struct deck *d,
 static void event(struct dicer *d)
 {
 //	printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
-	struct mapping *map = find_mapping(maps, d->MidiBuffer);
+	struct mapping *map = find_MIDI_mapping(maps, d->MidiBuffer);
 	unsigned int pval;
 	
 	if (map != NULL){

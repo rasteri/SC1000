@@ -13,7 +13,9 @@
 			"*.tcc": "c",
 			"fstream": "c",
 			"ostream": "c",
-			"sc_queue.h": "c"
+			"sc_queue.h": "c",
+			"random": "c",
+			"stdint.h": "c"
 		}
 	}
 }

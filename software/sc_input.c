@@ -24,6 +24,9 @@
 #include "track.h"
 #include "xwax.h"
 #include "sc_input.h"
+#include "sc_midimap.h"
+
+bool shifted = 0;
 
 #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
 #define BYTE_TO_BINARY(byte)  \
@@ -36,7 +39,7 @@
   (byte & 0x02 ? '1' : '0'), \
   (byte & 0x01 ? '1' : '0') 
 
-
+extern struct mapping *maps;
 
 void i2c_read_address(int file_i2c, unsigned char address, unsigned char *result)
 {
@@ -100,6 +103,39 @@ void load_and_sync_encoder(struct deck *d, struct track *track)
 		angleOffset = (pl->position * scsettings.platterspeed) - encoderAngle;
 }
 
+/*
+ * Process an IO event
+ */
+
+static void IOevent(unsigned char pin, bool edge)
+{
+//	printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
+	struct mapping *map = find_IO_mapping(maps, pin, edge);
+	unsigned int pval;
+	
+	if (map != NULL){
+		//printf("Map notnull %d %d %d\n", map->DeckNo, map->Action, map->Param);
+		
+		if (map->Action == ACTION_CUE){
+			if (shifted) deck_unset_cue(&deck[map->DeckNo], pin);
+			else deck_cue(&deck[map->DeckNo], pin);
+		}
+		else if (map->Action == ACTION_NOTE){
+			deck[map->DeckNo].player.nominal_pitch = pow(pow(2, (double)1/12), map->Param - 0x3C); // equal temperament
+		}
+		else if (map->Action == ACTION_STARTSTOP){
+			deck[map->DeckNo].player.stopped = deck[map->DeckNo].player.stopped;
+		}
+		else if (map->Action == ACTION_SHIFTON){
+			shifted = 1;
+		}
+		else if (map->Action == ACTION_SHIFTOFF){
+			shifted = 0;
+		}
+		
+	}
+}
+
 void *SC_InputThread(void *ptr)
 {
 
@@ -160,8 +196,10 @@ void *SC_InputThread(void *ptr)
 	}
 
 	// Configure GPIO
-	i2c_write_address(file_i2c_gpio, 0x0C, 0xFF); // Bank A pullups enabled
-	i2c_write_address(file_i2c_gpio, 0x0D, 0xFF); // Bank B pullups enabled
+	if (gpiopresent){
+		i2c_write_address(file_i2c_gpio, 0x0C, 0xFF); // Bank A pullups enabled
+		i2c_write_address(file_i2c_gpio, 0x0D, 0xFF); // Bank B pullups enabled
+	}
 
 	// Build index of all audio files on the USB stick
 
@@ -273,35 +311,7 @@ void *SC_InputThread(void *ptr)
 							if (gpios & (0x01 << i)){
 								printf ("Button %d pressed\n", i);
 								
-								
-								// A7 and B7 are start/stop
-								if (i == 7){
-									deck[0].player.stopped = !deck[0].player.stopped;
-								} else if (i == 15){
-									deck[1].player.stopped = !deck[1].player.stopped;
-								}
-								// All others are cue points
-								else {
-								
-									// A0-6 are deck 0 (beat) cue points
-									if (i < 7){
-										decknum = 0;
-										cuepointnum = i;
-									}
-									
-									// B0-6 are deck 1 (sample) cue points
-									else {
-										decknum = 1;
-										cuepointnum = i - 8;
-									}
-									if (deck[0].shifted){
-										deck_unset_cue(&deck[decknum], cuepointnum);	
-										deck_cue(&deck[decknum], cuepointnum);
-										deck[0].shifted = 0;
-									}
-									else 
-										deck_cue(&deck[decknum], cuepointnum);	
-								}
+								IOevent(i, 1);
 								
 								// start the counter
 								gpiodebounce[i]++;
@@ -326,20 +336,10 @@ void *SC_InputThread(void *ptr)
 							else gpiodebounce[i]++;
 							
 						}
-						// Button has been held for a while, wipe the cue point (if not a start/stop button)
+						// Button has been held for a while
 						else if (gpiodebounce[i] == scsettings.holdtime){
 							printf ("Button %d held\n", i);
-							/*
-								// A7 and B7 are start/stop, do nothing if held
-								if (i == 7 || i == 15){
-								}
-								// A0-6 are deck 0 (beat) cue points, unset cue
-								else if (i < 7)		
-									deck_unset_cue(&deck[0], i);
-								// B0-6 are deck 1 (sample) cue points, again unset cue
-								else
-									deck_unset_cue(&deck[1], i - 8);
-							*/
+
 							gpiodebounce[i]++;
 						}
 						
@@ -348,7 +348,7 @@ void *SC_InputThread(void *ptr)
 							// check to see if unpressed
 							if (!(gpios & (0x01 << i))){
 								printf ("Button %d released\n", i);
-								
+								IOevent(i, 0);
 								// start the counter
 								gpiodebounce[i] = -scsettings.debouncetime;
 							}

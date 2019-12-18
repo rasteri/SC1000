@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdbool.h>
 #include "sc_midimap.h"
 
-void add_mapping(struct mapping **maps, unsigned char buf[3], unsigned char DeckNo, unsigned char Action, unsigned char Param){
+void add_MIDI_mapping(struct mapping **maps, unsigned char buf[3], unsigned char DeckNo, unsigned char Action, unsigned char Param){
 	struct mapping *new_map = (struct mapping*) malloc(sizeof(struct mapping));
 	new_map->MidiBytes[0] = buf[0];new_map->MidiBytes[1] = buf[1];new_map->MidiBytes[2] = buf[2];
 	new_map->DeckNo = DeckNo;
@@ -25,8 +28,32 @@ void add_mapping(struct mapping **maps, unsigned char buf[3], unsigned char Deck
 	
 }
 
+void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param){
+	struct mapping *new_map = (struct mapping*) malloc(sizeof(struct mapping));
+	new_map->Pin = Pin;
+	new_map->Edge = Edge;
+	new_map->DeckNo = DeckNo;
+	new_map->Action = Action;
+	new_map->Param = Param;
+	new_map->next = NULL;
+	printf("Adding Mapping - pn%x ed%x - dn:%d, a:%d, p:%d\n", Pin, Edge, DeckNo, Action, Param); 
+	if (*maps == NULL){
+		*maps = new_map;
+	}
+	else {
+		struct mapping *last_map = *maps;
+		
+		while (last_map->next != NULL){
+			last_map = last_map->next;
+		}
+		
+		last_map->next = new_map;
+	}
+	
+}
+
 // Find a mapping from a MIDI event
-struct mapping *find_mapping(struct mapping *maps, unsigned char buf[3]){
+struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3]){
 	
 	
 	struct mapping *last_map = maps;
@@ -43,6 +70,22 @@ struct mapping *find_mapping(struct mapping *maps, unsigned char buf[3]){
 			
 		
 		){
+			return last_map;
+		} 
+		
+		last_map = last_map->next;
+	}
+	return NULL;
+}
+
+// Find a mapping from a IO event
+struct mapping *find_IO_mapping(struct mapping *maps, unsigned char pin, bool edge){
+	
+	struct mapping *last_map = maps;
+	
+	while (last_map != NULL){
+			
+		if (last_map->Pin == pin && last_map->Edge == edge){
 			return last_map;
 		} 
 		

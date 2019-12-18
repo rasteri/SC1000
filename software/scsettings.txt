@@ -1,10 +1,17 @@
-# SC1000 config file
+######################
+# SC1000 config file #
+######################
 # Any lines beginning with # are ignored
 
+
+###################
+# General Options #
+###################
+#
 # Fader thresholds for hysteresis
 # You might need to adjust these for different faders
 # faderopenpoint should always be 
-# more than or equal to faderclosepoint
+# more than faderclosepoint
 
 # Value required to open the fader when it's closed
 faderopenpoint=5
@@ -24,12 +31,55 @@ platterspeed=3072
 
 # How long the stop button takes to stop the track
 # Higher is longer, default = 3000
-brakespeed = 3000
+brakespeed=3000
 
 # Pitch range % of pitch bend MIDI command, default 50%
-pitchrange = 50
+pitchrange=50
 
-# MIDI Mapping - format is :
+###########################
+# External I/O Mapping    #
+###########################
+#
+# Format is :
+# io=pin,edge,action
+# where pin is the io number, and action is one of :
+# (replace x with 0 for beats or 1 for samples) :
+# CHx_CUE - Set and trigger cue points
+# CHx_SHIFTON - Activate shift mode (ignores x)
+# CHx_SHIFTOFF - Deactivate shift mode (also ignores x)
+# CHx_STARTSTOP - Start or Stop the track
+# CHx_NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
+# CHx_GND - make the pin an output and set it low - used to provide additional ground connections
+# 
+# edge should be 1 for pressing edge, 0 for releasing edge
+
+io=0,1,CH0_GND
+io=1,1,CH0_SHIFTON
+io=1,0,CH0_SHIFTOFF
+io=2,1,CH0_STARTSTOP
+io=3,1,CH1_STARTSTOP
+io=4,1,CH1_CUE
+io=5,1,CH1_CUE
+io=6,1,CH1_CUE
+io=7,1,CH1_CUE
+
+io=8,1,CH1_CUE
+io=9,1,CH1_CUE
+io=10,1,CH1_CUE
+io=11,1,CH1_CUE
+io=12,1,CH0_GND
+io=13,1,CH1_CUE
+io=14,1,CH1_CUE
+io=15,1,CH1_CUE
+
+
+
+
+################
+# MIDI Mapping #
+################
+#
+# Format is :
 # Status,channel,data,action
 # 
 # Status can be : 
@@ -47,8 +97,8 @@ pitchrange = 50
 # CHx_SHIFTON - Activate shift mode (ignores x)
 # CHx_SHIFTOFF - Deactivate shift mode (also ignores x)
 # CHx_STARTSTOP - Start or Stop the track
-# PITCH - Change the speed of the track
-# NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
+# CHx_PITCH - Change the speed of the track
+# CHx_NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
 
 # Hold down shift and a cue button to delete a cue point
 
@@ -57,22 +107,22 @@ pitchrange = 50
 # And a fader on CC #0
 
 #Bottom 2 rows (8 pads) are cue points for track 1 (samples)
-midii=9,0,36,CH1_CUE
-midii=9,0,37,CH1_CUE
-midii=9,0,38,CH1_CUE
-midii=9,0,39,CH1_CUE
-midii=9,0,40,CH1_CUE
-midii=9,0,41,CH1_CUE
-midii=9,0,42,CH1_CUE
-midii=9,0,43,CH1_CUE
+#midii=9,0,36,CH1_CUE
+#midii=9,0,37,CH1_CUE
+#midii=9,0,38,CH1_CUE
+#midii=9,0,39,CH1_CUE
+#midii=9,0,40,CH1_CUE
+#midii=9,0,41,CH1_CUE
+#midii=9,0,42,CH1_CUE
+#midii=9,0,43,CH1_CUE
 
 # Top left and top-middle-left pads are Start/Stop for beat and sample respectively
-midii=9,0,48,CH0_STARTSTOP
-midii=9,0,49,CH1_STARTSTOP
+#midii=9,0,48,CH0_STARTSTOP
+#midii=9,0,49,CH1_STARTSTOP
 
 # Top Right is shift key, need to define both NOTE OFF and NOTE ON commands
-midii=9,0,51,CH0_SHIFTON
-midii=8,0,51,CH0_SHIFTFF
+#midii=9,0,51,CH0_SHIFTON
+#midii=8,0,51,CH0_SHIFTFF
 
 # Fader is assigned to sample pitch
-midii=11,0,0,CH1_PITCH
+#midii=11,0,0,CH1_PITCH
