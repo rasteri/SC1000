@@ -85,6 +85,18 @@ int setupi2c(char *path, unsigned char address)
 int32_t angleOffset = 0; // Offset between encoder angle and track position, reset every time the platter is touched
 int encoderAngle = 0xffff, newEncoderAngle = 0xffff;
 
+void load_track(struct deck *d, struct track *track)
+{
+	struct player *pl = &d->player;
+	cues_save_to_file(&d->cues, pl->track->path);
+	player_set_track(pl, track);
+	pl->target_position = 0;
+	pl->position = 0;
+	pl->offset = 0;
+	cues_load_from_file(&d->cues, pl->track->path);
+	pl->nominal_pitch = 1.0;
+}
+
 void load_and_sync_encoder(struct deck *d, struct track *track)
 {
 	struct player *pl = &d->player;
@@ -114,7 +126,7 @@ static void IOevent(unsigned char pin, bool edge)
 	unsigned int pval;
 	
 	if (map != NULL){
-		//printf("Map notnull %d %d %d\n", map->DeckNo, map->Action, map->Param);
+		printf("Map notnull %d %d %d\n", map->DeckNo, map->Action, map->Param);
 		
 		if (map->Action == ACTION_CUE){
 			if (shifted) deck_unset_cue(&deck[map->DeckNo], pin);
@@ -124,7 +136,8 @@ static void IOevent(unsigned char pin, bool edge)
 			deck[map->DeckNo].player.nominal_pitch = pow(pow(2, (double)1/12), map->Param - 0x3C); // equal temperament
 		}
 		else if (map->Action == ACTION_STARTSTOP){
-			deck[map->DeckNo].player.stopped = deck[map->DeckNo].player.stopped;
+			printf("Startstop %d %d\n", map->DeckNo, deck[map->DeckNo].player.stopped);
+			deck[map->DeckNo].player.stopped = !deck[map->DeckNo].player.stopped;
 		}
 		else if (map->Action == ACTION_SHIFTON){
 			shifted = 1;
@@ -140,7 +153,7 @@ void *SC_InputThread(void *ptr)
 {
 
 	int file_i2c_rot, file_i2c_pic, file_i2c_gpio;
-
+ 
 	unsigned char result;
 	unsigned char picskip = 0;
 
@@ -161,7 +174,7 @@ void *SC_InputThread(void *ptr)
 	unsigned int faderCutPoint;
 	unsigned char picpresent = 1;
 	unsigned char rotarypresent = 1;
-	unsigned char gpiopresent = 0;
+	unsigned char gpiopresent = 1;
 	unsigned int gpios;
 	int pitchMode = 0; // If we're in pitch-change mode
 	int oldPitchMode = 0;
@@ -197,8 +210,9 @@ void *SC_InputThread(void *ptr)
 		picpresent = 0;
 	}
 
-	// Configure GPIO
+	// Configure GPIO 
 	if (gpiopresent){
+		
 		pullups = 0;
 		iodirs = 0;
 
@@ -209,6 +223,7 @@ void *SC_InputThread(void *ptr)
 			// If pin is marked as ground
 			if (map != NULL && map->Action == ACTION_GND){
 				// leave iodir/pullup zero, so output and disable pullup
+				printf("Grounding pin %d\n", i);
 			}
 			// else make it input and enable pullup
 			else {
@@ -219,21 +234,38 @@ void *SC_InputThread(void *ptr)
 		
 		unsigned char tmpchar;
 
+		
+
+
 		// Bank A pullups
 		tmpchar = (unsigned char) (pullups & 0xFF);
 		i2c_write_address(file_i2c_gpio, 0x0C, tmpchar); 
 
 		// Bank B pullups
 		tmpchar = (unsigned char) ((pullups >> 8) & 0xFF);
-		i2c_write_address(file_i2c_gpio, 0x0D, 0xFF); 
+		i2c_write_address(file_i2c_gpio, 0x0D, tmpchar); 
+		
+		printf("PULLUPS - ");
+		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((pullups >> 8) & 0xFF));
+		printf("-");
+		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((pullups & 0xFF)));
+		printf("\n");
+
 
 		// Bank A direction
 		tmpchar = (unsigned char) (iodirs & 0xFF);
 		i2c_write_address(file_i2c_gpio, 0x00, tmpchar); 
 
 		// Bank B direction
-		tmpchar = (unsigned char) ((iodirs >> 8) & 0xFF);
-		i2c_write_address(file_i2c_gpio, 0x01, 0xFF); 
+		tmpchar = (unsigned char) ((iodirs >> 8) & 0xFF); 
+		i2c_write_address(file_i2c_gpio, 0x01, tmpchar); 
+		
+		printf("IODIRS  - ");
+		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((iodirs >> 8) & 0xFF));
+		printf("-");
+		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(iodirs & 0xFF));
+		printf("\n");
+
 	}
 
 	// Build index of all audio files on the USB stick
@@ -363,7 +395,7 @@ void *SC_InputThread(void *ptr)
 							// check to see if unpressed
 							if (!(gpios & (0x01 << i))){
 								printf ("Button %d released\n", i);
-								
+								IOevent(i, 0);
 								// start the counter
 								gpiodebounce[i] = -scsettings.debouncetime;
 							}
@@ -618,7 +650,7 @@ void *SC_InputThread(void *ptr)
 					{
 						CurrentBeatFile = CurrentBeatFile->prev;
 					}
-					load_and_sync_encoder(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+					load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 				}
 				else if (!totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && totalbuttons[3])
 				{
@@ -627,7 +659,7 @@ void *SC_InputThread(void *ptr)
 					{
 						CurrentBeatFile = CurrentBeatFile->next;
 					}
-					load_and_sync_encoder(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+					load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 				}
 				else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && totalbuttons[3])
 				{
@@ -656,7 +688,7 @@ void *SC_InputThread(void *ptr)
 					{
 						CurrentSampleFolder = CurrentSampleFolder->prev;
 						CurrentSampleFile = CurrentSampleFolder->FirstFile;
-						load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
+						load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
 					}
 				}
 				else if (!buttons[0] && buttons[1] && !buttons[2] && !buttons[3])
@@ -666,14 +698,14 @@ void *SC_InputThread(void *ptr)
 					{
 						CurrentSampleFolder = CurrentSampleFolder->next;
 						CurrentSampleFile = CurrentSampleFolder->FirstFile;
-						load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
+						load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
 					}
 				}
 				else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3]){
 					printf("Samples - both buttons held\n");
 					r = rand() % NumSamples;
 					printf("Playing file %d/%d\n", r, NumSamples);
-					load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstSampleFolder)->FullPath));
+					load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[1].importer, GetFileAtIndex(r, FirstSampleFolder)->FullPath));
 					deck[1].player.nominal_pitch = 1.0;
 				}
 
@@ -684,24 +716,28 @@ void *SC_InputThread(void *ptr)
 					{
 						CurrentBeatFolder = CurrentBeatFolder->prev;
 						CurrentBeatFile = CurrentBeatFolder->FirstFile;
-						player_set_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+						load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 					}
 				}
 				else if (!buttons[0] && !buttons[1] && !buttons[2] && buttons[3])
 				{
 					printf("Beats - Down held\n");
+					
 					if (CurrentBeatFolder->next != NULL)
 					{
+						printf("STARTED\n");
 						CurrentBeatFolder = CurrentBeatFolder->next;
 						CurrentBeatFile = CurrentBeatFolder->FirstFile;
-						player_set_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+						load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+						printf("RETURNED\n");
 					}
+					
 				}
 				else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3]){
 					printf("Beats - both buttons held\n");
 					r = rand() % NumBeats;
 					printf("Playing file %d/%d\n", r, NumBeats);
-					player_set_track(&deck[0], track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstBeatFolder)->FullPath));
+					load_track(&deck[0], track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstBeatFolder)->FullPath));
 					
 				}
 
@@ -773,3 +809,4 @@ void SC_Input_Start()
 		exit(EXIT_FAILURE);
 	}
 }
+

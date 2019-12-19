@@ -307,12 +307,14 @@ void player_set_track(struct player *pl, struct track *track) {
 
 	assert(track != NULL);
 	assert(track->refcount > 0);
-
+	printf("LOCKING\n");
 	spin_lock(&pl->lock); /* Synchronise with the playback thread */
+	printf("LOCKED\n");
 	x = pl->track;
 	pl->track = track;
+	printf("UNLOCKING\n");
 	spin_unlock(&pl->lock);
-
+printf("UNLOCKED\n");
 	track_release(x); /* discard the old track */
 }
 
@@ -477,7 +479,6 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	if (!spin_try_lock(&pl->lock)) {
 		r = build_silence(pcm, samples, pl->sample_dt, pitch);
 	} else {
-
 		r = build_pcm(pcm, samples, pl->sample_dt, pl->track,
 				pl->position - pl->offset, pl->pitch, filtered_pitch, pl->volume, target_volume, pl->looping);
 		pl->pitch = filtered_pitch;
