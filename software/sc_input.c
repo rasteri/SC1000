@@ -27,6 +27,7 @@
 #include "sc_midimap.h"
 
 bool shifted = 0;
+bool shiftLatched = 0;
 
 #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
 #define BYTE_TO_BINARY(byte)  \
@@ -129,7 +130,10 @@ static void IOevent(unsigned char pin, bool edge)
 		printf("Map notnull %d %d %d\n", map->DeckNo, map->Action, map->Param);
 		
 		if (map->Action == ACTION_CUE){
-			if (shifted) deck_unset_cue(&deck[map->DeckNo], pin);
+			if (shifted || shiftLatched){ 
+				deck_unset_cue(&deck[map->DeckNo], pin); 
+				shiftLatched = 0; 
+			}
 			else deck_cue(&deck[map->DeckNo], pin);
 		}
 		else if (map->Action == ACTION_NOTE){
@@ -143,6 +147,7 @@ static void IOevent(unsigned char pin, bool edge)
 			shifted = 1;
 		}
 		else if (map->Action == ACTION_SHIFTOFF){
+			shiftLatched = 0;
 			shifted = 0;
 		}
 		
@@ -669,7 +674,7 @@ void *SC_InputThread(void *ptr)
 
 				else if (totalbuttons[0] && totalbuttons[1] && totalbuttons[2] && totalbuttons[3]){
 					printf("All buttons pushed!\n");
-					deck[0].shifted = 1;
+					shiftLatched = 1;
 				}
 
 				else
@@ -725,11 +730,9 @@ void *SC_InputThread(void *ptr)
 					
 					if (CurrentBeatFolder->next != NULL)
 					{
-						printf("STARTED\n");
 						CurrentBeatFolder = CurrentBeatFolder->next;
 						CurrentBeatFile = CurrentBeatFolder->FirstFile;
 						load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
-						printf("RETURNED\n");
 					}
 					
 				}
