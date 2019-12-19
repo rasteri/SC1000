@@ -27,7 +27,7 @@ platterenabled=1
 # 4096 = 1 second for every platter rotation
 # 3072 = equivalent to 45rpm record (default)
 # 2275 = equivalent to 33rpm
-platterspeed=3072
+platterspeed=2275
 
 # How long the stop button takes to stop the track
 # Higher is longer, default = 3000
