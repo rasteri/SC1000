@@ -19,6 +19,8 @@ else
 		umount /tmp/bootpart
 		sync
 		tar -C /tmp/ -xf /media/sda/sc.tar successful.mp3
+		rm /media/sda/sc.tar /media/sda/xwax
+		sync
 		mpg123 --loop -1 /tmp/successful.mp3
 		
 	else
