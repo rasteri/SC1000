@@ -201,6 +201,8 @@ void loadSettings()
 						parameter
 					);
 				}
+				else if (strcmp(param, "startupdelay") == 0) // Literally just a sleep to allow USB devices longer to initialize
+					sleep(atoi(value));
 				else {
 					printf("Unrecognised configuration line - Param : %s , value : %s\n", param, value);
 				}
