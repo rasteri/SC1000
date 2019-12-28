@@ -67,7 +67,7 @@ void i2c_write_address(int file_i2c, unsigned char address, unsigned char value)
 	buf[1] = value;
 	if (write(file_i2c, buf, 2) != 2)
 	{
-		printf("I2C Write Error\n");
+		printf("I2C Write Error\n"); 
 		//exit(1);
 	}
 }
@@ -239,8 +239,8 @@ void *SC_InputThread(void *ptr)
 	{
 
 		// default to pulled up and input
-		pullups = 0xFF;
-		iodirs = 0xFF;
+		pullups = 0xFFFF;
+		iodirs = 0xFFFF;
 
 		// For each pin
 		for (i = 0; i < 16; i++)
@@ -250,14 +250,14 @@ void *SC_InputThread(void *ptr)
 			if (map != NULL && map->Action == ACTION_GND)
 			{
 				printf("Grounding pin %d\n", i);
-				iodirs &= ~(0x01 << i);
+				iodirs &= ~(0x0001 << i);
 			}
 
 			// If pin's pullup is disabled
 			if (map != NULL && !map->Pullup)
 			{
 				printf("Disabling pin %d pullup\n", i);
-				pullups &= ~(0x01 << i);
+				pullups &= ~(0x0001 << i);
 			}
 		}
 
@@ -440,73 +440,76 @@ void *SC_InputThread(void *ptr)
 
 					for (i = 0; i < 16; i++)
 					{
-						// gpiodebounce = 0 when button not pressed,
-						// > 0 and < scsettings.debouncetime when debouncing positive edge
-						// > scsettings.debouncetime and < scsettings.holdtime when holding
-						// = scsettings.holdtime when continuing to hold
-						// > scsettings.holdtime when waiting for release
-						// > -scsettings.debouncetime and < 0 when debouncing negative edge
-
-						// Button not pressed, check for button
-						if (gpiodebounce[i] == 0)
+						if (iodirs & (0x0001 << i))
 						{
-							if (gpios & (0x01 << i))
+							// gpiodebounce = 0 when button not pressed,
+							// > 0 and < scsettings.debouncetime when debouncing positive edge
+							// > scsettings.debouncetime and < scsettings.holdtime when holding
+							// = scsettings.holdtime when continuing to hold
+							// > scsettings.holdtime when waiting for release
+							// > -scsettings.debouncetime and < 0 when debouncing negative edge
+
+							// Button not pressed, check for button
+							if (gpiodebounce[i] == 0)
 							{
-								printf("Button %d pressed\n", i);
+								if (gpios & (0x01 << i))
+								{
+									printf("Button %d pressed\n", i);
 
-								IOevent(i, 1);
+									IOevent(i, 1);
 
-								// start the counter
+									// start the counter
+									gpiodebounce[i]++;
+								}
+							}
+
+							// Debouncing positive edge, increment value
+							else if (gpiodebounce[i] > 0 && gpiodebounce[i] < scsettings.debouncetime)
+							{
 								gpiodebounce[i]++;
 							}
-						}
 
-						// Debouncing positive edge, increment value
-						else if (gpiodebounce[i] > 0 && gpiodebounce[i] < scsettings.debouncetime)
-						{
-							gpiodebounce[i]++;
-						}
-
-						// debounce finished, keep incrementing until hold reached
-						else if (gpiodebounce[i] >= scsettings.debouncetime && gpiodebounce[i] < scsettings.holdtime)
-						{
-							// check to see if unpressed
-							if (!(gpios & (0x01 << i)))
+							// debounce finished, keep incrementing until hold reached
+							else if (gpiodebounce[i] >= scsettings.debouncetime && gpiodebounce[i] < scsettings.holdtime)
 							{
-								printf("Button %d released\n", i);
-								IOevent(i, 0);
-								// start the counter
-								gpiodebounce[i] = -scsettings.debouncetime;
-							}
+								// check to see if unpressed
+								if (!(gpios & (0x01 << i)))
+								{
+									printf("Button %d released\n", i);
+									IOevent(i, 0);
+									// start the counter
+									gpiodebounce[i] = -scsettings.debouncetime;
+								}
 
-							else
+								else
+									gpiodebounce[i]++;
+							}
+							// Button has been held for a while
+							else if (gpiodebounce[i] == scsettings.holdtime)
+							{
+								printf("Button %d held\n", i);
+
 								gpiodebounce[i]++;
-						}
-						// Button has been held for a while
-						else if (gpiodebounce[i] == scsettings.holdtime)
-						{
-							printf("Button %d held\n", i);
-
-							gpiodebounce[i]++;
-						}
-
-						// Button still holding, check for release
-						else if (gpiodebounce[i] > scsettings.holdtime)
-						{
-							// check to see if unpressed
-							if (!(gpios & (0x01 << i)))
-							{
-								printf("Button %d released\n", i);
-								IOevent(i, 0);
-								// start the counter
-								gpiodebounce[i] = -scsettings.debouncetime;
 							}
-						}
 
-						// Debouncing negative edge, increment value - will reset when zero is reached
-						else if (gpiodebounce[i] < 0)
-						{
-							gpiodebounce[i]++;
+							// Button still holding, check for release
+							else if (gpiodebounce[i] > scsettings.holdtime)
+							{
+								// check to see if unpressed
+								if (!(gpios & (0x01 << i)))
+								{
+									printf("Button %d released\n", i);
+									IOevent(i, 0);
+									// start the counter
+									gpiodebounce[i] = -scsettings.debouncetime;
+								}
+							}
+
+							// Debouncing negative edge, increment value - will reset when zero is reached
+							else if (gpiodebounce[i] < 0)
+							{
+								gpiodebounce[i]++;
+							}
 						}
 					}
 				}
