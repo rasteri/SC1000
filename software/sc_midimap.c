@@ -28,15 +28,16 @@ void add_MIDI_mapping(struct mapping **maps, unsigned char buf[3], unsigned char
 	
 }
 
-void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param){
+void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Pullup, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param){
 	struct mapping *new_map = (struct mapping*) malloc(sizeof(struct mapping));
 	new_map->Pin = Pin;
+	new_map->Pullup = Pullup;
 	new_map->Edge = Edge;
 	new_map->DeckNo = DeckNo;
 	new_map->Action = Action;
 	new_map->Param = Param;
 	new_map->next = NULL;
-	printf("Adding Mapping - pn%x ed%x - dn:%d, a:%d, p:%d\n", Pin, Edge, DeckNo, Action, Param); 
+	printf("Adding Mapping - pn%x pl:%x ed%x - dn:%d, a:%d, p:%d\n", Pin, Pullup, Edge, DeckNo, Action, Param); 
 	if (*maps == NULL){
 		*maps = new_map;
 	}

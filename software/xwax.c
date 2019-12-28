@@ -69,7 +69,7 @@ void loadSettings()
 	ssize_t read;
 	char *param, *actions;
 	char *value;
-	unsigned char channel, notenum, action=69, deckno, parameter, controlType, pin;
+	unsigned char channel, notenum, action=69, deckno, parameter, controlType, pin, pullup;
 	char *edge;
 	char delim[] = "=";
 	char delimc[] = ",";
@@ -173,6 +173,7 @@ void loadSettings()
 				}
 				else if (strstr(param, "io") != NULL){
 					pin = atoi(strtok_r(value, delimc, &valuetok));
+					pullup = atoi(strtok_r(NULL, delimc, &valuetok));
 					edge = atoi(strtok_r(NULL, delimc, &valuetok));
 					actions = strtok_r(NULL, delimc, &valuetok);
 					parameter = 0;
@@ -195,6 +196,7 @@ void loadSettings()
 					add_IO_mapping(
 						&maps, 
 						pin,
+						pullup,
 						edge,
 						deckno,
 						action, 

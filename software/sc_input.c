@@ -218,8 +218,9 @@ void *SC_InputThread(void *ptr)
 	// Configure GPIO 
 	if (gpiopresent){
 		
-		pullups = 0;
-		iodirs = 0;
+		// default to pulled up and input
+		pullups = 0xFF;
+		iodirs = 0xFF;
 
 		// For each pin
 		for (i = 0; i < 16; i++)
@@ -227,20 +228,18 @@ void *SC_InputThread(void *ptr)
 			map = find_IO_mapping(maps, i, 1);
 			// If pin is marked as ground
 			if (map != NULL && map->Action == ACTION_GND){
-				// leave iodir/pullup zero, so output and disable pullup
 				printf("Grounding pin %d\n", i);
+				iodirs &= ~(0x01 << i);
 			}
-			// else make it input and enable pullup
-			else {
-				iodirs |= (0x01 << i);
-				pullups |= (0x01 << i);
+
+			// If pin's pullup is disabled
+			if (map != NULL && !map->Pullup){
+				printf("Disabling pin %d pullup\n", i);
+				pullups &= ~(0x01 << i);
 			}
 		}
 		
 		unsigned char tmpchar;
-
-		
-
 
 		// Bank A pullups
 		tmpchar = (unsigned char) (pullups & 0xFF);
@@ -250,9 +249,9 @@ void *SC_InputThread(void *ptr)
 		tmpchar = (unsigned char) ((pullups >> 8) & 0xFF);
 		i2c_write_address(file_i2c_gpio, 0x0D, tmpchar); 
 		
-		printf("PULLUPS - ");
+		printf("PULLUPS - B");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((pullups >> 8) & 0xFF));
-		printf("-");
+		printf("A");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((pullups & 0xFF)));
 		printf("\n");
 
@@ -265,9 +264,9 @@ void *SC_InputThread(void *ptr)
 		tmpchar = (unsigned char) ((iodirs >> 8) & 0xFF); 
 		i2c_write_address(file_i2c_gpio, 0x01, tmpchar); 
 		
-		printf("IODIRS  - ");
+		printf("IODIRS  - B");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((iodirs >> 8) & 0xFF));
-		printf("-");
+		printf("A");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(iodirs & 0xFF));
 		printf("\n");
 
@@ -300,7 +299,7 @@ void *SC_InputThread(void *ptr)
 	struct timespec ts;
 	double inputtime = 0, lastinputtime = 0;
 	int decknum = 0, cuepointnum = 0;
-	
+	sleep(2);
 	for (i=0; i < 16; i++)
 		gpiodebounce[i] = 0;
 	while (1)

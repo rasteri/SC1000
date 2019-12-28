@@ -44,12 +44,14 @@ struct mapping {
 	// Event type (MIDI or IO)
 	unsigned char Type;
 
-	// MIDI event info for matching
+	// MIDI event info
 	unsigned char MidiBytes[3];
 
 	// IO event info
 	unsigned char Pin; // IO Pin Number
+	bool Pullup; // Whether or not to pull the pin up
 	bool Edge; // Edge (1 for unpressed-to-pressed)
+
 
 	// Action
 	unsigned char DeckNo; // Which deck to apply this action to
@@ -60,7 +62,7 @@ struct mapping {
 };
 
 void add_MIDI_mapping(struct mapping **maps, unsigned char buf[3], unsigned char DeckNo, unsigned char Action, unsigned char Param);
-void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param);
+void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Pullup, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param);
 struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3]);
 struct mapping *find_IO_mapping(struct mapping *maps, unsigned char pin, bool edge);
 #endif
