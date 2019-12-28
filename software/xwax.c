@@ -51,7 +51,7 @@
 
 struct deck deck[2];
 
-static struct rt rt;
+struct rt rt;
 
 static const char *importer;
 
@@ -315,6 +315,11 @@ int main(int argc, char *argv[])
 	importer = DEFAULT_IMPORTER;
 	use_mlock = false;
 
+	int num;
+	char midinames[32][32];
+
+
+
 	loadSettings();
 
 	// Create two decks, both pointed at the same audio device
@@ -348,10 +353,8 @@ int main(int argc, char *argv[])
 
 	SC_Input_Start();
 
-	if (dicer_init(&midiController, &rt, "hw:1,0,0") != -1){
-		controller_add_deck(&midiController, &deck[0]);
-		controller_add_deck(&midiController, &deck[1]);
-	}
+
+
 
 	// Start realtime stuff
 

@@ -17,17 +17,6 @@
  *
  */
 
-/*
- * Specialised functions for the Novation Dicer controller
- *
- * The Dicer is a standard MIDI device, with buttons on input and the
- * corresponding LEDs on output. A single MIDI device consists of two
- * units, one for each turntable.
- *
- * Each unit has 5 buttons, but there are three 'pages' of buttons
- * controlled in the firmware, and then a shift mode for each. So we
- * see the full MIDI device as 60 possible buttons.
- */
 
 #include <stdlib.h>
 
@@ -48,7 +37,7 @@
 #define ROLL 2
 #define NOTE 3*/
 
-#define NUMDECKS 2
+
 
 #ifdef DEBUG
 static const char *actions[] = {
@@ -64,20 +53,6 @@ typedef unsigned char led_t;
 #define ON 0x1
 #define PRESSED 0x2
 #define SYNCED 0x4
-
-struct dicer
-{
-    struct midi midi;
-    struct deck *decks[NUMDECKS];
-
-    char obuf[180];
-    size_t ofill;
-	bool shifted;
-	
-	bool parsing;
-	unsigned char ParsedBytes;
-	unsigned char MidiBuffer[3];
-};
 
 extern struct mapping *maps;
 
@@ -297,6 +272,8 @@ int dicer_init(struct controller *c, struct rt *rt, const char *hw)
         perror("malloc");
         return -1;
     }
+
+	strcpy(d->PortName, hw);
 
     if (midi_open(&d->midi, hw) == -1)
         goto fail;

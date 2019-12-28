@@ -20,8 +20,28 @@
 #ifndef DICER_H
 #define DICER_H
 
+#include "midi.h"
+
+#define NUMDECKS 2
+
 struct controller;
 struct rt;
+
+struct dicer
+{
+    struct midi midi;
+    struct deck *decks[NUMDECKS];
+
+    char obuf[180];
+    size_t ofill;
+	bool shifted;
+	
+	bool parsing;
+	unsigned char ParsedBytes;
+	unsigned char MidiBuffer[3];
+
+    unsigned char PortName[32];
+};
 
 int dicer_init(struct controller *c, struct rt *rt, const char *hw);
 

@@ -18,8 +18,45 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "midi.h"
+
+// Get a list of midi devices, returns number of them
+// Dumb hack, just runs "amidi -l"
+int getmididevices(char names[32][32])
+{
+    FILE *fp;
+    char ret[100];
+    char delim[] = " ";
+    int number = 0;
+    char *dir, *device, *name;
+    char *valuetok;
+
+    fp = popen("/usr/bin/amidi -l", "r");
+    if (fp == NULL)
+    {
+        printf("Failed to run amidi\n");
+        exit(1);
+    }
+
+    while (fgets(ret, sizeof(ret), fp) != NULL)
+    {
+        if (ret[0] == 'I')
+        {
+            dir = strtok_r(ret, delim, &valuetok);
+            device = strtok_r(NULL, delim, &valuetok);
+            name = strtok_r(NULL, delim, &valuetok);
+            //printf("Found MIDI device : DIR : %s, DEVICE: %s, name: %s\n", dir, device, name);
+            strcpy(names[number], device);
+            number++;
+        }
+    }
+
+    pclose(fp);
+
+    return number;
+}
 
 /*
  * Print error code from ALSA
@@ -33,16 +70,17 @@ static void alsa_error(const char *msg, int r)
 int midi_open(struct midi *m, const char *name)
 {
     int r;
-	
-	snd_rawmidi_params_t *params;
+
+    snd_rawmidi_params_t *params;
 
     r = snd_rawmidi_open(&m->in, &m->out, name, SND_RAWMIDI_NONBLOCK);
-    if (r < 0) {
+    if (r < 0)
+    {
         alsa_error("rawmidi_open", r);
         return -1;
     }
-	
-	/*snd_rawmidi_params_alloca(&params); 
+
+    /*snd_rawmidi_params_alloca(&params); 
 	
 	r = snd_rawmidi_params_current(m->in, params);
 	if (r < 0) {
@@ -115,7 +153,8 @@ ssize_t midi_read(struct midi *m, void *buf, size_t len)
     int r;
 
     r = snd_rawmidi_read(m->in, buf, len);
-    if (r < 0) {
+    if (r < 0)
+    {
         if (r == -EAGAIN)
             return 0;
         alsa_error("rawmidi_read", r);
@@ -130,7 +169,8 @@ ssize_t midi_write(struct midi *m, const void *buf, size_t len)
     int r;
 
     r = snd_rawmidi_write(m->out, buf, len);
-    if (r < 0) {
+    if (r < 0)
+    {
         if (r == -EAGAIN)
             return 0;
         alsa_error("rawmidi_write", r);

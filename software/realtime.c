@@ -107,15 +107,9 @@ static void rt_main(struct rt *rt)
         for (n = 0; n < rt->nctl; n++)
             controller_handle(rt->ctl[n]);
 
-        /*for (n = 0; n < rt->ndv; n++)
-            device_handle(rt->dv[n]);
-*/
 
-device_handle(rt->dv[0]);
+        device_handle(rt->dv[0]);
 
-/*
-
-*/
     }
 }
 

@@ -15,7 +15,11 @@
 			"ostream": "c",
 			"sc_queue.h": "c",
 			"random": "c",
-			"stdint.h": "c"
+			"stdint.h": "c",
+			"string.h": "c",
+			"controller.h": "c",
+			"sc_input.h": "c",
+			"sstream": "c"
 		}
 	}
 }

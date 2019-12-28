@@ -25,20 +25,27 @@
 #include "xwax.h"
 #include "sc_input.h"
 #include "sc_midimap.h"
+#include "dicer.h"
+#include "midi.h"
 
 bool shifted = 0;
 bool shiftLatched = 0;
 
+extern struct rt rt;
+
+struct controller midiControllers[32];
+int numControllers = 0;
+
 #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
-#define BYTE_TO_BINARY(byte)  \
-  (byte & 0x80 ? '1' : '0'), \
-  (byte & 0x40 ? '1' : '0'), \
-  (byte & 0x20 ? '1' : '0'), \
-  (byte & 0x10 ? '1' : '0'), \
-  (byte & 0x08 ? '1' : '0'), \
-  (byte & 0x04 ? '1' : '0'), \
-  (byte & 0x02 ? '1' : '0'), \
-  (byte & 0x01 ? '1' : '0') 
+#define BYTE_TO_BINARY(byte)       \
+	(byte & 0x80 ? '1' : '0'),     \
+		(byte & 0x40 ? '1' : '0'), \
+		(byte & 0x20 ? '1' : '0'), \
+		(byte & 0x10 ? '1' : '0'), \
+		(byte & 0x08 ? '1' : '0'), \
+		(byte & 0x04 ? '1' : '0'), \
+		(byte & 0x02 ? '1' : '0'), \
+		(byte & 0x01 ? '1' : '0')
 
 extern struct mapping *maps;
 
@@ -58,7 +65,8 @@ void i2c_write_address(int file_i2c, unsigned char address, unsigned char value)
 	char buf[2];
 	buf[0] = address;
 	buf[1] = value;
-	if (write(file_i2c, buf, 2) != 2){
+	if (write(file_i2c, buf, 2) != 2)
+	{
 		printf("I2C Write Error\n");
 		//exit(1);
 	}
@@ -122,35 +130,42 @@ void load_and_sync_encoder(struct deck *d, struct track *track)
 
 static void IOevent(unsigned char pin, bool edge)
 {
-//	printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
+	//	printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
 	struct mapping *map = find_IO_mapping(maps, pin, edge);
 	unsigned int pval;
-	
-	if (map != NULL){
+
+	if (map != NULL)
+	{
 		printf("Map notnull %d %d %d\n", map->DeckNo, map->Action, map->Param);
-		
-		if (map->Action == ACTION_CUE){
-			if (shifted || shiftLatched){ 
-				deck_unset_cue(&deck[map->DeckNo], pin); 
-				shiftLatched = 0; 
+
+		if (map->Action == ACTION_CUE)
+		{
+			if (shifted || shiftLatched)
+			{
+				deck_unset_cue(&deck[map->DeckNo], pin);
+				shiftLatched = 0;
 			}
-			else deck_cue(&deck[map->DeckNo], pin);
+			else
+				deck_cue(&deck[map->DeckNo], pin);
 		}
-		else if (map->Action == ACTION_NOTE){
-			deck[map->DeckNo].player.nominal_pitch = pow(pow(2, (double)1/12), map->Param - 0x3C); // equal temperament
+		else if (map->Action == ACTION_NOTE)
+		{
+			deck[map->DeckNo].player.nominal_pitch = pow(pow(2, (double)1 / 12), map->Param - 0x3C); // equal temperament
 		}
-		else if (map->Action == ACTION_STARTSTOP){
+		else if (map->Action == ACTION_STARTSTOP)
+		{
 			printf("Startstop %d %d\n", map->DeckNo, deck[map->DeckNo].player.stopped);
 			deck[map->DeckNo].player.stopped = !deck[map->DeckNo].player.stopped;
 		}
-		else if (map->Action == ACTION_SHIFTON){
+		else if (map->Action == ACTION_SHIFTON)
+		{
 			shifted = 1;
 		}
-		else if (map->Action == ACTION_SHIFTOFF){
+		else if (map->Action == ACTION_SHIFTOFF)
+		{
 			shiftLatched = 0;
 			shifted = 0;
 		}
-		
 	}
 }
 
@@ -158,7 +173,7 @@ void *SC_InputThread(void *ptr)
 {
 
 	int file_i2c_rot, file_i2c_pic, file_i2c_gpio;
- 
+
 	unsigned char result;
 	unsigned char picskip = 0;
 
@@ -186,6 +201,10 @@ void *SC_InputThread(void *ptr)
 	unsigned int pullups = 0, iodirs = 0;
 	struct mapping *map;
 
+	bool alreadyAdded = 0;
+
+	char mididevices[32][32];
+	int mididevicenum = 0, oldmididevicenum = 0;
 
 	int gpiodebounce[16];
 
@@ -215,9 +234,10 @@ void *SC_InputThread(void *ptr)
 		picpresent = 0;
 	}
 
-	// Configure GPIO 
-	if (gpiopresent){
-		
+	// Configure GPIO
+	if (gpiopresent)
+	{
+
 		// default to pulled up and input
 		pullups = 0xFF;
 		iodirs = 0xFF;
@@ -227,49 +247,49 @@ void *SC_InputThread(void *ptr)
 		{
 			map = find_IO_mapping(maps, i, 1);
 			// If pin is marked as ground
-			if (map != NULL && map->Action == ACTION_GND){
+			if (map != NULL && map->Action == ACTION_GND)
+			{
 				printf("Grounding pin %d\n", i);
 				iodirs &= ~(0x01 << i);
 			}
 
 			// If pin's pullup is disabled
-			if (map != NULL && !map->Pullup){
+			if (map != NULL && !map->Pullup)
+			{
 				printf("Disabling pin %d pullup\n", i);
 				pullups &= ~(0x01 << i);
 			}
 		}
-		
+
 		unsigned char tmpchar;
 
 		// Bank A pullups
-		tmpchar = (unsigned char) (pullups & 0xFF);
-		i2c_write_address(file_i2c_gpio, 0x0C, tmpchar); 
+		tmpchar = (unsigned char)(pullups & 0xFF);
+		i2c_write_address(file_i2c_gpio, 0x0C, tmpchar);
 
 		// Bank B pullups
-		tmpchar = (unsigned char) ((pullups >> 8) & 0xFF);
-		i2c_write_address(file_i2c_gpio, 0x0D, tmpchar); 
-		
+		tmpchar = (unsigned char)((pullups >> 8) & 0xFF);
+		i2c_write_address(file_i2c_gpio, 0x0D, tmpchar);
+
 		printf("PULLUPS - B");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((pullups >> 8) & 0xFF));
 		printf("A");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((pullups & 0xFF)));
 		printf("\n");
 
-
 		// Bank A direction
-		tmpchar = (unsigned char) (iodirs & 0xFF);
-		i2c_write_address(file_i2c_gpio, 0x00, tmpchar); 
+		tmpchar = (unsigned char)(iodirs & 0xFF);
+		i2c_write_address(file_i2c_gpio, 0x00, tmpchar);
 
 		// Bank B direction
-		tmpchar = (unsigned char) ((iodirs >> 8) & 0xFF); 
-		i2c_write_address(file_i2c_gpio, 0x01, tmpchar); 
-		
+		tmpchar = (unsigned char)((iodirs >> 8) & 0xFF);
+		i2c_write_address(file_i2c_gpio, 0x01, tmpchar);
+
 		printf("IODIRS  - B");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((iodirs >> 8) & 0xFF));
 		printf("A");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(iodirs & 0xFF));
 		printf("\n");
-
 	}
 
 	// Build index of all audio files on the USB stick
@@ -278,7 +298,7 @@ void *SC_InputThread(void *ptr)
 	//DumpFileStructure(FirstBeatFolder);
 	CurrentBeatFolder = FirstBeatFolder;
 	CurrentBeatFile = CurrentBeatFolder->FirstFile;
-	
+
 	FirstSampleFolder = LoadFileStructure("/media/sda/samples/", &NumSamples);
 	//DumpFileStructure(FirstSampleFolder);
 	CurrentSampleFolder = FirstSampleFolder;
@@ -299,13 +319,23 @@ void *SC_InputThread(void *ptr)
 	struct timespec ts;
 	double inputtime = 0, lastinputtime = 0;
 	int decknum = 0, cuepointnum = 0;
+
+	/*if (dicer_init(&midiControllers[0], &rt, "hw:0,0") != -1){
+		printf("Added cntrl\n");
+		controller_add_deck(&midiControllers[0], &deck[0]);
+		controller_add_deck(&midiControllers[0], &deck[1]);
+		
+	*/
 	sleep(2);
-	for (i=0; i < 16; i++)
+	for (i = 0; i < 16; i++)
 		gpiodebounce[i] = 0;
+
 	while (1)
 	{
-		
+
 		frameCount++;
+
+		// Update display every second
 		gettimeofday(&tv, NULL);
 		if (tv.tv_sec != lastTime)
 		{
@@ -317,6 +347,46 @@ void *SC_InputThread(void *ptr)
 				   deck[1].player.target_position, deck[1].player.position);
 
 			frameCount = 0;
+
+			for (int cunt = 0; cunt < numControllers; cunt++)
+			{
+				printf("MIDI : %s\n", ((struct dicer *)(midiControllers[cunt].local))->PortName);
+			}
+
+			// Also check midi devices every second
+			mididevicenum = getmididevices(mididevices);
+
+			// If there are more MIDI devices than last time, add them
+			if (mididevicenum > oldmididevicenum)
+			{
+
+				// Search to see which devices we've already added
+				for (int devc = 0; devc < mididevicenum; devc++)
+				{
+
+					alreadyAdded = 0;
+
+					for (int controlc = 0; controlc < numControllers; controlc++)
+					{
+						char *controlName = ((struct dicer *)(midiControllers[controlc].local))->PortName;
+						if (strcmp(mididevices[devc], controlName) == 0)
+							alreadyAdded = 1;
+					}
+
+					if (!alreadyAdded)
+					{
+						if (dicer_init(&midiControllers[numControllers], &rt, mididevices[devc]) != -1)
+						{
+							printf("Adding MIDI device %d - %s\n", numControllers, mididevices[devc]);
+							controller_add_deck(&midiControllers[numControllers], &deck[0]);
+							controller_add_deck(&midiControllers[numControllers], &deck[1]);
+							numControllers ++;
+						}
+					}
+				}
+
+				oldmididevicenum = mididevicenum;
+			}
 		}
 
 		// Get info from input processor registers
@@ -354,7 +424,8 @@ void *SC_InputThread(void *ptr)
 				buttons[3] = !(result >> 3 & 0x01);
 				capIsTouched = (result >> 4 & 0x01);
 
-				if (gpiopresent){
+				if (gpiopresent)
+				{
 					i2c_read_address(file_i2c_gpio, 0x13, &result); // Read bank B
 					gpios = ((unsigned int)result) << 8;
 					//printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(result));
@@ -366,59 +437,66 @@ void *SC_InputThread(void *ptr)
 
 					// invert logic
 					gpios ^= 0xFFFF;
-					
-					
 
-					for (i = 0; i < 16; i++){
-						// gpiodebounce = 0 when button not pressed, 
+					for (i = 0; i < 16; i++)
+					{
+						// gpiodebounce = 0 when button not pressed,
 						// > 0 and < scsettings.debouncetime when debouncing positive edge
 						// > scsettings.debouncetime and < scsettings.holdtime when holding
 						// = scsettings.holdtime when continuing to hold
 						// > scsettings.holdtime when waiting for release
 						// > -scsettings.debouncetime and < 0 when debouncing negative edge
-						
+
 						// Button not pressed, check for button
-						if (gpiodebounce[i] == 0){
-							if (gpios & (0x01 << i)){
-								printf ("Button %d pressed\n", i);
-								
+						if (gpiodebounce[i] == 0)
+						{
+							if (gpios & (0x01 << i))
+							{
+								printf("Button %d pressed\n", i);
+
 								IOevent(i, 1);
-								
+
 								// start the counter
 								gpiodebounce[i]++;
 							}
 						}
-						
+
 						// Debouncing positive edge, increment value
-						else if (gpiodebounce[i] > 0 && gpiodebounce[i] < scsettings.debouncetime){
+						else if (gpiodebounce[i] > 0 && gpiodebounce[i] < scsettings.debouncetime)
+						{
 							gpiodebounce[i]++;
 						}
-						
+
 						// debounce finished, keep incrementing until hold reached
-						else if (gpiodebounce[i] >= scsettings.debouncetime  && gpiodebounce[i] < scsettings.holdtime){
+						else if (gpiodebounce[i] >= scsettings.debouncetime && gpiodebounce[i] < scsettings.holdtime)
+						{
 							// check to see if unpressed
-							if (!(gpios & (0x01 << i))){
-								printf ("Button %d released\n", i);
+							if (!(gpios & (0x01 << i)))
+							{
+								printf("Button %d released\n", i);
 								IOevent(i, 0);
 								// start the counter
 								gpiodebounce[i] = -scsettings.debouncetime;
 							}
 
-							else gpiodebounce[i]++;
-							
+							else
+								gpiodebounce[i]++;
 						}
 						// Button has been held for a while
-						else if (gpiodebounce[i] == scsettings.holdtime){
-							printf ("Button %d held\n", i);
+						else if (gpiodebounce[i] == scsettings.holdtime)
+						{
+							printf("Button %d held\n", i);
 
 							gpiodebounce[i]++;
 						}
-						
+
 						// Button still holding, check for release
-						else if (gpiodebounce[i] > scsettings.holdtime){
+						else if (gpiodebounce[i] > scsettings.holdtime)
+						{
 							// check to see if unpressed
-							if (!(gpios & (0x01 << i))){
-								printf ("Button %d released\n", i);
+							if (!(gpios & (0x01 << i)))
+							{
+								printf("Button %d released\n", i);
 								IOevent(i, 0);
 								// start the counter
 								gpiodebounce[i] = -scsettings.debouncetime;
@@ -426,15 +504,12 @@ void *SC_InputThread(void *ptr)
 						}
 
 						// Debouncing negative edge, increment value - will reset when zero is reached
-						else if (gpiodebounce[i] < 0){
+						else if (gpiodebounce[i] < 0)
+						{
 							gpiodebounce[i]++;
-
 						}
 					}
-					
 				}
-
-
 			}
 
 			// Apply volume and fader
@@ -495,18 +570,19 @@ void *SC_InputThread(void *ptr)
 			{
 				numBlips = 0;
 				encoderAngle = newEncoderAngle;
-				
-				if (pitchMode){
-					
-					
-					if (!oldPitchMode) { // We just entered pitchmode, set offset etc
-					
-						deck[(pitchMode-1)].player.nominal_pitch = 1.0;
+
+				if (pitchMode)
+				{
+
+					if (!oldPitchMode)
+					{ // We just entered pitchmode, set offset etc
+
+						deck[(pitchMode - 1)].player.nominal_pitch = 1.0;
 						angleOffset = -encoderAngle;
 						oldPitchMode = 1;
 						capIsTouched = 0;
 					}
-					
+
 					// Handle wrapping at zero
 
 					if (crossedZero > 0)
@@ -517,12 +593,12 @@ void *SC_InputThread(void *ptr)
 					{
 						angleOffset -= 4096;
 					}
-					
+
 					// Use the angle of the platter to control sample pitch
-					deck[(pitchMode-1)].player.nominal_pitch = (((double)(encoderAngle + angleOffset)) / 16384) + 1.0;
-					
+					deck[(pitchMode - 1)].player.nominal_pitch = (((double)(encoderAngle + angleOffset)) / 16384) + 1.0;
 				}
-				else {
+				else
+				{
 
 					if (scsettings.platterenabled)
 					{
@@ -620,9 +696,14 @@ void *SC_InputThread(void *ptr)
 
 			// Act on instantaneous (i.e. not held) button press
 			case BUTTONSTATE_ACTING_INSTANT:
-			
+
 				// Any button to stop pitch mode
-				if (pitchMode){ pitchMode = 0; oldPitchMode = 0; printf("Pitch mode Disabled\n");}
+				if (pitchMode)
+				{
+					pitchMode = 0;
+					oldPitchMode = 0;
+					printf("Pitch mode Disabled\n");
+				}
 				else if (totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3])
 				{
 					printf("Samples - Up pushed\n");
@@ -671,7 +752,8 @@ void *SC_InputThread(void *ptr)
 					pitchMode = 1;
 				}
 
-				else if (totalbuttons[0] && totalbuttons[1] && totalbuttons[2] && totalbuttons[3]){
+				else if (totalbuttons[0] && totalbuttons[1] && totalbuttons[2] && totalbuttons[3])
+				{
 					printf("All buttons pushed!\n");
 					shiftLatched = 1;
 				}
@@ -705,7 +787,8 @@ void *SC_InputThread(void *ptr)
 						load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
 					}
 				}
-				else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3]){
+				else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3])
+				{
 					printf("Samples - both buttons held\n");
 					r = rand() % NumSamples;
 					printf("Playing file %d/%d\n", r, NumSamples);
@@ -726,21 +809,20 @@ void *SC_InputThread(void *ptr)
 				else if (!buttons[0] && !buttons[1] && !buttons[2] && buttons[3])
 				{
 					printf("Beats - Down held\n");
-					
+
 					if (CurrentBeatFolder->next != NULL)
 					{
 						CurrentBeatFolder = CurrentBeatFolder->next;
 						CurrentBeatFile = CurrentBeatFolder->FirstFile;
 						load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 					}
-					
 				}
-				else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3]){
+				else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3])
+				{
 					printf("Beats - both buttons held\n");
 					r = rand() % NumBeats;
 					printf("Playing file %d/%d\n", r, NumBeats);
 					load_track(&deck[0], track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstBeatFolder)->FullPath));
-					
 				}
 
 				else if (buttons[0] && buttons[1] && buttons[2] && buttons[3])
@@ -779,15 +861,15 @@ void *SC_InputThread(void *ptr)
 			deck[1].player.faderTarget = 0.5;
 			deck[0].player.justPlay = 1;
 			deck[0].player.pitch = 1;
-			
+
 			clock_gettime(CLOCK_MONOTONIC, &ts);
 			inputtime = (double)ts.tv_sec + ((double)ts.tv_nsec / 1000000000.0);
 
-			if (lastinputtime != 0){
+			if (lastinputtime != 0)
+			{
 				deck[1].player.target_position += (inputtime - lastinputtime);
-				
 			}
-			
+
 			lastinputtime = inputtime;
 		}
 
@@ -811,4 +893,3 @@ void SC_Input_Start()
 		exit(EXIT_FAILURE);
 	}
 }
-
