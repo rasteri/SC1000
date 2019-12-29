@@ -38,7 +38,7 @@ typedef struct SC_SETTINGS {
 	char singleVCA;
 	char doublecut;
 	char hamster;
-
+ 
     // fader thresholds for hysteresis
     int faderopenpoint; // value required to open the fader (when fader is closed)
     int faderclosepoint; // value required to close the fader (when fader is open)

@@ -387,9 +387,9 @@ void *SC_InputThread(void *ptr)
 
 			// Wait 10 seconds to enumerate MIDI devices
 			// Give them a little time to come up properly
-			if (secondCount <= 10)
+			if (secondCount < scsettings.mididelay)
 				secondCount++;
-			else if (secondCount == 11)
+			else if (secondCount == scsettings.mididelay)
 			{
 				// Check for new midi devices
 				mididevicenum = listdev("rawmidi", mididevices);
