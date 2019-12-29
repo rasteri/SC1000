@@ -348,15 +348,15 @@ void *SC_InputThread(void *ptr)
 
 			frameCount = 0;
 
-			/*for (int cunt = 0; cunt < numControllers; cunt++)
+			for (int cunt = 0; cunt < numControllers; cunt++)
 			{
 				printf("MIDI : %s\n", ((struct dicer *)(midiControllers[cunt].local))->PortName);
-			}*/
+			}
 
 			// Also check midi devices every second
-			mididevicenum = 0;//device_list(mididevices);
+			//mididevicenum = 0;//device_list(mididevices);
 
-			listdev("rawmidi");
+			mididevicenum = listdev("rawmidi", mididevices);
 
 			// If there are more MIDI devices than last time, add them
 			if (mididevicenum > oldmididevicenum)
