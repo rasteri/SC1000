@@ -22,7 +22,7 @@
 
 #include "midi.h"
 
-int listdev(char *devname)
+int listdev(char *devname, char names[64][64])
 
 {
 
@@ -38,14 +38,14 @@ int listdev(char *devname)
 
     /* Enumerate sound devices */
     err = snd_device_name_hint(-1, devname, (void***)&hints);
-    /*if (err != 0) {
+    if (err != 0) {
 
         fprintf(stderr, "*** Cannot get device names\n");
         exit(1);
 
-    }*/
+    }
 
-    /*n = hints;
+    n = hints;
     while (*n != NULL) {
 
         name = snd_device_name_get_hint(*n, "NAME");
@@ -62,7 +62,7 @@ int listdev(char *devname)
 
     //Free hint buffer too
     snd_device_name_free_hint((void**)hints);
-    return num;*/
+    return num;
 	return 0;
 
 }

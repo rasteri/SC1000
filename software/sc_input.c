@@ -67,7 +67,7 @@ void i2c_write_address(int file_i2c, unsigned char address, unsigned char value)
 	buf[1] = value;
 	if (write(file_i2c, buf, 2) != 2)
 	{
-		printf("I2C Write Error\n"); 
+		printf("I2C Write Error\n");
 		//exit(1);
 	}
 }
@@ -169,6 +169,35 @@ static void IOevent(unsigned char pin, bool edge)
 	}
 }
 
+void AddNewMidiDevices(char mididevices[64][64], int mididevicenum)
+{
+	bool alreadyAdded;
+	// Search to see which devices we've already added
+	for (int devc = 0; devc < mididevicenum; devc++)
+	{
+
+		alreadyAdded = 0;
+
+		for (int controlc = 0; controlc < numControllers; controlc++)
+		{
+			char *controlName = ((struct dicer *)(midiControllers[controlc].local))->PortName;
+			if (strcmp(mididevices[devc], controlName) == 0)
+				alreadyAdded = 1;
+		}
+
+		if (!alreadyAdded)
+		{
+			if (dicer_init(&midiControllers[numControllers], &rt, mididevices[devc]) != -1)
+			{
+				printf("Adding MIDI device %d - %s\n", numControllers, mididevices[devc]);
+				controller_add_deck(&midiControllers[numControllers], &deck[0]);
+				controller_add_deck(&midiControllers[numControllers], &deck[1]);
+				numControllers++;
+			}
+		}
+	}
+}
+
 void *SC_InputThread(void *ptr)
 {
 
@@ -233,7 +262,6 @@ void *SC_InputThread(void *ptr)
 		printf("Couldn't init input processor\n");
 		picpresent = 0;
 	}
-
 
 	// Configure GPIO
 	if (gpiopresent)
@@ -331,6 +359,8 @@ void *SC_InputThread(void *ptr)
 	for (i = 0; i < 16; i++)
 		gpiodebounce[i] = 0;
 
+	int secondCount = 0;
+
 	while (1)
 	{
 
@@ -349,47 +379,28 @@ void *SC_InputThread(void *ptr)
 
 			frameCount = 0;
 
+			// list midi devices
 			for (int cunt = 0; cunt < numControllers; cunt++)
 			{
 				printf("MIDI : %s\n", ((struct dicer *)(midiControllers[cunt].local))->PortName);
 			}
 
-			// Also check midi devices every second
-			//mididevicenum = 0;//device_list(mididevices);
-
-//			if (mididevicenum == 0)
-			mididevicenum = listdev("rawmidi");
-
-			// If there are more MIDI devices than last time, add them
-			if (mididevicenum > oldmididevicenum)
+			// Wait 10 seconds to enumerate MIDI devices
+			// Give them a little time to come up properly
+			if (secondCount <= 10)
+				secondCount++;
+			else if (secondCount == 11)
 			{
+				// Check for new midi devices
+				mididevicenum = listdev("rawmidi", mididevices);
 
-				// Search to see which devices we've already added
-				for (int devc = 0; devc < mididevicenum; devc++)
+				// If there are more MIDI devices than last time, add them
+				if (mididevicenum > oldmididevicenum)
 				{
-
-					alreadyAdded = 0;
-
-					for (int controlc = 0; controlc < numControllers; controlc++)
-					{
-						char *controlName = ((struct dicer *)(midiControllers[controlc].local))->PortName;
-						if (strcmp(mididevices[devc], controlName) == 0)
-							alreadyAdded = 1;
-					}
-
-					if (!alreadyAdded)
-					{
-						if (dicer_init(&midiControllers[numControllers], &rt, mididevices[devc]) != -1)
-						{
-							printf("Adding MIDI device %d - %s\n", numControllers, mididevices[devc]);
-							controller_add_deck(&midiControllers[numControllers], &deck[0]);
-							controller_add_deck(&midiControllers[numControllers], &deck[1]);
-							numControllers ++;
-						}
-					}
+					AddNewMidiDevices(mididevices, mididevicenum);
+					oldmididevicenum = mididevicenum;
 				}
-
-				oldmididevicenum = mididevicenum;
+				secondCount = 999;
 			}
 		}
 
