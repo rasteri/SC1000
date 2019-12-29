@@ -358,7 +358,7 @@ void *SC_InputThread(void *ptr)
 			//mididevicenum = 0;//device_list(mididevices);
 
 //			if (mididevicenum == 0)
-			mididevicenum = listdev("rawmidi", mididevices);
+			mididevicenum = listdev("rawmidi");
 
 			// If there are more MIDI devices than last time, add them
 			if (mididevicenum > oldmididevicenum)
