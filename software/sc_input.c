@@ -203,7 +203,7 @@ void *SC_InputThread(void *ptr)
 
 	bool alreadyAdded = 0;
 
-	char mididevices[32][32];
+	char mididevices[64][64];
 	int mididevicenum = 0, oldmididevicenum = 0;
 
 	int gpiodebounce[16];
@@ -233,6 +233,7 @@ void *SC_InputThread(void *ptr)
 		printf("Couldn't init input processor\n");
 		picpresent = 0;
 	}
+
 
 	// Configure GPIO
 	if (gpiopresent)
@@ -356,6 +357,7 @@ void *SC_InputThread(void *ptr)
 			// Also check midi devices every second
 			//mididevicenum = 0;//device_list(mididevices);
 
+//			if (mididevicenum == 0)
 			mididevicenum = listdev("rawmidi", mididevices);
 
 			// If there are more MIDI devices than last time, add them

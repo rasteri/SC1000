@@ -33,6 +33,7 @@
 #include <dirent.h>
 #include <stdint.h>
 #include <string.h>
+#include <signal.h>
 
 #include "alsa.h"
 #include "controller.h"
@@ -264,6 +265,14 @@ void loadSettings()
 		free(line);
 }
 
+void sig_handler(int signo)
+{
+  if (signo == SIGINT){
+    printf("received SIGINT\n");
+exit(0);
+}
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -272,6 +281,11 @@ int main(int argc, char *argv[])
 
 	int alsa_buffer;
 	int rate;
+
+	if (signal(SIGINT, sig_handler) == SIG_ERR){
+		printf("\ncan't catch SIGINT\n");
+		exit(1);
+	}
 
 	if (setlocale(LC_ALL, "") == NULL)
 	{

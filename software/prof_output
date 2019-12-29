@@ -1,0 +1,335 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  us/call  us/call  name    
+ 73.22      7.82     7.82   128818    60.71    60.71  player_collect
+ 22.47     10.22     2.40     8216   292.11   292.12  track_handle
+  2.15     10.45     0.23    64409     3.57   124.98  handle
+  1.22     10.58     0.13                             SC_InputThread
+  0.37     10.62     0.04                             launch
+  0.28     10.65     0.03    64409     0.47   125.45  device_handle
+  0.19     10.67     0.02     8052     2.48     2.48  rt_not_allowed
+  0.09     10.68     0.01                             rig_main
+  0.00     10.68     0.00     8220     0.00     0.00  track_pollfd
+  0.00     10.68     0.00      518     0.00     0.00  add_MIDI_mapping
+  0.00     10.68     0.00       85     0.00     0.00  listdev
+  0.00     10.68     0.00       17     0.00     0.00  add_IO_mapping
+  0.00     10.68     0.00       16     0.00     0.00  find_IO_mapping
+  0.00     10.68     0.00        8     0.00     0.00  track_release
+  0.00     10.68     0.00        6     0.00     0.00  replace_path_ext
+  0.00     10.68     0.00        4     0.00     0.00  cues_load_from_file
+  0.00     10.68     0.00        4     0.00     0.00  do_fork
+  0.00     10.68     0.00        4     0.00     0.00  fork_pipe_nb
+  0.00     10.68     0.00        4     0.00     0.00  i2c_write_address
+  0.00     10.68     0.00        4     0.00     2.48  player_set_track
+  0.00     10.68     0.00        4     0.00     2.48  rig_post_track
+  0.00     10.68     0.00        4     0.00     0.00  track_acquire
+  0.00     10.68     0.00        4     0.00     2.48  track_acquire_by_import
+  0.00     10.68     0.00        3     0.00     0.00  setupi2c
+  0.00     10.68     0.00        2     0.00     0.00  LoadFileStructure
+  0.00     10.68     0.00        2     0.00     0.00  cues_reset
+  0.00     10.68     0.00        2     0.00     0.00  cues_save_to_file
+  0.00     10.68     0.00        2     0.00     0.00  device_connect_player
+  0.00     10.68     0.00        2     0.00     0.00  device_init
+  0.00     10.68     0.00        2     0.00     0.00  player_init
+  0.00     10.68     0.00        2     0.00     0.00  track_acquire_empty
+  0.00     10.68     0.00        1     0.00     0.00  device_pollfds
+  0.00     10.68     0.00        1     0.00     0.00  device_start
+  0.00     10.68     0.00        1     0.00     0.00  pcm_open.constprop.1
+  0.00     10.68     0.00        1     0.00     0.00  pollfds
+  0.00     10.68     0.00        1     0.00     0.00  rt_add_device
+  0.00     10.68     0.00        1     0.00     0.00  start
+  0.00     10.68     0.00        1     0.00     0.00  thread_to_realtime
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2018 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 4 byte(s) for 0.09% of 10.68 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]     76.0    0.04    8.08                 launch [1]
+                0.03    8.05   64409/64409       device_handle [2]
+                0.00    0.00       1/1           thread_to_realtime [38]
+-----------------------------------------------
+                0.03    8.05   64409/64409       launch [1]
+[2]     75.7    0.03    8.05   64409         device_handle [2]
+                0.23    7.82   64409/64409       handle [3]
+-----------------------------------------------
+                0.23    7.82   64409/64409       device_handle [2]
+[3]     75.4    0.23    7.82   64409         handle [3]
+                7.82    0.00  128818/128818      player_collect [4]
+-----------------------------------------------
+                7.82    0.00  128818/128818      handle [3]
+[4]     73.2    7.82    0.00  128818         player_collect [4]
+-----------------------------------------------
+                                                 <spontaneous>
+[5]     22.8    0.01    2.42                 rig_main [5]
+                2.40    0.00    8216/8216        track_handle [6]
+                0.02    0.00    8030/8052        rt_not_allowed [8]
+                0.00    0.00    8220/8220        track_pollfd [12]
+-----------------------------------------------
+                2.40    0.00    8216/8216        rig_main [5]
+[6]     22.5    2.40    0.00    8216         track_handle [6]
+                0.00    0.00      14/8052        rt_not_allowed [8]
+                0.00    0.00       4/8           track_release [17]
+-----------------------------------------------
+                                                 <spontaneous>
+[7]      1.2    0.13    0.00                 SC_InputThread [7]
+                0.00    0.00       4/4           track_acquire_by_import [11]
+                0.00    0.00       4/4           player_set_track [9]
+                0.00    0.00      85/85          listdev [14]
+                0.00    0.00      16/16          find_IO_mapping [16]
+                0.00    0.00       4/4           i2c_write_address [22]
+                0.00    0.00       4/8           track_release [17]
+                0.00    0.00       4/4           cues_load_from_file [19]
+                0.00    0.00       3/3           setupi2c [24]
+                0.00    0.00       2/2           LoadFileStructure [25]
+                0.00    0.00       2/2           cues_save_to_file [27]
+-----------------------------------------------
+                0.00    0.00       4/8052        player_set_track [9]
+                0.00    0.00       4/8052        rig_post_track [10]
+                0.00    0.00      14/8052        track_handle [6]
+                0.02    0.00    8030/8052        rig_main [5]
+[8]      0.2    0.02    0.00    8052         rt_not_allowed [8]
+-----------------------------------------------
+                0.00    0.00       4/4           SC_InputThread [7]
+[9]      0.0    0.00    0.00       4         player_set_track [9]
+                0.00    0.00       4/8052        rt_not_allowed [8]
+-----------------------------------------------
+                0.00    0.00       4/4           track_acquire_by_import [11]
+[10]     0.0    0.00    0.00       4         rig_post_track [10]
+                0.00    0.00       4/8052        rt_not_allowed [8]
+                0.00    0.00       4/4           track_acquire [23]
+-----------------------------------------------
+                0.00    0.00       4/4           SC_InputThread [7]
+[11]     0.0    0.00    0.00       4         track_acquire_by_import [11]
+                0.00    0.00       4/4           rig_post_track [10]
+                0.00    0.00       4/4           fork_pipe_nb [21]
+-----------------------------------------------
+                0.00    0.00    8220/8220        rig_main [5]
+[12]     0.0    0.00    0.00    8220         track_pollfd [12]
+-----------------------------------------------
+                0.00    0.00     518/518         loadSettings [85]
+[13]     0.0    0.00    0.00     518         add_MIDI_mapping [13]
+-----------------------------------------------
+                0.00    0.00      85/85          SC_InputThread [7]
+[14]     0.0    0.00    0.00      85         listdev [14]
+-----------------------------------------------
+                0.00    0.00      17/17          loadSettings [85]
+[15]     0.0    0.00    0.00      17         add_IO_mapping [15]
+-----------------------------------------------
+                0.00    0.00      16/16          SC_InputThread [7]
+[16]     0.0    0.00    0.00      16         find_IO_mapping [16]
+-----------------------------------------------
+                0.00    0.00       4/8           track_handle [6]
+                0.00    0.00       4/8           SC_InputThread [7]
+[17]     0.0    0.00    0.00       8         track_release [17]
+-----------------------------------------------
+                0.00    0.00       2/6           cues_save_to_file [27]
+                0.00    0.00       4/6           cues_load_from_file [19]
+[18]     0.0    0.00    0.00       6         replace_path_ext [18]
+-----------------------------------------------
+                0.00    0.00       4/4           SC_InputThread [7]
+[19]     0.0    0.00    0.00       4         cues_load_from_file [19]
+                0.00    0.00       4/6           replace_path_ext [18]
+-----------------------------------------------
+                0.00    0.00       4/4           fork_pipe_nb [21]
+[20]     0.0    0.00    0.00       4         do_fork [20]
+-----------------------------------------------
+                0.00    0.00       4/4           track_acquire_by_import [11]
+[21]     0.0    0.00    0.00       4         fork_pipe_nb [21]
+                0.00    0.00       4/4           do_fork [20]
+-----------------------------------------------
+                0.00    0.00       4/4           SC_InputThread [7]
+[22]     0.0    0.00    0.00       4         i2c_write_address [22]
+-----------------------------------------------
+                0.00    0.00       4/4           rig_post_track [10]
+[23]     0.0    0.00    0.00       4         track_acquire [23]
+-----------------------------------------------
+                0.00    0.00       3/3           SC_InputThread [7]
+[24]     0.0    0.00    0.00       3         setupi2c [24]
+-----------------------------------------------
+                0.00    0.00       2/2           SC_InputThread [7]
+[25]     0.0    0.00    0.00       2         LoadFileStructure [25]
+-----------------------------------------------
+                0.00    0.00       2/2           deck_init [64]
+[26]     0.0    0.00    0.00       2         cues_reset [26]
+-----------------------------------------------
+                0.00    0.00       2/2           SC_InputThread [7]
+[27]     0.0    0.00    0.00       2         cues_save_to_file [27]
+                0.00    0.00       2/6           replace_path_ext [18]
+-----------------------------------------------
+                0.00    0.00       2/2           deck_init [64]
+[28]     0.0    0.00    0.00       2         device_connect_player [28]
+-----------------------------------------------
+                0.00    0.00       2/2           alsa_init [45]
+[29]     0.0    0.00    0.00       2         device_init [29]
+-----------------------------------------------
+                0.00    0.00       2/2           deck_init [64]
+[30]     0.0    0.00    0.00       2         player_init [30]
+-----------------------------------------------
+                0.00    0.00       2/2           deck_init [64]
+[31]     0.0    0.00    0.00       2         track_acquire_empty [31]
+-----------------------------------------------
+                0.00    0.00       1/1           rt_add_device [36]
+[32]     0.0    0.00    0.00       1         device_pollfds [32]
+-----------------------------------------------
+                0.00    0.00       1/1           rt_start [120]
+[33]     0.0    0.00    0.00       1         device_start [33]
+-----------------------------------------------
+                0.00    0.00       1/1           alsa_init [45]
+[34]     0.0    0.00    0.00       1         pcm_open.constprop.1 [34]
+-----------------------------------------------
+                0.00    0.00       1/1           rt_add_device [36]
+[35]     0.0    0.00    0.00       1         pollfds [35]
+-----------------------------------------------
+                0.00    0.00       1/1           deck_init [64]
+[36]     0.0    0.00    0.00       1         rt_add_device [36]
+                0.00    0.00       1/1           pollfds [35]
+                0.00    0.00       1/1           device_pollfds [32]
+-----------------------------------------------
+                0.00    0.00       1/1           rt_start [120]
+[37]     0.0    0.00    0.00       1         start [37]
+-----------------------------------------------
+                0.00    0.00       1/1           launch [1]
+[38]     0.0    0.00    0.00       1         thread_to_realtime [38]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function is in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+Copyright (C) 2012-2018 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Index by function name
+
+  [25] LoadFileStructure      [16] find_IO_mapping        [10] rig_post_track
+   [7] SC_InputThread         [21] fork_pipe_nb           [36] rt_add_device
+  [15] add_IO_mapping          [3] handle                  [8] rt_not_allowed
+  [13] add_MIDI_mapping       [22] i2c_write_address      [24] setupi2c
+  [19] cues_load_from_file     [1] launch                 [37] start
+  [26] cues_reset             [14] listdev                [38] thread_to_realtime
+  [27] cues_save_to_file      [34] pcm_open.constprop.1   [23] track_acquire
+  [28] device_connect_player   [4] player_collect         [11] track_acquire_by_import
+   [2] device_handle          [30] player_init            [31] track_acquire_empty
+  [29] device_init             [9] player_set_track        [6] track_handle
+  [32] device_pollfds         [35] pollfds                [12] track_pollfd
+  [33] device_start           [18] replace_path_ext       [17] track_release
+  [20] do_fork                 [5] rig_main

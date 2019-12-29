@@ -16,7 +16,7 @@
 #
 
 #CC=/root/buildroot-2018.08.4/output/host/usr/bin/arm-linux-gcc
-
+CC=gcc
 # Libraries and dependencies
 
 INSTALL ?= install
@@ -38,10 +38,10 @@ DOCDIR ?= $(PREFIX)/share/doc
 
 # Build flags
 
-CFLAGS ?= -O3
+CFLAGS ?= -O3 -pg
 CFLAGS += -Wall
-CPPFLAGS += -MMD
-LDFLAGS ?= -O3
+CPPFLAGS += -MMD -pg
+LDFLAGS ?= -pg -O3
 
 # Core objects and libraries
 
@@ -62,7 +62,6 @@ OBJS = controller.o \
 	sc_playlist.o \
 	sc_midimap.o \
 	dicer.o \
-	amidi.o \
 	midi.o \
 	xwax.o
 DEVICE_CPPFLAGS = -DWITH_ALSA

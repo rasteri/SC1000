@@ -22,7 +22,7 @@
 
 #include "midi.h"
 
-int listdev(char *devname, char names[32][32])
+int listdev(char *devname, char names[64][64])
 
 {
 
@@ -48,19 +48,13 @@ int listdev(char *devname, char names[32][32])
     while (*n != NULL) {
 
         name = snd_device_name_get_hint(*n, "NAME");
-        desc = snd_device_name_get_hint(*n, "DESC");
-        ioid = snd_device_name_get_hint(*n, "IOID");
 
         strcpy(names[num++], name);
 
         printf("Name of device: %s\n", name);
-        printf("Description of device: %s\n", desc);
-        printf("I/O type of device: %s\n", ioid);
-        printf("\n");
 
         if (name && strcmp("null", name)) free(name);
-        if (desc && strcmp("null", desc)) free(desc);
-        if (ioid && strcmp("null", ioid)) free(ioid);
+	printf("lots\n");
         n++;
 
     }
@@ -68,43 +62,8 @@ int listdev(char *devname, char names[32][32])
     //Free hint buffer too
     snd_device_name_free_hint((void**)hints);
     return num;
+	return 0;
 
-}
-
-// Get a list of midi devices, returns number of them
-// Dumb hack, just runs "amidi -l"
-int getmididevices(char names[32][32])
-{
-    FILE *fp;
-    char ret[100];
-    char delim[] = " ";
-    int number = 0;
-    char *dir, *device, *name;
-    char *valuetok;
-
-    fp = popen("/usr/bin/amidi -l", "r");
-    if (fp == NULL)
-    {
-        printf("Failed to run amidi\n");
-        exit(1);
-    }
-
-    while (fgets(ret, sizeof(ret), fp) != NULL)
-    {
-        if (ret[0] == 'I')
-        {
-            dir = strtok_r(ret, delim, &valuetok);
-            device = strtok_r(NULL, delim, &valuetok);
-            name = strtok_r(NULL, delim, &valuetok);
-            //printf("Found MIDI device : DIR : %s, DEVICE: %s, name: %s\n", dir, device, name);
-            strcpy(names[number], device);
-            number++;
-        }
-    }
-
-    pclose(fp);
-
-    return number;
 }
 
 /*
