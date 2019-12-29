@@ -62,6 +62,7 @@ OBJS = controller.o \
 	sc_playlist.o \
 	sc_midimap.o \
 	dicer.o \
+	amidi.o \
 	midi.o \
 	xwax.o
 DEVICE_CPPFLAGS = -DWITH_ALSA

@@ -208,34 +208,6 @@ void loadSettings()
 				else {
 					printf("Unrecognised configuration line - Param : %s , value : %s\n", param, value);
 				}
-				/*
-
-MIDI mapping format : 
-
-midin=channel,notenum,action
-or
-midic=channel,ccnum,action
-
-Actions = CHx_CUE, CHx_SHIFT, CHx_STARTSTOP, CHx_PITCH, CHx_NOTE-y
-
-midin=0,60,CH1_CUE
-midin=0,30,CH2_NOTE-60
-
-If ANY midimap command is specified, clear all default mappings
-otherwise CH1=note0, CH2=note1, CH3=CUE0, CH4=cue1, CH5=start0, CH6=start1
-
-VCA Channel modes : 
-vca1beatsleft
-vca1beatsright
-vca1samplesleft
-vca1samplesright
-
-vca2beatsleft
-vca2beatsright
-vca2samplesleft
-vca2samplesright
-
-*/
 			}
 		}
 	}
@@ -315,9 +287,12 @@ int main(int argc, char *argv[])
 	importer = DEFAULT_IMPORTER;
 	use_mlock = false;
 
-	int num;
+	/*int num;
 	char midinames[32][32];
 
+	int devs = device_list(midinames);
+	for (int cunt = 0; cunt < devs; cunt++)
+		printf("%d - %s\n", cunt, midinames[cunt]);*/
 
 
 	loadSettings();

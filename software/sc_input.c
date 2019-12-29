@@ -354,7 +354,7 @@ void *SC_InputThread(void *ptr)
 			}
 
 			// Also check midi devices every second
-			mididevicenum = getmididevices(mididevices);
+			mididevicenum = device_list(mididevices);
 
 			// If there are more MIDI devices than last time, add them
 			if (mididevicenum > oldmididevicenum)
