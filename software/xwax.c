@@ -90,6 +90,7 @@ void loadSettings()
 	scsettings.slippiness = 300;
 	scsettings.brakespeed = 3000;
 	scsettings.pitchrange = 50;
+	scsettings.mididelay = 5;
 	
 
 	// Load any settings from config file
@@ -204,8 +205,8 @@ void loadSettings()
 						parameter
 					);
 				}
-				else if (strcmp(param, "startupdelay") == 0) // Literally just a sleep to allow USB devices longer to initialize
-					sleep(atoi(value));
+				else if (strcmp(param, "mididelay") == 0) // Literally just a sleep to allow USB devices longer to initialize
+					scsettings.mididelay = atoi(value);
 				else {
 					printf("Unrecognised configuration line - Param : %s , value : %s\n", param, value);
 				}

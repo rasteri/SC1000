@@ -72,6 +72,9 @@ typedef struct SC_SETTINGS {
 	
 	// Pitch range of MIDI commands
 	int pitchrange;
+	
+	// How many seconds to wait before initializing MIDI
+	int mididelay;
 
 
 } SC_SETTINGS;
