@@ -16,7 +16,7 @@
 #
 
 #CC=/root/buildroot-2018.08.4/output/host/usr/bin/arm-linux-gcc
-CC=gcc
+#CC=gcc
 # Libraries and dependencies
 
 INSTALL ?= install
@@ -38,10 +38,10 @@ DOCDIR ?= $(PREFIX)/share/doc
 
 # Build flags
 
-CFLAGS ?= -O3 -pg
+CFLAGS ?= -O3
 CFLAGS += -Wall
-CPPFLAGS += -MMD -pg
-LDFLAGS ?= -pg -O3
+CPPFLAGS += -MMD
+LDFLAGS ?= -O3
 
 # Core objects and libraries
 

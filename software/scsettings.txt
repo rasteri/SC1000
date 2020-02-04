@@ -36,10 +36,10 @@ brakespeed=3000
 # Pitch range % of pitch bend MIDI command, default 50%
 pitchrange=50
 
-# How long to delay before starting up the software
+# How long to delay before looking for MIDI devices
 # Useful if your MIDI device takes a long time to initialize
 # Or to give you time to switch your phone to MIDI mode
-startupdelay=0
+mididelay=5
 
 ###########################
 # External I/O Mapping    #

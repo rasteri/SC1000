@@ -78,7 +78,7 @@ void loadSettings()
 	char *linetok, *valuetok;
 	bool midiRemapped = 0;
 	// set defaults
-	scsettings.buffersize = 256;
+	scsettings.buffersize = 2048;
 	scsettings.faderclosepoint = 2;
 	scsettings.faderopenpoint = 5;
 	scsettings.platterenabled = 1;

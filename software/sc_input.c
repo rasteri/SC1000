@@ -60,7 +60,7 @@ void i2c_read_address(int file_i2c, unsigned char address, unsigned char *result
 		exit(1);
 }
 
-void i2c_write_address(int file_i2c, unsigned char address, unsigned char value)
+int i2c_write_address(int file_i2c, unsigned char address, unsigned char value)
 {
 	char buf[2];
 	buf[0] = address;
@@ -68,8 +68,9 @@ void i2c_write_address(int file_i2c, unsigned char address, unsigned char value)
 	if (write(file_i2c, buf, 2) != 2)
 	{
 		printf("I2C Write Error\n");
-		//exit(1);
+		return 0;
 	}
+	else return 1;
 }
 
 int setupi2c(char *path, unsigned char address)
@@ -253,6 +254,10 @@ void *SC_InputThread(void *ptr)
 	{
 		printf("Couldn't init external GPIO\n");
 		gpiopresent = 0;
+	}
+	else {
+		// Do a test write to make sure we got in
+		if (!i2c_write_address(file_i2c_gpio, 0x0C, 0xFF)) gpiopresent = 0;
 	}
 
 	// Initialise PIC input processor on I2C2
