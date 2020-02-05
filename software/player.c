@@ -167,8 +167,10 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 		sample += step;
 
 		// Loop when track gets to end
-		if (sample > tr->length && looping)
+		if (sample > tr->length && looping){
 			sample = 0;
+
+		}
 		vol += gradient;
 		pitch += pitchGradient;
 	}

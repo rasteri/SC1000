@@ -78,7 +78,7 @@ void loadSettings()
 	char *linetok, *valuetok;
 	bool midiRemapped = 0;
 	// set defaults
-	scsettings.buffersize = 2048;
+	scsettings.buffersize = 256;
 	scsettings.faderclosepoint = 2;
 	scsettings.faderopenpoint = 5;
 	scsettings.platterenabled = 1;
@@ -333,7 +333,7 @@ int main(int argc, char *argv[])
 
 	// Stop deck1 from looping
 	deck[0].player.looping = 1;
-	deck[1].player.looping = 0;
+	deck[1].player.looping = 1;
 
 	alsa_clear_config_cache();
 
