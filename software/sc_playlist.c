@@ -53,10 +53,13 @@ struct Folder * LoadFileStructure(char *BaseFolderPath,
 
 	char tempName[257];
 	unsigned int FilesCount = 0;
+	
+	*TotalNum = 0;
 
 	n = scandir(BaseFolderPath, &dirList, 0, alphasort);
-	if (n < 0)
-		exit(1);
+	if (n <= 0){
+		return NULL;
+	}
 	for (o = 0; o < n; o++) {
 		if (dirList[o]->d_name[0] != '.') {
 
@@ -67,7 +70,7 @@ struct Folder * LoadFileStructure(char *BaseFolderPath,
 			FirstFile = NULL;
 			prevFile = NULL;
 
-			for (p = 0; p < m; p++) {
+			for (p = 0; p < m; p++) { 
 				if (fileList[p]->d_name[0] != '.' && strstr(fileList[p]->d_name, ".cue") == NULL) {
 
 					new_file = (struct File*) malloc(sizeof(struct File));

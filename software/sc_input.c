@@ -235,6 +235,7 @@ void *SC_InputThread(void *ptr)
 	unsigned int pullups = 0, iodirs = 0;
 	struct mapping *map;
 	bool firstTimeRound = 1;
+	bool beatsPresent = 0, samplesPresent = 0;
 
 	bool alreadyAdded = 0;
 
@@ -335,23 +336,33 @@ void *SC_InputThread(void *ptr)
 	}
 
 	// Build index of all audio files on the USB stick
+	if (FirstBeatFolder = LoadFileStructure("/media/sda/beats/", &NumBeats) != NULL && NumBeats > 0){
+		//DumpFileStructure(FirstBeatFolder);
+		CurrentBeatFolder = FirstBeatFolder;
+		CurrentBeatFile = CurrentBeatFolder->FirstFile;
+		// Load first beat
+		player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
+		cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
+		beatsPresent = 1;
+	}
 
-	FirstBeatFolder = LoadFileStructure("/media/sda/beats/", &NumBeats);
-	//DumpFileStructure(FirstBeatFolder);
-	CurrentBeatFolder = FirstBeatFolder;
-	CurrentBeatFile = CurrentBeatFolder->FirstFile;
 
-	FirstSampleFolder = LoadFileStructure("/media/sda/samples/", &NumSamples);
-	//DumpFileStructure(FirstSampleFolder);
-	CurrentSampleFolder = FirstSampleFolder;
-	CurrentSampleFile = CurrentSampleFolder->FirstFile;
-
-	// Load the first track
-
-	player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
-	cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
-	player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
-	cues_load_from_file(&deck[1].cues, deck[1].player.track->path);
+	if (FirstSampleFolder = LoadFileStructure("/media/sda/samples/", &NumSamples) != NULL && NumSamples > 0){
+		//DumpFileStructure(FirstSampleFolder);
+		CurrentSampleFolder = FirstSampleFolder;
+		CurrentSampleFile = CurrentSampleFolder->FirstFile;
+		player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
+		cues_load_from_file(&deck[1].cues, deck[1].player.track->path);
+		samplesPresent = 1;
+	} else {
+		// Load the default sentence if no sample files found on usb stick
+		player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, "/var/scratchsentence.mp3"));
+		cues_load_from_file(&deck[1].cues, deck[1].player.track->path);
+		// Set the time back a bit so the sample doesn't start too soon
+		deck[1].player.target_position = -4.0;
+		deck[1].player.position = -4.0;
+		
+	}
 
 	srand(time(NULL)); // TODO - need better entropy source, SoC is starting up annoyingly deterministically
 
@@ -578,14 +589,10 @@ void *SC_InputThread(void *ptr)
 
 				// No buttons pressed
 				case BUTTONSTATE_NONE:
-				if (firstTimeRound){
-					printf("--------------arse\n");
-				}
 					if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
 					{
 						buttonState = BUTTONSTATE_PRESSING;
 						if (firstTimeRound){
-							printf("--------------Looeser gsergser gesr sge rr gepn\n");
 							player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/var/os-version.mp3"));
 							cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
 							player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, "/var/software-version.mp3"));
@@ -623,7 +630,7 @@ void *SC_InputThread(void *ptr)
 						oldPitchMode = 0;
 						printf("Pitch mode Disabled\n");
 					}
-					else if (totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3])
+					else if (totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && samplesPresent)
 					{
 						printf("Samples - Up pushed\n");
 						if (CurrentSampleFile->prev != NULL)
@@ -632,7 +639,7 @@ void *SC_InputThread(void *ptr)
 						}
 						load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
 					}
-					else if (!totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3])
+					else if (!totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && samplesPresent)
 					{
 						printf("Samples - Down pushed\n");
 						if (CurrentSampleFile->next != NULL)
@@ -641,13 +648,13 @@ void *SC_InputThread(void *ptr)
 						}
 						load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
 					}
-					else if (totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3])
+					else if (totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && samplesPresent)
 					{
 						printf("Samples - both buttons pushed\n");
 						pitchMode = 2;
 					}
 
-					else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && !totalbuttons[3])
+					else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && !totalbuttons[3] && beatsPresent)
 					{
 						printf("Beats - Up pushed\n");
 						if (CurrentBeatFile->prev != NULL)
@@ -656,7 +663,7 @@ void *SC_InputThread(void *ptr)
 						}
 						load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 					}
-					else if (!totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && totalbuttons[3])
+					else if (!totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && totalbuttons[3] && beatsPresent)
 					{
 						printf("Beats - Down pushed\n");
 						if (CurrentBeatFile->next != NULL)
@@ -665,7 +672,7 @@ void *SC_InputThread(void *ptr)
 						}
 						load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 					}
-					else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && totalbuttons[3])
+					else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && totalbuttons[3] && beatsPresent)
 					{
 						printf("Beats - both buttons pushed\n");
 						pitchMode = 1;
@@ -686,7 +693,7 @@ void *SC_InputThread(void *ptr)
 
 				// Act on whatever buttons are being held down when the timeout happens
 				case BUTTONSTATE_ACTING_HELD:
-					if (buttons[0] && !buttons[1] && !buttons[2] && !buttons[3])
+					if (buttons[0] && !buttons[1] && !buttons[2] && !buttons[3] && samplesPresent)
 					{
 						printf("Samples - Up held\n");
 						if (CurrentSampleFolder->prev != NULL)
@@ -696,7 +703,7 @@ void *SC_InputThread(void *ptr)
 							load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
 						}
 					}
-					else if (!buttons[0] && buttons[1] && !buttons[2] && !buttons[3])
+					else if (!buttons[0] && buttons[1] && !buttons[2] && !buttons[3] && samplesPresent)
 					{
 						printf("Samples - Down held\n");
 						if (CurrentSampleFolder->next != NULL)
@@ -706,7 +713,7 @@ void *SC_InputThread(void *ptr)
 							load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
 						}
 					}
-					else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3])
+					else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3] && samplesPresent)
 					{
 						printf("Samples - both buttons held\n");
 						r = rand() % NumSamples;
@@ -715,7 +722,7 @@ void *SC_InputThread(void *ptr)
 						deck[1].player.nominal_pitch = 1.0;
 					}
 
-					else if (!buttons[0] && !buttons[1] && buttons[2] && !buttons[3])
+					else if (!buttons[0] && !buttons[1] && buttons[2] && !buttons[3] && beatsPresent)
 					{
 						printf("Beats - Up held\n");
 						if (CurrentBeatFolder->prev != NULL)
@@ -725,7 +732,7 @@ void *SC_InputThread(void *ptr)
 							load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 						}
 					}
-					else if (!buttons[0] && !buttons[1] && !buttons[2] && buttons[3])
+					else if (!buttons[0] && !buttons[1] && !buttons[2] && buttons[3] && beatsPresent)
 					{
 						printf("Beats - Down held\n");
 
@@ -736,7 +743,7 @@ void *SC_InputThread(void *ptr)
 							load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 						}
 					}
-					else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3])
+					else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3 && beatsPresent])
 					{
 						printf("Beats - both buttons held\n");
 						r = rand() % NumBeats;
@@ -878,12 +885,10 @@ void *SC_InputThread(void *ptr)
 						if (crossedZero > 0)
 						{
 							angleOffset += 4096;
-							printf("CZ+\n");
 						}
 						else if (crossedZero < 0)
 						{
 							angleOffset -= 4096;
-							printf("CZ-\n");
 						}
 
 						// Convert the raw value to track position and set player to that pos
@@ -896,7 +901,6 @@ void *SC_InputThread(void *ptr)
 							deck[1].player.target_position = 0;
 							angleOffset = encoderAngle;
 						}
-						printf("%f %f\n", deck[1].player.target_position, ((double)deck[1].player.track->length / (double)deck[1].player.track->rate));
 					} 
 				}
 			}
