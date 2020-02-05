@@ -10,10 +10,10 @@ if test -f "/tmp/bootpart/version"; then
 	echo "ERROR : Can only upgrade the original SCOS"
 	umount /tmp/bootpart
 	sync
-	tar -C /tmp/ -xf /media/sda/sc.tar existing.mp3
-	mpg123 --loop -1 /tmp/existing.mp3
+	# just run the local xwax
+	/usr/bin/xwax
 else
-	if tar -C /tmp/bootpart/ -xf /media/sda/sc.tar zImage && tar -C /tmp/bootpart/ -xf /media/sda/sc.tar sun5i-a13-olinuxino.dtb && tar -C /usr/bin -xf /media/sda/sc.tar xwax; then
+	if tar -C /tmp/bootpart/ -xf /media/sda/sc.tar zImage && tar -C /tmp/bootpart/ -xf /media/sda/sc.tar sun5i-a13-olinuxino.dtb && tar -C /usr/bin -xf /media/sda/sc.tar xwax && tar -C /var -xf /media/sda/sc.tar software-version.mp3 && tar -C /var -xf /media/sda/sc.tar os-version.mp3 && tar -C /var -xf /media/sda/sc.tar scratchsentence.mp3 ; then
 		touch /tmp/bootpart/version
 		echo "SC1000 software updated!"
 		umount /tmp/bootpart
