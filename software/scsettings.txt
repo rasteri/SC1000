@@ -130,7 +130,7 @@ io=15,1,1,CH1_CUE
 
 # Top Right is shift key, need to define both NOTE OFF and NOTE ON commands
 #midii=9,0,51,CH0_SHIFTON
-#midii=8,0,51,CH0_SHIFTFF
+#midii=8,0,51,CH0_SHIFTOFF
 
 # Fader is assigned to sample pitch
 #midii=11,0,0,CH1_PITCH

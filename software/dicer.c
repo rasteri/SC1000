@@ -144,6 +144,7 @@ static void event(struct dicer *d)
 		}
 		else if (map->Action == ACTION_NOTE){
 			d->decks[map->DeckNo]->player.nominal_pitch = pow(pow(2, (double)1/12), map->Param - 0x3C); // equal temperament
+			printf("NOTE %f %d\n", d->decks[map->DeckNo]->player.nominal_pitch, map->Param);
 		}
 		else if (map->Action == ACTION_STARTSTOP){
 			d->decks[map->DeckNo]->player.stopped = !d->decks[map->DeckNo]->player.stopped;
