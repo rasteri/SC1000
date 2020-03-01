@@ -268,12 +268,13 @@ static int playback(struct device *dv)
             sprintf(writeFileName, "/media/sda/sc%06d.raw", nextRecordingNumber);
             if( access( writeFileName, F_OK ) != -1 ) {
                 // file exists
+		nextRecordingNumber++;
             } else {
                 // file doesn't exist
                 break;
             }
         }
-        printf("Opening file %s for recording\n");
+        printf("Opening file %s for recording\n", writeFileName);
         dv->player->recordingFile = fopen (writeFileName, "w");
         dv->player->recording = 1;
     }
@@ -409,11 +410,6 @@ int alsa_init(struct device *dv, const char *device_name,
     }
     device_init(dv, &alsa_ops);
     dv->local = alsa;
-
-    
-    alsa->recording = 0;
-
-
     return 0;
 
  fail_capture:

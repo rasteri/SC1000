@@ -139,8 +139,12 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 		sa--;
 
 		// wrap to track boundary, i.e. loop
-		sa = sa % tr->length;
-		if (sa < 0) sa += tr->length;
+		if (tr->length != 0){
+			sa = sa % (int)tr->length;
+			// Actually don't let people go to minus numbers
+			// as entire track might not be loaded yet
+			//if (sa < 0) sa += tr->length;
+		}
 
 		for (q = 0; q < 4; q++, sa++) {
 			if (sa < 0 || sa >= tr->length) {

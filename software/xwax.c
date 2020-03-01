@@ -90,8 +90,7 @@ void loadSettings()
 	scsettings.slippiness = 300;
 	scsettings.brakespeed = 3000;
 	scsettings.pitchrange = 50;
-	scsettings.mididelay = 5; 
-	
+	scsettings.mididelay = 5; 	
 
 	// Load any settings from config file
 	fp = fopen("/media/sda/scsettings.txt", "r");

@@ -339,6 +339,27 @@ void *SC_InputThread(void *ptr)
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(iodirs & 0xFF));
 		printf("\n");
 	}
+	
+	// Check for samples folder
+	if( access( "/media/sda/samples", F_OK ) == -1 ) {
+		// Not there, so presumably the boot script didn't manage to mount the drive
+		// Maybe it hasn't initialized yet, or at least wasn't at boot time
+		// We have to do it ourselves
+		
+		// Timeout after 12 sec, in which case emergency samples will be loaded
+		for (int uscnt = 0; uscnt < 12; uscnt++){
+			printf("Waiting for USB stick...\n");
+			// Wait for /dev/sda1 to show up and then mount it
+			if( access( "/dev/sda1", F_OK ) != -1 ) {
+				printf("Found USB stick, mounting!\n");
+				system("/bin/mount /dev/sda1 /media/sda");
+				break;
+			} else {
+				// If not here yet, wait a second then check again
+				sleep(1);
+			}
+		}
+	}
 
 	// Build index of all audio files on the USB stick
 	if ((FirstBeatFolder = LoadFileStructure("/media/sda/beats/", &NumBeats)) != NULL && NumBeats > 0)
