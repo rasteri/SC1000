@@ -336,24 +336,25 @@ void *SC_InputThread(void *ptr)
 	}
 
 	// Build index of all audio files on the USB stick
-	if (FirstBeatFolder = LoadFileStructure("/media/sda/beats/", &NumBeats) != NULL && NumBeats > 0){
+	if ((FirstBeatFolder = LoadFileStructure("/media/sda/beats/", &NumBeats)) != NULL && NumBeats > 0){printf("Beats Present\n"); beatsPresent = 1;}
+	if ((FirstSampleFolder = LoadFileStructure("/media/sda/samples/", &NumSamples)) != NULL && NumSamples > 0) samplesPresent = 1;
+	
+	if (beatsPresent){
 		//DumpFileStructure(FirstBeatFolder);
 		CurrentBeatFolder = FirstBeatFolder;
 		CurrentBeatFile = CurrentBeatFolder->FirstFile;
 		// Load first beat
 		player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 		cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
-		beatsPresent = 1;
 	}
 
-
-	if (FirstSampleFolder = LoadFileStructure("/media/sda/samples/", &NumSamples) != NULL && NumSamples > 0){
+	if (samplesPresent){
 		//DumpFileStructure(FirstSampleFolder);
 		CurrentSampleFolder = FirstSampleFolder;
 		CurrentSampleFile = CurrentSampleFolder->FirstFile;
 		player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
 		cues_load_from_file(&deck[1].cues, deck[1].player.track->path);
-		samplesPresent = 1;
+		printf("here2\n");
 	} else {
 		// Load the default sentence if no sample files found on usb stick
 		player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, "/var/scratchsentence.mp3"));
@@ -361,7 +362,6 @@ void *SC_InputThread(void *ptr)
 		// Set the time back a bit so the sample doesn't start too soon
 		deck[1].player.target_position = -4.0;
 		deck[1].player.position = -4.0;
-		
 	}
 
 	srand(time(NULL)); // TODO - need better entropy source, SoC is starting up annoyingly deterministically

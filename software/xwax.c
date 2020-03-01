@@ -242,7 +242,7 @@ void loadSettings()
 			add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
 		}
 		
-		// note 7F of channel 2 is shift
+		// note 7F of channel 4 is shift
 		midicommand[0] = 0x94; midicommand[1] = 0x7F;
 		add_MIDI_mapping(&maps, midicommand, deckno, ACTION_SHIFTON, 0);
 		midicommand[0] = 0x84; midicommand[1] = 0x7F;

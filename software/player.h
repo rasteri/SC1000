@@ -60,7 +60,11 @@ long samplesSoFar;
 	
 	bool GoodToGo;
 	bool looping;
-	bool stopped; 
+	bool stopped;
+
+    bool recording;
+    bool recordingStarted;
+    FILE *recordingFile;
 };
 
 void player_init(struct player *pl, unsigned int sample_rate,

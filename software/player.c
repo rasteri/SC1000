@@ -232,6 +232,8 @@ void player_init(struct player *pl, unsigned int sample_rate,
 	pl->samplesSoFar=0;
 	pl->nominal_pitch = 1.0;
 	pl->stopped = 0;
+	pl->recording = false;
+	pl->recordingStarted = false;
 }
 
 /*
@@ -306,17 +308,12 @@ void player_recue(struct player *pl) {
 
 void player_set_track(struct player *pl, struct track *track) {
 	struct track *x;
-
 	assert(track != NULL);
 	assert(track->refcount > 0);
-	printf("LOCKING\n");
 	spin_lock(&pl->lock); /* Synchronise with the playback thread */
-	printf("LOCKED\n");
 	x = pl->track;
 	pl->track = track;
-	printf("UNLOCKING\n");
 	spin_unlock(&pl->lock);
-printf("UNLOCKED\n");
 	track_release(x); /* discard the old track */
 }
 

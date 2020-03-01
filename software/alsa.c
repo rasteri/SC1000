@@ -258,7 +258,29 @@ static int playback(struct device *dv)
 {
     int r, i;
     struct alsa *alsa = (struct alsa*)dv->local;
-	int32_t adder = 0; 
+	static int32_t adder = 0; 
+    static char writeFileName[100];
+    static unsigned int nextRecordingNumber = 0;
+
+    if (dv->player->recordingStarted && !dv->player->recording){
+        nextRecordingNumber = 0;
+        while (1){
+            sprintf(writeFileName, "/media/sda/sc%06d.raw", nextRecordingNumber);
+            if( access( writeFileName, F_OK ) != -1 ) {
+                // file exists
+            } else {
+                // file doesn't exist
+                break;
+            }
+        }
+        printf("Opening file %s for recording\n");
+        dv->player->recordingFile = fopen (writeFileName, "w");
+        dv->player->recording = 1;
+    }
+    if (!dv->player->recordingStarted && dv->player->recording){
+        fclose(dv->player->recordingFile);
+        dv->player->recording = 0;
+    }
 
 	/*if ((dv->player->GoodToGo && dv->player2->GoodToGo) || (dv->player->track->finished == 1 && dv->player2->track->finished)){
 
@@ -279,6 +301,8 @@ static int playback(struct device *dv)
 //}
     r = snd_pcm_writei(alsa->playback.pcm, alsa->playback.buf,
                        alsa->playback.period);
+    if (dv->player->recording)
+        fwrite(alsa->playback.buf, alsa->playback.period * DEVICE_CHANNELS * sizeof(signed short),  1, dv->player->recordingFile);
     if (r < 0)
         return r;
         
@@ -385,6 +409,10 @@ int alsa_init(struct device *dv, const char *device_name,
     }
     device_init(dv, &alsa_ops);
     dv->local = alsa;
+
+    
+    alsa->recording = 0;
+
 
     return 0;
 
