@@ -768,7 +768,15 @@ void *SC_InputThread(void *ptr)
 					else if (buttons[0] && buttons[1] && buttons[2] && buttons[3])
 					{
 						printf("All buttons held!\n");
+						
 						deck[0].player.recordingStarted = !deck[0].player.recordingStarted;
+
+						// If we're starting to record, jump back to the start of the beat/sample so we know it happened
+						if (deck[0].player.recordingStarted)
+						{
+							player_seek_to(&deck[0].player, 0.0);
+							player_seek_to(&deck[1].player, 1.0);
+						}
 					}
 
 					else

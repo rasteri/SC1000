@@ -20,7 +20,9 @@
 			"controller.h": "c",
 			"sc_input.h": "c",
 			"sstream": "c",
-			"unistd.h": "c"
+			"unistd.h": "c",
+			"midi.h": "c",
+			"sc_midimap.h": "c"
 		}
 	}
 }
