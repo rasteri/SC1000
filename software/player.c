@@ -108,10 +108,12 @@ static double dither(void) {
 
 static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 		struct track *tr, double position, double pitch, double end_pitch, double start_vol,
-		double end_vol, bool looping) {
+		double end_vol) {
 	int s;
 	double sample, step, vol, gradient, pitchGradient;
 
+
+	
 	sample = position * tr->rate;
 	step = sample_dt * pitch * tr->rate;
 
@@ -135,6 +137,10 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 			sa--;
 		f = sample - sa;
 		sa--;
+
+		// wrap to track boundary, i.e. loop
+		sa = sa % tr->length;
+		if (sa < 0) sa += tr->length;
 
 		for (q = 0; q < 4; q++, sa++) {
 			if (sa < 0 || sa >= tr->length) {
@@ -167,10 +173,12 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 		sample += step;
 
 		// Loop when track gets to end
-		if (sample > tr->length && looping){
+		/*f (sample > tr->length && looping){
 			sample = 0;
 
-		}
+		}*/
+
+
 		vol += gradient;
 		pitch += pitchGradient;
 	}
@@ -479,7 +487,7 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 		r = build_silence(pcm, samples, pl->sample_dt, pitch);
 	} else {
 		r = build_pcm(pcm, samples, pl->sample_dt, pl->track,
-				pl->position - pl->offset, pl->pitch, filtered_pitch, pl->volume, target_volume, pl->looping);
+				pl->position - pl->offset, pl->pitch, filtered_pitch, pl->volume, target_volume);
 		pl->pitch = filtered_pitch;
 		spin_unlock(&pl->lock);
 	}

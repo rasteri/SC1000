@@ -53,12 +53,14 @@ void i2c_read_address(int file_i2c, unsigned char address, unsigned char *result
 {
 
 	*result = address;
-	if (write(file_i2c, result, 1) != 1){
+	if (write(file_i2c, result, 1) != 1)
+	{
 		printf("I2C read error\n");
 		exit(1);
 	}
 
-	if (read(file_i2c, result, 1) != 1){
+	if (read(file_i2c, result, 1) != 1)
+	{
 		printf("I2C read error\n");
 		exit(1);
 	}
@@ -74,7 +76,8 @@ int i2c_write_address(int file_i2c, unsigned char address, unsigned char value)
 		printf("I2C Write Error\n");
 		return 0;
 	}
-	else return 1;
+	else
+		return 1;
 }
 
 int setupi2c(char *path, unsigned char address)
@@ -261,9 +264,11 @@ void *SC_InputThread(void *ptr)
 		printf("Couldn't init external GPIO\n");
 		gpiopresent = 0;
 	}
-	else {
+	else
+	{
 		// Do a test write to make sure we got in
-		if (!i2c_write_address(file_i2c_gpio, 0x0C, 0xFF)){ 
+		if (!i2c_write_address(file_i2c_gpio, 0x0C, 0xFF))
+		{
 			gpiopresent = 0;
 			printf("Couldn't init external GPIO\n");
 		}
@@ -336,10 +341,16 @@ void *SC_InputThread(void *ptr)
 	}
 
 	// Build index of all audio files on the USB stick
-	if ((FirstBeatFolder = LoadFileStructure("/media/sda/beats/", &NumBeats)) != NULL && NumBeats > 0){printf("Beats Present\n"); beatsPresent = 1;}
-	if ((FirstSampleFolder = LoadFileStructure("/media/sda/samples/", &NumSamples)) != NULL && NumSamples > 0) samplesPresent = 1;
-	
-	if (beatsPresent){
+	if ((FirstBeatFolder = LoadFileStructure("/media/sda/beats/", &NumBeats)) != NULL && NumBeats > 0)
+	{
+		printf("Beats Present\n");
+		beatsPresent = 1;
+	}
+	if ((FirstSampleFolder = LoadFileStructure("/media/sda/samples/", &NumSamples)) != NULL && NumSamples > 0)
+		samplesPresent = 1;
+
+	if (beatsPresent)
+	{
 		//DumpFileStructure(FirstBeatFolder);
 		CurrentBeatFolder = FirstBeatFolder;
 		CurrentBeatFile = CurrentBeatFolder->FirstFile;
@@ -348,14 +359,17 @@ void *SC_InputThread(void *ptr)
 		cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
 	}
 
-	if (samplesPresent){
+	if (samplesPresent)
+	{
 		//DumpFileStructure(FirstSampleFolder);
 		CurrentSampleFolder = FirstSampleFolder;
 		CurrentSampleFile = CurrentSampleFolder->FirstFile;
 		player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
 		cues_load_from_file(&deck[1].cues, deck[1].player.track->path);
 		printf("here2\n");
-	} else {
+	}
+	else
+	{
 		// Load the default sentence if no sample files found on usb stick
 		player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, "/var/scratchsentence.mp3"));
 		cues_load_from_file(&deck[1].cues, deck[1].player.track->path);
@@ -372,7 +386,6 @@ void *SC_InputThread(void *ptr)
 	struct timespec ts;
 	double inputtime = 0, lastinputtime = 0;
 	int decknum = 0, cuepointnum = 0;
-
 
 	sleep(2);
 	for (i = 0; i < 16; i++)
@@ -547,7 +560,7 @@ void *SC_InputThread(void *ptr)
 						}
 					}
 				}
-				
+
 				// Apply volume and fader
 
 				faderCutPoint = faderOpen ? scsettings.faderclosepoint : scsettings.faderopenpoint; // Fader Hysteresis
@@ -565,7 +578,7 @@ void *SC_InputThread(void *ptr)
 
 				deck[0].player.faderTarget = ((double)ADCs[2]) / 1024;
 
-			/*
+				/*
 
 		 Button scanning logic goes like -
 
@@ -577,11 +590,11 @@ void *SC_InputThread(void *ptr)
 
 		 */
 
-		#define BUTTONSTATE_NONE 0
-		#define BUTTONSTATE_PRESSING 1
-		#define BUTTONSTATE_ACTING_INSTANT 2
-		#define BUTTONSTATE_ACTING_HELD 3
-		#define BUTTONSTATE_WAITING 4				
+#define BUTTONSTATE_NONE 0
+#define BUTTONSTATE_PRESSING 1
+#define BUTTONSTATE_ACTING_INSTANT 2
+#define BUTTONSTATE_ACTING_HELD 3
+#define BUTTONSTATE_WAITING 4
 				int r;
 
 				switch (buttonState)
@@ -592,7 +605,8 @@ void *SC_InputThread(void *ptr)
 					if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
 					{
 						buttonState = BUTTONSTATE_PRESSING;
-						if (firstTimeRound){
+						if (firstTimeRound)
+						{
 							player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/var/os-version.mp3"));
 							cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
 							player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, "/var/software-version.mp3"));
@@ -751,7 +765,8 @@ void *SC_InputThread(void *ptr)
 						load_track(&deck[0], track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstBeatFolder)->FullPath));
 					}
 
-					else if (buttons[0] && buttons[1] && buttons[2] && buttons[3]){
+					else if (buttons[0] && buttons[1] && buttons[2] && buttons[3])
+					{
 						printf("All buttons held!\n");
 						deck[0].player.recordingStarted = !deck[0].player.recordingStarted;
 					}
@@ -782,8 +797,6 @@ void *SC_InputThread(void *ptr)
 					break;
 				}
 			}
-
-			
 
 			// Handle rotary sensor
 
@@ -896,20 +909,17 @@ void *SC_InputThread(void *ptr)
 						// Convert the raw value to track position and set player to that pos
 
 						deck[1].player.target_position = (double)(encoderAngle + angleOffset) / scsettings.platterspeed;
-						 
+
 						// Loop when track gets to end
-						
-						if (deck[1].player.target_position > ((double)deck[1].player.track->length / (double)deck[1].player.track->rate)){
+
+						/*if (deck[1].player.target_position > ((double)deck[1].player.track->length / (double)deck[1].player.track->rate))
+						{
 							deck[1].player.target_position = 0;
 							angleOffset = encoderAngle;
-						}
-					} 
+						}*/
+					}
 				}
 			}
-
-
-
-			
 		}
 		else // couldn't find input processor, just play the tracks
 		{
@@ -927,14 +937,14 @@ void *SC_InputThread(void *ptr)
 				deck[1].player.target_position += (inputtime - lastinputtime);
 			}
 
-			lastinputtime = inputtime; 
+			lastinputtime = inputtime;
 		}
 
 		//usleep(scsettings.updaterate);
 	}
 }
 
-// Start the input thread 
+// Start the input thread
 void SC_Input_Start()
 {
 

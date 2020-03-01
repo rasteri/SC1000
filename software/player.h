@@ -59,7 +59,6 @@ long samplesSoFar;
 	bool capTouch;
 	
 	bool GoodToGo;
-	bool looping;
 	bool stopped;
 
     bool recording;
