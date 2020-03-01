@@ -751,8 +751,10 @@ void *SC_InputThread(void *ptr)
 						load_track(&deck[0], track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstBeatFolder)->FullPath));
 					}
 
-					else if (buttons[0] && buttons[1] && buttons[2] && buttons[3])
+					else if (buttons[0] && buttons[1] && buttons[2] && buttons[3]){
 						printf("All buttons held!\n");
+						deck[0].player.recordingStarted = !deck[0].player.recordingStarted;
+					}
 
 					else
 						printf("Sod knows what you were trying to do there\n");
