@@ -35,8 +35,8 @@
  * current position and that given by the timecode */
 
 #define SYNC_TIME (1.0 / 2) /* time taken to reach sync */
-#define SYNC_PITCH 0.05 /* don't sync at low pitches */
-#define SYNC_RC 0.05 /* filter to 1.0 when no timecodes available */
+#define SYNC_PITCH 0.05		/* don't sync at low pitches */
+#define SYNC_RC 0.05		/* filter to 1.0 when no timecodes available */
 
 /* If the difference between our current position and that given by
  * the timecode is greater than this value, recover by jumping
@@ -47,21 +47,21 @@
 /* The base volume level. A value of 1.0 leaves no headroom to play
  * louder when the record is going faster than 1.0. */
 
-#define VOLUME (7.0/8)
+#define VOLUME (7.0 / 8)
 
 // Time in seconds fader takes to decay
 #define FADERDECAY 0.020
-#define DECAYSAMPLES FADERDECAY*48000
+#define DECAYSAMPLES FADERDECAY * 48000
 
-
-#define SQ(x) ((x)*(x))
+#define SQ(x) ((x) * (x))
 #define TARGET_UNKNOWN INFINITY
 
 /*
  * Return: the cubic interpolation of the sample at position 2 + mu
  */
 
-static inline double cubic_interpolate(signed short y[4], double mu) {
+static inline double cubic_interpolate(signed short y[4], double mu)
+{
 	signed long a0, a1, a2, a3;
 	double mu2;
 
@@ -78,7 +78,8 @@ static inline double cubic_interpolate(signed short y[4], double mu) {
  * Return: Random dither, between -0.5 and 0.5
  */
 
-static double dither(void) {
+static double dither(void)
+{
 	unsigned int bit, v;
 	static unsigned int x = 0xbeefface;
 
@@ -93,7 +94,7 @@ static double dither(void) {
 
 	v = (x & 0x0000000f) | ((x & 0x000f0000) >> 12) | ((x & 0x0f000000) >> 16);
 
-	return (double) v / 4096 - 0.5; /* not quite whole range */
+	return (double)v / 4096 - 0.5; /* not quite whole range */
 }
 
 /*
@@ -107,13 +108,12 @@ static double dither(void) {
  */
 
 static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
-		struct track *tr, double position, double pitch, double end_pitch, double start_vol,
-		double end_vol) {
+						struct track *tr, double position, double pitch, double end_pitch, double start_vol,
+						double end_vol)
+{
 	int s;
 	double sample, step, vol, gradient, pitchGradient;
 
-
-	
 	sample = position * tr->rate;
 	step = sample_dt * pitch * tr->rate;
 
@@ -122,7 +122,8 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 
 	pitchGradient = (end_pitch - pitch) / samples;
 
-	for (s = 0; s < samples; s++) {
+	for (s = 0; s < samples; s++)
+	{
 
 		step = sample_dt * pitch * tr->rate;
 
@@ -132,25 +133,30 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 
 		/* 4-sample window for interpolation */
 
-		sa = (int) sample;
+		sa = (int)sample;
 		if (sample < 0.0)
 			sa--;
 		f = sample - sa;
 		sa--;
 
 		// wrap to track boundary, i.e. loop
-		if (tr->length != 0){
+		if (tr->length != 0)
+		{
 			sa = sa % (int)tr->length;
 			// Actually don't let people go to minus numbers
 			// as entire track might not be loaded yet
 			//if (sa < 0) sa += tr->length;
 		}
 
-		for (q = 0; q < 4; q++, sa++) {
-			if (sa < 0 || sa >= tr->length) {
+		for (q = 0; q < 4; q++, sa++)
+		{
+			if (sa < 0 || sa >= tr->length)
+			{
 				for (c = 0; c < PLAYER_CHANNELS; c++)
 					i[c][q] = 0;
-			} else {
+			}
+			else
+			{
 				signed short *ts;
 				int c;
 
@@ -160,17 +166,23 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 			}
 		}
 
-		for (c = 0; c < PLAYER_CHANNELS; c++) {
+		for (c = 0; c < PLAYER_CHANNELS; c++)
+		{
 			double v;
 
 			v = vol * cubic_interpolate(i[c], f) + dither();
 
-			if (v > SHRT_MAX) {
+			if (v > SHRT_MAX)
+			{
 				*pcm++ = SHRT_MAX;
-			} else if (v < SHRT_MIN) {
+			}
+			else if (v < SHRT_MIN)
+			{
 				*pcm++ = SHRT_MIN;
-			} else {
-				*pcm++ = (signed short) v;
+			}
+			else
+			{
+				*pcm++ = (signed short)v;
 			}
 		}
 
@@ -182,11 +194,9 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
 
 		}*/
 
-
 		vol += gradient;
 		pitch += pitchGradient;
 	}
-
 
 	//return sample_dt * pitch * samples;
 	return (sample / tr->rate) - position;
@@ -201,7 +211,8 @@ static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
  */
 
 static double build_silence(signed short *pcm, unsigned samples,
-		double sample_dt, double pitch) {
+							double sample_dt, double pitch)
+{
 	memset(pcm, '\0', sizeof(*pcm) * PLAYER_CHANNELS * samples);
 	return sample_dt * pitch * samples;
 }
@@ -210,7 +221,8 @@ static double build_silence(signed short *pcm, unsigned samples,
  * Change the timecoder used by this playback
  */
 
-void player_set_timecoder(struct player *pl, struct timecoder *tc) {
+void player_set_timecoder(struct player *pl, struct timecoder *tc)
+{
 	assert(tc != NULL);
 	pl->timecoder = tc;
 	pl->recalibrate = true;
@@ -222,7 +234,8 @@ void player_set_timecoder(struct player *pl, struct timecoder *tc) {
  */
 
 void player_init(struct player *pl, unsigned int sample_rate,
-		struct track *track) {
+				 struct track *track)
+{
 	assert(track != NULL);
 	assert(sample_rate != 0);
 
@@ -241,7 +254,7 @@ void player_init(struct player *pl, unsigned int sample_rate,
 	pl->sync_pitch = 1.0;
 	pl->volume = 0.0;
 	pl->GoodToGo = 0;
-	pl->samplesSoFar=0;
+	pl->samplesSoFar = 0;
 	pl->nominal_pitch = 1.0;
 	pl->stopped = 0;
 	pl->recording = false;
@@ -253,7 +266,8 @@ void player_init(struct player *pl, unsigned int sample_rate,
  * Post: no resources are allocated by the player
  */
 
-void player_clear(struct player *pl) {
+void player_clear(struct player *pl)
+{
 	spin_clear(&pl->lock);
 	track_release(pl->track);
 }
@@ -262,7 +276,8 @@ void player_clear(struct player *pl) {
  * Enable or disable timecode control
  */
 
-void player_set_timecode_control(struct player *pl, bool on) {
+void player_set_timecode_control(struct player *pl, bool on)
+{
 	if (on && !pl->timecode_control)
 		pl->recalibrate = true;
 	pl->timecode_control = on;
@@ -274,32 +289,37 @@ void player_set_timecode_control(struct player *pl, bool on) {
  * Return: the new state of timecode control
  */
 
-bool player_toggle_timecode_control(struct player *pl) {
+bool player_toggle_timecode_control(struct player *pl)
+{
 	pl->timecode_control = !pl->timecode_control;
 	if (pl->timecode_control)
 		pl->recalibrate = true;
 	return pl->timecode_control;
 }
 
-void player_set_internal_playback(struct player *pl) {
+void player_set_internal_playback(struct player *pl)
+{
 	pl->timecode_control = false;
 	pl->pitch = 1.0;
 }
 
-double player_get_position(struct player *pl) {
+double player_get_position(struct player *pl)
+{
 	return pl->position;
 }
 
-double player_get_elapsed(struct player *pl) {
+double player_get_elapsed(struct player *pl)
+{
 	return pl->position - pl->offset;
 }
 
-double player_get_remain(struct player *pl) {
-	return (double) pl->track->length / pl->track->rate + pl->offset
-			- pl->position;
+double player_get_remain(struct player *pl)
+{
+	return (double)pl->track->length / pl->track->rate + pl->offset - pl->position;
 }
 
-bool player_is_active(const struct player *pl) {
+bool player_is_active(const struct player *pl)
+{
 	return (fabs(pl->pitch) > 0.01);
 }
 
@@ -307,7 +327,8 @@ bool player_is_active(const struct player *pl) {
  * Cue to the zero position of the track
  */
 
-void player_recue(struct player *pl) {
+void player_recue(struct player *pl)
+{
 	pl->offset = pl->position;
 }
 
@@ -318,7 +339,8 @@ void player_recue(struct player *pl) {
  * Post: caller does not hold reference on track
  */
 
-void player_set_track(struct player *pl, struct track *track) {
+void player_set_track(struct player *pl, struct track *track)
+{
 	struct track *x;
 	assert(track != NULL);
 	assert(track->refcount > 0);
@@ -334,7 +356,8 @@ void player_set_track(struct player *pl, struct track *track) {
  * for "instant doubles" and beat juggling
  */
 
-void player_clone(struct player *pl, const struct player *from) {
+void player_clone(struct player *pl, const struct player *from)
+{
 	double elapsed;
 	struct track *x, *t;
 
@@ -358,22 +381,24 @@ void player_clone(struct player *pl, const struct player *from) {
  * Return: 0 on success or -1 if the timecoder is not currently valid
  */
 
-
 /*
  * Synchronise to the position given by the timecoder without
  * affecting the audio playback position
  */
 
-static void calibrate_to_timecode_position(struct player *pl) {
+static void calibrate_to_timecode_position(struct player *pl)
+{
 	assert(pl->target_position != TARGET_UNKNOWN);
 	pl->offset += pl->target_position - pl->position;
 	pl->position = pl->target_position;
 }
 
-void retarget(struct player *pl) {
+void retarget(struct player *pl)
+{
 	double diff;
 
-	if (pl->recalibrate) {
+	if (pl->recalibrate)
+	{
 		calibrate_to_timecode_position(pl);
 		pl->recalibrate = false;
 	}
@@ -384,20 +409,21 @@ void retarget(struct player *pl) {
 	diff = pl->position - pl->target_position;
 	pl->last_difference = diff; /* to print in user interface */
 
-	if (fabs(diff) > SKIP_THRESHOLD) {
+	if (fabs(diff) > SKIP_THRESHOLD)
+	{
 
 		/* Jump the track to the time */
 
 		pl->position = pl->target_position;
 		fprintf(stderr, "Seek to new position %.2lfs.\n", pl->position);
-
-	} else if (fabs(pl->pitch) > SYNC_PITCH) {
+	}
+	else if (fabs(pl->pitch) > SYNC_PITCH)
+	{
 
 		/* Re-calculate the drift between the timecoder pitch from
 		 * the sine wave and the timecode values */
 
 		pl->sync_pitch = pl->pitch / (diff / SYNC_TIME + pl->pitch);
-
 	}
 }
 
@@ -405,7 +431,8 @@ void retarget(struct player *pl) {
  * Seek to the given position
  */
 
-void player_seek_to(struct player *pl, double seconds) {
+void player_seek_to(struct player *pl, double seconds)
+{
 	pl->offset = pl->position - seconds;
 	printf("Seek'n %f %f %f\n", seconds, pl->position, pl->offset);
 }
@@ -422,36 +449,42 @@ unsigned long samplesSoFar = 0;
  * Post: buffer at pcm is filled with the given number of samples
  */
 
-bool NearlyEqual(double val1, double val2, double tolerance){
-	if (fabs(val1-val2) < tolerance)
+bool NearlyEqual(double val1, double val2, double tolerance)
+{
+	if (fabs(val1 - val2) < tolerance)
 		return true;
-	else return false;
+	else
+		return false;
 }
 
-void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
+void player_collect(struct player *pl, signed short *pcm, unsigned samples)
+{
 	double r, pitch, target_volume, amountToDecay, target_pitch, filtered_pitch;
 	double diff;
 
 	pl->samplesSoFar += samples;
-	
+
 	//pl->target_position = (sin(((double) pl->samplesSoFar) / 20000) + 1); // Sine wave to simulate scratching, used for debugging
-	
+
 	// figure out motor speed
-	if (pl->stopped){
+	if (pl->stopped)
+	{
 		// Simulate braking
 		if (pl->motor_speed > 0.1)
 			pl->motor_speed = pl->motor_speed - (double)samples / (scsettings.brakespeed * 10);
-		else {
+		else
+		{
 			pl->motor_speed = 0.0;
 		}
 	}
-	else {
+	else
+	{
 		pl->motor_speed = pl->nominal_pitch;
 	}
 
+	if (pl->justPlay == 1 || pl->capTouch == 0)
+	{
 
-	if (pl->justPlay == 1 || pl->capTouch == 0){
-		
 		// Simulate slipmat for lasers/phasers
 		if (pl->pitch < pl->motor_speed - 0.1)
 			target_pitch = pl->pitch + (double)samples / scsettings.slippiness;
@@ -460,14 +493,15 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 		else
 			target_pitch = pl->motor_speed;
 	}
-	else {
+	else
+	{
 		diff = pl->position - pl->target_position;
 
 		target_pitch = (-diff) * 40;
 	}
-	
+
 	filtered_pitch = (0.1 * target_pitch) + (0.9 * pl->pitch);
-	
+
 	amountToDecay = (DECAYSAMPLES) / (double)samples;
 
 	if (NearlyEqual(pl->faderTarget, pl->faderVolume, amountToDecay)) // Make sure to set directly when we're nearly there to avoid oscilation
@@ -475,7 +509,7 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	else if (pl->faderTarget > pl->faderVolume)
 		pl->faderVolume += amountToDecay;
 	else
-		pl->faderVolume -= amountToDecay;	
+		pl->faderVolume -= amountToDecay;
 
 	target_volume = fabs(pl->pitch) * VOLUME * pl->faderVolume;
 
@@ -487,11 +521,14 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples) {
 	/* We must return audio immediately to stay realtime. A spin
 	 * lock protects us from changes to the audio source */
 
-	if (!spin_try_lock(&pl->lock)) {
+	if (!spin_try_lock(&pl->lock))
+	{
 		r = build_silence(pcm, samples, pl->sample_dt, pitch);
-	} else {
+	}
+	else
+	{
 		r = build_pcm(pcm, samples, pl->sample_dt, pl->track,
-				pl->position - pl->offset, pl->pitch, filtered_pitch, pl->volume, target_volume);
+					  pl->position - pl->offset, pl->pitch, filtered_pitch, pl->volume, target_volume);
 		pl->pitch = filtered_pitch;
 		spin_unlock(&pl->lock);
 	}
