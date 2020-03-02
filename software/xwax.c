@@ -156,7 +156,6 @@ void loadSettings()
 					else if (strstr(actions+4, "NOTE") != NULL) {
 						action = ACTION_NOTE;
 						parameter = atoi(actions+8);
-						printf("MIDINOTE --%s-- %u\n", actions+8, parameter);
 					}
 					
 					// Build MIDI command

@@ -12,7 +12,7 @@ void add_MIDI_mapping(struct mapping **maps, unsigned char buf[3], unsigned char
 	new_map->Action = Action;
 	new_map->Param = Param;
 	new_map->next = NULL;
-	printf("Adding Mapping - %x %x %x - dn:%d, a:%d, p:%d\n", buf[0], buf[1], buf[2], DeckNo, Action, Param); 
+	//printf("Adding Mapping - %x %x %x - dn:%d, a:%d, p:%d\n", buf[0], buf[1], buf[2], DeckNo, Action, Param); 
 	if (*maps == NULL){
 		*maps = new_map;
 	}
@@ -37,7 +37,7 @@ void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Pullup, bool 
 	new_map->Action = Action;
 	new_map->Param = Param;
 	new_map->next = NULL;
-	printf("Adding Mapping - pn%x pl:%x ed%x - dn:%d, a:%d, p:%d\n", Pin, Pullup, Edge, DeckNo, Action, Param); 
+	//printf("Adding Mapping - pn%x pl:%x ed%x - dn:%d, a:%d, p:%d\n", Pin, Pullup, Edge, DeckNo, Action, Param); 
 	if (*maps == NULL){
 		*maps = new_map;
 	}
