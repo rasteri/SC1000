@@ -635,8 +635,6 @@ void *SC_InputThread(void *ptr)
 						{
 							player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/var/os-version.mp3"));
 							cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
-							player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, "/var/software-version.mp3"));
-							cues_load_from_file(&deck[1].cues, deck[1].player.track->path);
 							buttonState = BUTTONSTATE_WAITING;
 						}
 					}
@@ -800,12 +798,6 @@ void *SC_InputThread(void *ptr)
 						{
 							deck[0].player.recordingStarted = !deck[0].player.recordingStarted;
 
-							// If we're starting to record, jump back to the start of the beat/sample so we know it happened
-							if (deck[0].player.recordingStarted)
-							{
-								player_seek_to(&deck[0].player, 0.0);
-								player_seek_to(&deck[1].player, 1.0);
-							}
 						}
 					}
 

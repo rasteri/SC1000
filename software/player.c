@@ -259,6 +259,8 @@ void player_init(struct player *pl, unsigned int sample_rate,
 	pl->stopped = 0;
 	pl->recording = false;
 	pl->recordingStarted = false;
+	pl->beepPos = 0;
+	pl->playingBeep = -1;
 }
 
 /*

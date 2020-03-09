@@ -27,13 +27,23 @@
 
 #define PLAYER_CHANNELS 2
 
+// How many samples each beep stage lasts
+#define BEEPSPEED 4800
+
+#define BEEP_NONE -1
+#define BEEP_RECORDINGSTART 0
+#define BEEP_RECORDINGSTOP 1
+
+
+
+
 struct player {
     double sample_dt;
 
     spin lock;
     struct track *track;
 
-long samplesSoFar;
+    long samplesSoFar;
 
 
     /* Current playback parameters */
@@ -63,6 +73,10 @@ long samplesSoFar;
 
     bool recording;
     bool recordingStarted;
+
+    int playingBeep;
+    unsigned long beepPos;
+    
     FILE *recordingFile;
 };
 
