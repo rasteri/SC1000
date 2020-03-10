@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <dirent.h>
+#include <string.h>
 #include "sc_playlist.h"
 
 struct File * GetFileAtIndex(unsigned int index, struct Folder *FirstFolder) {

@@ -138,9 +138,7 @@ void load_and_sync_encoder(struct deck *d, struct track *track)
 
 static void IOevent(unsigned char pin, bool edge)
 {
-	//	printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
 	struct mapping *map = find_IO_mapping(maps, pin, edge);
-	unsigned int pval;
 
 	if (map != NULL)
 	{
@@ -215,18 +213,16 @@ void *SC_InputThread(void *ptr)
 	unsigned char picskip = 0;
 
 	int wrappedAngle = 0x0000;
-	unsigned int totalTurns = 0x0001;
 	unsigned int ADCs[4] = {0, 0, 0, 0};
 	unsigned int numBlips = 0;
 	bool capIsTouched = 0;
-	uint32_t accumulatedPos = 0;
 	unsigned char buttonState = 0;
 	unsigned char buttons[4] = {0, 0, 0, 0}, totalbuttons[4] = {0, 0, 0, 0};
 	unsigned int butCounter = 0;
 	unsigned int i = 0;
 	unsigned int NumBeats, NumSamples;
-	struct Folder *FirstBeatFolder, *CurrentBeatFolder, *FirstSampleFolder, *CurrentSampleFolder;
-	struct File *CurrentBeatFile, *CurrentSampleFile;
+	struct Folder *FirstBeatFolder = NULL, *CurrentBeatFolder = NULL, *FirstSampleFolder = NULL, *CurrentSampleFolder = NULL;
+	struct File *CurrentBeatFile = NULL, *CurrentSampleFile = NULL;
 	unsigned char faderOpen = 0;
 	unsigned int faderCutPoint;
 	unsigned char picpresent = 1;
@@ -239,8 +235,6 @@ void *SC_InputThread(void *ptr)
 	struct mapping *map;
 	bool firstTimeRound = 1;
 	bool beatsPresent = 0, samplesPresent = 0;
-
-	bool alreadyAdded = 0;
 
 	char mididevices[64][64];
 	int mididevicenum = 0, oldmididevicenum = 0;
@@ -411,7 +405,6 @@ void *SC_InputThread(void *ptr)
 	unsigned int frameCount = 0;
 	struct timespec ts;
 	double inputtime = 0, lastinputtime = 0;
-	int decknum = 0, cuepointnum = 0;
 
 	sleep(2);
 	for (i = 0; i < 16; i++)
@@ -781,7 +774,7 @@ void *SC_InputThread(void *ptr)
 							load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
 						}
 					}
-					else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3 && beatsPresent])
+					else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3] && beatsPresent)
 					{
 						printf("Beats - both buttons held\n");
 						r = rand() % NumBeats;

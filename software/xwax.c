@@ -58,8 +58,6 @@ static const char *importer;
 
 SC_SETTINGS scsettings;
 
-static struct controller midiController;
-
 struct mapping *maps = NULL;
 
 void loadSettings()
@@ -70,8 +68,8 @@ void loadSettings()
 	ssize_t read;
 	char *param, *actions;
 	char *value;
-	unsigned char channel, notenum, action=69, deckno, parameter, controlType, pin, pullup;
-	char *edge;
+	unsigned char channel=0, notenum=0, action=69, deckno=0, parameter=0, controlType=0, pin=0, pullup=0;
+	char edge;
 	char delim[] = "=";
 	char delimc[] = ",";
 	unsigned char midicommand[3];
@@ -279,7 +277,6 @@ int main(int argc, char *argv[])
 	int rc = -1, priority;
 	bool use_mlock;
 
-	int alsa_buffer;
 	int rate;
 
 	if (signal(SIGINT, sig_handler) == SIG_ERR){
@@ -301,19 +298,10 @@ int main(int argc, char *argv[])
 	importer = DEFAULT_IMPORTER;
 	use_mlock = false;
 
-	/*int num;
-	char midinames[32][32];
-
-	int devs = device_list(midinames);
-	for (int cunt = 0; cunt < devs; cunt++)
-		printf("%d - %s\n", cunt, midinames[cunt]);*/
-
-
 	loadSettings();
 
 	// Create two decks, both pointed at the same audio device
 
-	alsa_buffer = 2;
 	rate = 48000;
 
 	alsa_init(&deck[0].device, "hw:0,0", rate, scsettings.buffersize, 0);

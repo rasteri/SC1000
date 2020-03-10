@@ -30,8 +30,6 @@ int listdev(char *devname, char names[64][64])
     int    err;
     char** n;
     char*  name;
-    char*  desc;
-    char*  ioid;
 
     int num = 0;
 
@@ -80,42 +78,12 @@ int midi_open(struct midi *m, const char *name)
 {
     int r;
 
-    snd_rawmidi_params_t *params;
-
     r = snd_rawmidi_open(&m->in, &m->out, name, SND_RAWMIDI_NONBLOCK);
     if (r < 0)
     {
         alsa_error("rawmidi_open", r);
         return -1;
     }
-
-    /*snd_rawmidi_params_alloca(&params); 
-	
-	r = snd_rawmidi_params_current(m->in, params);
-	if (r < 0) {
-        alsa_error("rawmidi_params", r);
-        return -1;
-    }
-	
-	r = snd_rawmidi_params_set_buffer_size(m->in, params, 16384);
-	if (r < 0) {
-        alsa_error("rawmidi_params", r);
-        return -1;
-    }
-	
-	r = snd_rawmidi_params(m->in, params);
-	if (r < 0) {
-        alsa_error("rawmidi_params", r);
-        return -1;
-    }
-	
-	r = snd_rawmidi_params_current(m->in, params);
-	if (r < 0) {
-        alsa_error("rawmidi_params", r);
-        return -1;
-    }
-	
-	printf("--------------MIDI BUFFAH SIZE : %d ----------\n", snd_rawmidi_params_get_buffer_size (params));*/
 
     return 0;
 }

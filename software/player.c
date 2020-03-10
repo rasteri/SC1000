@@ -461,7 +461,7 @@ bool NearlyEqual(double val1, double val2, double tolerance)
 
 void player_collect(struct player *pl, signed short *pcm, unsigned samples)
 {
-	double r, pitch, target_volume, amountToDecay, target_pitch, filtered_pitch;
+	double r, pitch=0.0, target_volume, amountToDecay, target_pitch, filtered_pitch;
 	double diff;
 
 	pl->samplesSoFar += samples;

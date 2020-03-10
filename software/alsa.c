@@ -23,6 +23,7 @@
 #include <sys/poll.h>
 #include <alsa/asoundlib.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "alsa.h"
 #include "player.h"
@@ -345,6 +346,7 @@ static int playback(struct device *dv)
             else {
                 dv->player->playingBeep = -1;
                 dv->player->beepPos = 0;
+                break;
             }
         }
     }

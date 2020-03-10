@@ -17,7 +17,6 @@
  *
  */
 
-
 #include <stdlib.h>
 
 #include "controller.h"
@@ -37,13 +36,11 @@
 #define ROLL 2
 #define NOTE 3*/
 
-
-
 #ifdef DEBUG
 static const char *actions[] = {
-    "CUE",
-    "LOOP",
-    "ROLL"};
+	"CUE",
+	"LOOP",
+	"ROLL"};
 #endif
 
 /* LED states */
@@ -64,65 +61,21 @@ extern struct mapping *maps;
 
 static int add_deck(struct controller *c, struct deck *k)
 {
-    struct dicer *d = c->local;
+	struct dicer *d = c->local;
 	int i;
 
-    debug("%p add deck %p", d, k);
-	
-	for (i = 0; i < NUMDECKS; i++){
-		if (d->decks[i] == NULL){
+	debug("%p add deck %p", d, k);
+
+	for (i = 0; i < NUMDECKS; i++)
+	{
+		if (d->decks[i] == NULL)
+		{
 			d->decks[i] = k;
 			break;
 		}
 	}
 
-    return 0;
-}
-
-
-/*
- * Act on an event, and update the given LED status
- */
-
-static void event_decoded(struct deck *d,
-                          unsigned char action, bool shift,
-                          unsigned char button, bool on)
-{
-
-    if (shift && on)
-    {
-        deck_unset_cue(d, button);
-		deck_cue(d, button); 
-    }
-
-    if (shift)
-        return;
-
-    if (action == CUE && on)
-    {
-        deck_cue(d, button); 
-    }
-
-    /*if (action == LOOP)
-    {
-        if (on)
-        {
-            deck_punch_in(d, button);
-        }
-        else
-        {
-            deck_punch_out(d);
-        }
-    }*/
-	
-
-
-    if (action == NOTE){
-        //Middle is 0x3C
-        
-        d->player.nominal_pitch = pow(pow(2, (double)1/12), button - 0x3C); // equal temperament
-        printf("Button: %x %f\n", button, d->player.nominal_pitch);
-    }
+	return 0;
 }
 
 /*
@@ -131,53 +84,62 @@ static void event_decoded(struct deck *d,
 
 static void event(struct dicer *d)
 {
-//	printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
+	//	printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
 	struct mapping *map = find_MIDI_mapping(maps, d->MidiBuffer);
 	unsigned int pval;
-	
-	if (map != NULL){
-//		printf("Map notnull %d %d %d\n", map->DeckNo, map->Action, map->Param);
-		
-		if (map->Action == ACTION_CUE){
-			if (d->shifted) deck_unset_cue(d->decks[map->DeckNo], map->MidiBytes[1]);
-			else deck_cue(d->decks[map->DeckNo], map->MidiBytes[1]);
+
+	if (map != NULL)
+	{
+		//		printf("Map notnull %d %d %d\n", map->DeckNo, map->Action, map->Param);
+
+		if (map->Action == ACTION_CUE)
+		{
+			if (d->shifted)
+				deck_unset_cue(d->decks[map->DeckNo], map->MidiBytes[1]);
+			else
+				deck_cue(d->decks[map->DeckNo], map->MidiBytes[1]);
 		}
-		else if (map->Action == ACTION_NOTE){
-			d->decks[map->DeckNo]->player.nominal_pitch = pow(pow(2, (double)1/12), map->Param - 0x3C); // equal temperament
+		else if (map->Action == ACTION_NOTE)
+		{
+			d->decks[map->DeckNo]->player.nominal_pitch = pow(pow(2, (double)1 / 12), map->Param - 0x3C); // equal temperament
 		}
-		else if (map->Action == ACTION_STARTSTOP){
+		else if (map->Action == ACTION_STARTSTOP)
+		{
 			d->decks[map->DeckNo]->player.stopped = !d->decks[map->DeckNo]->player.stopped;
 		}
-		else if (map->Action == ACTION_SHIFTON){
+		else if (map->Action == ACTION_SHIFTON)
+		{
 			d->shifted = 1;
 		}
-		else if (map->Action == ACTION_SHIFTOFF){
+		else if (map->Action == ACTION_SHIFTOFF)
+		{
 			d->shifted = 0;
 		}
-		else if (map->Action == ACTION_PITCH){
+		else if (map->Action == ACTION_PITCH)
+		{
 			double pitch = 0.0;
 			// If this came from a pitch bend message, use 14 bit accuracy
-			if ((d->MidiBuffer[0]  & 0xF0) == 0xE0){
+			if ((d->MidiBuffer[0] & 0xF0) == 0xE0)
+			{
 				pval = (((unsigned int)d->MidiBuffer[2]) << 7) | ((unsigned int)d->MidiBuffer[1]);
-				pitch = (((double)pval - 8192.0) * ((double)scsettings.pitchrange / 819200.0) )+ 1;
+				pitch = (((double)pval - 8192.0) * ((double)scsettings.pitchrange / 819200.0)) + 1;
 			}
-			// Otherwise 7bit (boo) 
-			else {
+			// Otherwise 7bit (boo)
+			else
+			{
 				pitch = (((double)d->MidiBuffer[2] - 64.0) * ((double)scsettings.pitchrange / 6400.0) + 1);
 			}
-			
+
 			d->decks[map->DeckNo]->player.nominal_pitch = pitch;
 		}
-		
-		
 	}
 }
 
 static ssize_t pollfds(struct controller *c, struct pollfd *pe, size_t z)
 {
-    struct dicer *d = c->local;
+	struct dicer *d = c->local;
 
-    return midi_pollfds(&d->midi, pe, z);
+	return midi_pollfds(&d->midi, pe, z);
 }
 
 /*
@@ -188,38 +150,43 @@ static ssize_t pollfds(struct controller *c, struct pollfd *pe, size_t z)
 
 static int realtime(struct controller *c)
 {
-    struct dicer *d = c->local;
-	bool foundValidCommand = 0;
-    for (;;)
-    {
-        unsigned char buf;
+	struct dicer *d = c->local;
+	for (;;)
+	{
+		unsigned char buf;
 		unsigned char command;
-        ssize_t z;
-		
+		ssize_t z;
+
 		z = midi_read(&d->midi, &buf, 1);
 		if (z == -1)
 			return -1;
 		if (z == 0)
 			return 0;
-		
+
 		// Bit 7 set, this is a status byte
-		if (buf & 0x80){
+		if (buf & 0x80)
+		{
 			command = buf & 0xF0;
-			if (command == 0x80 || command == 0x90 || command == 0xB0 || command == 0xE0) {
-					d->parsing = 1;
-					d->MidiBuffer[0] = buf;
+			if (command == 0x80 || command == 0x90 || command == 0xB0 || command == 0xE0)
+			{
+				d->parsing = 1;
+				d->MidiBuffer[0] = buf;
 			}
-			else d->parsing = 0;
+			else
+				d->parsing = 0;
 		}
-		
+
 		// Bit 7 unset, this is a data byte
-		else {
+		else
+		{
 			// If we're currently in a MIDI message, add to buffer
-			if (d->parsing){
+			if (d->parsing)
+			{
 				d->MidiBuffer[++(d->ParsedBytes)] = buf;
-				
+
 				// If we've reached the second byte, process
-				if (d->ParsedBytes == 2){
+				if (d->ParsedBytes == 2)
+				{
 					d->parsing = 0;
 					d->ParsedBytes = 0;
 					event(d);
@@ -227,76 +194,68 @@ static int realtime(struct controller *c)
 			}
 		}
 
+		debug("got event");
+	}
 
-        debug("got event");
-
-    }
-
-
-    return 0;
+	return 0;
 }
 
 static void clear(struct controller *c)
 {
-    struct dicer *d = c->local;
-    size_t n;
+	struct dicer *d = c->local;
+	size_t n;
 
-    debug("%p", d);
+	debug("%p", d);
 
-
-
-    midi_close(&d->midi);
-    free(c->local);
+	midi_close(&d->midi);
+	free(c->local);
 }
 
 static struct controller_ops dicer_ops = {
-    .add_deck = add_deck,
-    .pollfds = pollfds,
-    .realtime = realtime,
-    .clear = clear,
+	.add_deck = add_deck,
+	.pollfds = pollfds,
+	.realtime = realtime,
+	.clear = clear,
 };
 
 int dicer_init(struct controller *c, struct rt *rt, const char *hw)
 {
-    size_t n;
-    struct dicer *d;
+	struct dicer *d;
 	int i;
-	
 
+	printf("init %p from %s\n", c, hw);
 
-    printf("init %p from %s\n", c, hw);
-
-    d = malloc(sizeof *d);
-    if (d == NULL)
-    {
-        perror("malloc");
-        return -1;
-    }
+	d = malloc(sizeof *d);
+	if (d == NULL)
+	{
+		perror("malloc");
+		return -1;
+	}
 
 	strcpy(d->PortName, hw);
 
-    if (midi_open(&d->midi, hw) == -1)
-        goto fail;
+	if (midi_open(&d->midi, hw) == -1)
+		goto fail;
 
-    d->ofill = 0;
-	
-	for (i = 0; i < NUMDECKS; i++){
+	d->ofill = 0;
+
+	for (i = 0; i < NUMDECKS; i++)
+	{
 		d->decks[i] = NULL;
 	}
 
+	if (controller_init(c, &dicer_ops, d, rt) == -1)
+		goto fail_midi;
 
-    if (controller_init(c, &dicer_ops, d, rt) == -1)
-        goto fail_midi;
-	
 	d->shifted = 0;
 	d->parsing = 0;
 	d->ParsedBytes = 0;
 
-    return 0;
+	return 0;
 
 fail_midi:
-    midi_close(&d->midi);
+	midi_close(&d->midi);
 fail:
-    free(d);
-    return -1;
+	free(d);
+	return -1;
 }
