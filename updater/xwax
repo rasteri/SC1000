@@ -1,8 +1,8 @@
 #!/bin/sh
 
-echo "---SC1000 Update Script v0.4---"
+echo "---SC1000 Update Script v1.3---"
 
-if grep -Fxq -- "---0.4---" /var/osversion; then
+if grep -Fxq -- "---1.3---" /var/osversion; then
 	echo "ERROR : This version is already installed"
 	umount /tmp/bootpart
 	sync
@@ -13,8 +13,8 @@ else
 
 	mount /dev/mmcblk0p1 /tmp/bootpart
 
-	if tar -C /tmp/bootpart/ -xf /media/sda/sc.tar zImage && tar -C /tmp/bootpart/ -xf /media/sda/sc.tar sun5i-a13-olinuxino.dtb && tar -C /usr/bin -xf /media/sda/sc.tar xwax && tar -C /var -xf /media/sda/sc.tar software-version.mp3 && tar -C /var -xf /media/sda/sc.tar os-version.mp3 && tar -C /var -xf /media/sda/sc.tar scratchsentence.mp3 ; then
-		echo "---0.4---" > /var/osversion
+	if tar -C /tmp/bootpart/ -xf /media/sda/sc.tar zImage && tar -C /tmp/bootpart/ -xf /media/sda/sc.tar sun5i-a13-olinuxino.dtb && tar -C /usr/bin -xf /media/sda/sc.tar xwax && tar -C /var -xf /media/sda/sc.tar os-version.mp3 && tar -C /var -xf /media/sda/sc.tar scratchsentence.mp3 ; then
+		echo "---1.3---" > /var/osversion
 		echo "SC1000 software updated!"
 		umount /tmp/bootpart
 		sync
