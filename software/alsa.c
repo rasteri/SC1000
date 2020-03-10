@@ -326,6 +326,7 @@ static int playback(struct device *dv)
     // Add beeps, if we need to
     if (dv->player->playingBeep != -1)
     {
+		
         for (i = 0; i < alsa->playback.period * 2; i++)
         {
             char curChar = BEEPS[dv->player->playingBeep][dv->player->beepPos++ / BEEPSPEED];
@@ -339,7 +340,7 @@ static int playback(struct device *dv)
                     beepFreq = 0;
 
                 if (beepFreq != 0)
-                    alsa->playback.buf[i] += (sin(((double)dv->player->playingBeep) / (48000 / beepFreq))) * 20000;
+                    alsa->playback.buf[i] += sin(((double)dv->player->beepPos / (48000.0/(double)beepFreq)) * 6.2831) * 20000.0;
             }
             else {
                 dv->player->playingBeep = -1;
