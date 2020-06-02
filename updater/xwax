@@ -1,20 +1,14 @@
 #!/bin/sh
 
-echo "---SC1000 Update Script v1.4---"
+# If one of the beats buttons is pressed, perform update
+if i2cget -y 2 0x69 0x05 | grep -Exq "0x[0-f](7|b|3)"; then
+	echo "---SC1000 Update Script v1.3---"
 
-if grep -Fxq -- "---1.4---" /var/osversion; then
-	echo "ERROR : This version is already installed"
-	umount /tmp/bootpart
-	sync
-	# just run the local xwax
-	/usr/bin/xwax
-else
 	mkdir /tmp/bootpart
 
 	mount /dev/mmcblk0p1 /tmp/bootpart
 
 	if tar -C /tmp/bootpart/ -xf /media/sda/sc.tar zImage && tar -C /tmp/bootpart/ -xf /media/sda/sc.tar sun5i-a13-olinuxino.dtb && tar -C /usr/bin -xf /media/sda/sc.tar xwax && tar -C /var -xf /media/sda/sc.tar os-version.mp3 && tar -C /var -xf /media/sda/sc.tar scratchsentence.mp3 ; then
-		echo "---1.4---" > /var/osversion
 		echo "SC1000 software updated!"
 		umount /tmp/bootpart
 		sync
@@ -29,6 +23,8 @@ else
 		tar -C /tmp/ -xf /media/sda/sc.tar failed.mp3
 		mpg123 --loop -1 /tmp/failed.mp3
 	fi
+
+# If no beat buttons pressed, just run the local xwax
+else
+        /usr/bin/xwax
 fi
-
-

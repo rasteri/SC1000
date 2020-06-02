@@ -145,12 +145,9 @@ void cues_load_from_file(struct cues *q, char const* pathname)
 
 void cues_save_to_file(struct cues *q, char const* pathname)
 {
+    static char syncCommandLine[300];
     if (q->position[0] == 0.0)
         return;
-
-    
-    
-    fprintf(stdout, "Saving Loc: %s\n", pathname);
 
     char* cuepath = replace_path_ext(pathname);
     if (cuepath == NULL)
@@ -168,7 +165,10 @@ void cues_save_to_file(struct cues *q, char const* pathname)
         fprintf(f, "%lf\n", q->position[i]);
 
     fclose(f);
+    sprintf(syncCommandLine, "/bin/sync %s", cuepath);
+    system(syncCommandLine);
     free(cuepath);
+
 }
 
 /*

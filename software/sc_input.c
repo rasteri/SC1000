@@ -643,7 +643,7 @@ void *SC_InputThread(void *ptr)
 						buttonState = BUTTONSTATE_ACTING_INSTANT;
 
 					butCounter++;
-					if (butCounter > 250)
+					if (butCounter > scsettings.holdtime)
 					{
 						butCounter = 0;
 						buttonState = BUTTONSTATE_ACTING_HELD;

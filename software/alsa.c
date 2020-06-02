@@ -29,9 +29,10 @@
 #include "player.h"
 #include "track.h"
 
-const char *BEEPS[2] = {
-    "----------",       // Start Recording
-    "- - - - - - - - -" // Stop Recording
+const char *BEEPS[3] = {
+    "----------",          // Start Recording
+    "- - - - - - - - -",   // Stop Recording
+    "--__--__--__--__--__" // Recording error
 };
 
 /* This structure doesn't have corresponding functions to be an
@@ -268,19 +269,29 @@ static int playback(struct device *dv)
     int r, i;
     struct alsa *alsa = (struct alsa *)dv->local;
     static int32_t adder = 0;
-    static char writeFileName[100];
-    static unsigned int nextRecordingNumber = 0;
+    static int16_t nextRecordingNumber = 0;
+    static char syncCommandLine[300];
 
     if (dv->player->recordingStarted && !dv->player->recording)
     {
         nextRecordingNumber = 0;
         while (1)
         {
-            sprintf(writeFileName, "/media/sda/sc%06d.raw", nextRecordingNumber);
-            if (access(writeFileName, F_OK) != -1)
+            sprintf(dv->player->recordingFileName, "/media/sda/sc%06d.raw", nextRecordingNumber);
+            if (access(dv->player->recordingFileName, F_OK) != -1)
             {
                 // file exists
                 nextRecordingNumber++;
+
+                // If we've reached max files then abort (very unlikely, heh)
+                if (nextRecordingNumber == INT16_MAX)
+                {
+                    printf("Too many recordings\n");
+                    nextRecordingNumber = -1;
+                    dv->player->playingBeep = BEEP_RECORDINGERROR;
+                    dv->player->recordingStarted = 0;
+                    break;
+                }
             }
             else
             {
@@ -288,16 +299,25 @@ static int playback(struct device *dv)
                 break;
             }
         }
-        printf("Opening file %s for recording\n", writeFileName);
-        dv->player->recordingFile = fopen(writeFileName, "w");
-        dv->player->recording = 1;
-        dv->player->playingBeep = BEEP_RECORDINGSTART;
-    }
-    if (!dv->player->recordingStarted && dv->player->recording)
-    {
-        fclose(dv->player->recordingFile);
-        dv->player->recording = 0;
-        dv->player->playingBeep = BEEP_RECORDINGSTOP;
+
+        if (nextRecordingNumber != -1)
+        {
+            printf("Opening file %s for recording\n", dv->player->recordingFileName);
+            dv->player->recordingFile = fopen(dv->player->recordingFileName, "w");
+
+            // On error, don't start
+            if (dv->player->recordingFile == NULL)
+            {
+                printf("Failed to open recording file\n");
+                dv->player->recordingStarted = 0;
+                dv->player->playingBeep = BEEP_RECORDINGERROR;
+            }
+            else
+            {
+                dv->player->recording = 1;
+                dv->player->playingBeep = BEEP_RECORDINGSTART;
+            }
+        }
     }
 
     /*if ((dv->player->GoodToGo && dv->player2->GoodToGo) || (dv->player->track->finished == 1 && dv->player2->track->finished)){
@@ -322,28 +342,43 @@ static int playback(struct device *dv)
     //}
 
     if (dv->player->recording)
+    {
         fwrite(alsa->playback.buf, alsa->playback.period * DEVICE_CHANNELS * sizeof(signed short), 1, dv->player->recordingFile);
+    }
 
     // Add beeps, if we need to
     if (dv->player->playingBeep != -1)
     {
-		
+
         for (i = 0; i < alsa->playback.period * 2; i++)
         {
-            char curChar = BEEPS[dv->player->playingBeep][dv->player->beepPos++ / BEEPSPEED];
+            char curChar = BEEPS[dv->player->playingBeep][dv->player->beepPos / BEEPSPEED];
             if (curChar)
             {
                 unsigned int beepFreq = 0;
 
                 if (curChar == '-')
                     beepFreq = 440;
+                else if (curChar == '_')
+                    beepFreq = 220;
                 else
                     beepFreq = 0;
 
                 if (beepFreq != 0)
-                    alsa->playback.buf[i] += sin(((double)dv->player->beepPos / (48000.0/(double)beepFreq)) * 6.2831) * 20000.0;
+                {
+                    adder = (int32_t)alsa->playback.buf[i] + (sin(((double)dv->player->beepPos / (48000.0 / (double)beepFreq)) * 6.2831) * 20000.0);
+
+                    // saturate add
+                    if (adder > INT16_MAX)
+                        adder = INT16_MAX;
+                    if (adder < INT16_MIN)
+                        adder = INT16_MIN;
+                    alsa->playback.buf[i] = (int16_t)adder;
+                }
+                dv->player->beepPos++;
             }
-            else {
+            else
+            {
                 dv->player->playingBeep = -1;
                 dv->player->beepPos = 0;
                 break;
@@ -359,6 +394,16 @@ static int playback(struct device *dv)
     {
         fprintf(stderr, "alsa: playback underrun %d/%ld.\n", r,
                 alsa->playback.period);
+    }
+
+    if (!dv->player->recordingStarted && dv->player->recording)
+    {
+        fflush(dv->player->recordingFile);
+        fclose(dv->player->recordingFile);
+        sprintf(syncCommandLine, "/bin/sync %s", dv->player->recordingFileName);
+        system(syncCommandLine);
+        dv->player->recording = 0;
+        dv->player->playingBeep = BEEP_RECORDINGSTOP;
     }
 
     return 0;

@@ -21,6 +21,8 @@
 #define PLAYER_H
 
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "spin.h"
 #include "track.h"
@@ -33,6 +35,7 @@
 #define BEEP_NONE -1
 #define BEEP_RECORDINGSTART 0
 #define BEEP_RECORDINGSTOP 1
+#define BEEP_RECORDINGERROR 2
 
 
 
@@ -78,6 +81,7 @@ struct player {
     unsigned long beepPos;
     
     FILE *recordingFile;
+    char recordingFileName[256];
 };
 
 void player_init(struct player *pl, unsigned int sample_rate,
