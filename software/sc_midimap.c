@@ -13,6 +13,7 @@ void add_MIDI_mapping(struct mapping **maps, unsigned char buf[3], unsigned char
 	new_map->Action = Action;
 	new_map->Param = Param;
 	new_map->next = NULL;
+	new_map->Type = MAP_MIDI;
 	//printf("Adding Mapping - %x %x %x - dn:%d, a:%d, p:%d\n", buf[0], buf[1], buf[2], DeckNo, Action, Param); 
 	if (*maps == NULL){
 		*maps = new_map;
@@ -38,7 +39,35 @@ void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Pullup, bool 
 	new_map->Action = Action;
 	new_map->Param = Param;
 	new_map->next = NULL;
+	new_map->Type = MAP_IO;
 	//printf("Adding Mapping - pn%x pl:%x ed%x - dn:%d, a:%d, p:%d\n", Pin, Pullup, Edge, DeckNo, Action, Param); 
+	if (*maps == NULL){
+		*maps = new_map;
+	}
+	else {
+		struct mapping *last_map = *maps;
+		
+		while (last_map->next != NULL){
+			last_map = last_map->next;
+		}
+		
+		last_map->next = new_map;
+	}
+	
+}
+
+void add_GPIO_mapping(struct mapping **maps, unsigned char port, unsigned char Pin, bool Pullup, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param){
+	struct mapping *new_map = (struct mapping*) malloc(sizeof(struct mapping));
+	new_map->Pin = Pin;
+	new_map->port = port;
+	new_map->Pullup = Pullup;
+	new_map->Edge = Edge;
+	new_map->DeckNo = DeckNo;
+	new_map->Action = Action;
+	new_map->Param = Param;
+	new_map->next = NULL;
+	new_map->Type = MAP_GPIO;
+	printf("Adding Mapping - po:%d pn%x pl:%x ed%x - dn:%d, a:%d, p:%d\n", port, Pin, Pullup, Edge, DeckNo, Action, Param); 
 	if (*maps == NULL){
 		*maps = new_map;
 	}
@@ -88,6 +117,22 @@ struct mapping *find_IO_mapping(struct mapping *maps, unsigned char pin, bool ed
 	while (last_map != NULL){
 			
 		if (last_map->Pin == pin && last_map->Edge == edge){
+			return last_map;
+		} 
+		
+		last_map = last_map->next;
+	}
+	return NULL;
+}
+
+// Find a mapping from a GPIO event
+struct mapping *find_GPIO_mapping(struct mapping *maps, unsigned char port, unsigned char pin, bool edge){
+	
+	struct mapping *last_map = maps;
+	
+	while (last_map != NULL){
+			
+		if (last_map->Pin == pin && last_map->Edge == edge && last_map->port == port){
 			return last_map;
 		} 
 		

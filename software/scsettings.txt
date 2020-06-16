@@ -41,6 +41,33 @@ pitchrange=50
 # Or to give you time to switch your phone to MIDI mode
 mididelay=5
 
+
+###########################
+# Internal GPIO Mapping   #
+###########################
+#
+# This section is used to wire buttons directly onto the Olimex module's GPIO
+# Format is : 
+# gpio=port,pin,pull,edge,action
+# port is 012345 for BCDEFG
+# pin is pin number
+# pull is 1 for pullup, 2 for pulldown
+# edge is 1 for pressing edge, 0 for releasing edge
+# action is one of :
+# 
+# (replace x with 0 for beats or 1 for samples) :
+# CHx_CUE - Set and trigger cue points
+# CHx_SHIFTON - Activate shift mode (ignores x)
+# CHx_SHIFTOFF - Deactivate shift mode (also ignores x)
+# CHx_STARTSTOP - Start or Stop the track
+# CHx_NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
+# CHx_GND - make the pin an output and set it low - used to provide additional ground connections (ignores x)
+
+gpio=1,5,1,1,CH1_CUE
+gpio=1,6,1,1,CH1_CUE
+gpio=1,7,1,1,CH1_CUE
+gpio=1,8,1,1,CH1_CUE
+
 ###########################
 # External I/O Mapping    #
 ###########################

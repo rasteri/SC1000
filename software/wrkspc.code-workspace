@@ -22,7 +22,14 @@
 			"sstream": "c",
 			"unistd.h": "c",
 			"midi.h": "c",
-			"sc_midimap.h": "c"
+			"sc_midimap.h": "c",
+			"ratio": "c",
+			"system_error": "c",
+			"array": "c",
+			"functional": "c",
+			"tuple": "c",
+			"type_traits": "c",
+			"utility": "c"
 		}
 	}
 }

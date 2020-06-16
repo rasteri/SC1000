@@ -45,6 +45,7 @@
 
 #define MAP_MIDI 0
 #define MAP_IO 1
+#define MAP_GPIO 2
 
 // Defines a mapping between a MIDI event and an action
 struct mapping {
@@ -60,6 +61,8 @@ struct mapping {
 	bool Pullup; // Whether or not to pull the pin up
 	bool Edge; // Edge (1 for unpressed-to-pressed)
 
+	// GPIO event info
+	unsigned char port; // GPIO port number
 
 	// Action
 	unsigned char DeckNo; // Which deck to apply this action to
@@ -71,6 +74,8 @@ struct mapping {
 
 void add_MIDI_mapping(struct mapping **maps, unsigned char buf[3], unsigned char DeckNo, unsigned char Action, unsigned char Param);
 void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Pullup, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param);
+void add_GPIO_mapping(struct mapping **maps, unsigned char port, unsigned char Pin, bool Pullup, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param);
 struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3]);
 struct mapping *find_IO_mapping(struct mapping *maps, unsigned char pin, bool edge);
+struct mapping *find_GPIO_mapping(struct mapping *maps, unsigned char port, unsigned char pin, bool edge);
 #endif

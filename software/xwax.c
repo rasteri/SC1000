@@ -68,8 +68,9 @@ void loadSettings()
 	ssize_t read;
 	char *param, *actions;
 	char *value;
-	unsigned char channel=0, notenum=0, action=69, deckno=0, parameter=0, controlType=0, pin=0, pullup=0;
+	unsigned char channel=0, notenum=0, action=69, deckno=0, parameter=0, controlType=0, pin=0, pullup=0, port=0;
 	char edge;
+	char *portString;
 	char delim[] = "=";
 	char delimc[] = ",";
 	unsigned char midicommand[3];
@@ -170,6 +171,41 @@ void loadSettings()
 					);
 					
 				}
+				else if (strstr(param, "gpio") != NULL){
+					printf("Found gpio\n");
+					port = atoi(strtok_r(value, delimc, &valuetok));
+					pin = atoi(strtok_r(NULL, delimc, &valuetok));
+					pullup = atoi(strtok_r(NULL, delimc, &valuetok));
+					edge = atoi(strtok_r(NULL, delimc, &valuetok));
+					actions = strtok_r(NULL, delimc, &valuetok);
+					parameter = 0;
+
+					// Extract deck no from action (CHx)
+					if (actions[2] == '0') deckno = 0;
+					if (actions[2] == '1') deckno = 1;
+
+					// figure out which action it is
+					if (strstr(actions+4, "CUE") != NULL) action = ACTION_CUE;
+					else if (strstr(actions+4, "SHIFTON") != NULL) action = ACTION_SHIFTON;
+					else if (strstr(actions+4, "SHIFTOFF") != NULL) action = ACTION_SHIFTOFF;
+					else if (strstr(actions+4, "STARTSTOP") != NULL) action = ACTION_STARTSTOP;
+					else if (strstr(actions+4, "GND") != NULL) action = ACTION_GND;
+					else if (strstr(actions+4, "NOTE") != NULL) {
+						action = ACTION_NOTE;
+						parameter = atoi(actions+9);
+					}
+
+					add_GPIO_mapping(
+						&maps, 
+						port,
+						pin,
+						pullup,
+						edge,
+						deckno,
+						action, 
+						parameter
+					);
+				}
 				else if (strstr(param, "io") != NULL){
 					pin = atoi(strtok_r(value, delimc, &valuetok));
 					pullup = atoi(strtok_r(NULL, delimc, &valuetok));
@@ -202,6 +238,7 @@ void loadSettings()
 						parameter
 					);
 				}
+				
 				else if (strcmp(param, "mididelay") == 0) // Literally just a sleep to allow USB devices longer to initialize
 					scsettings.mididelay = atoi(value);
 				else {

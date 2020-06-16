@@ -12,6 +12,8 @@
 #include <fcntl.h>		   //Needed for I2C port
 #include <sys/ioctl.h>	 //Needed for I2C port
 #include <linux/i2c-dev.h> //Needed for I2C port
+#include <sys/mman.h>
+#include <fcntl.h>
 #include <sys/time.h>
 #include "sc_playlist.h"
 #include "alsa.h"
@@ -219,7 +221,7 @@ void *SC_InputThread(void *ptr)
 	unsigned char buttonState = 0;
 	unsigned char buttons[4] = {0, 0, 0, 0}, totalbuttons[4] = {0, 0, 0, 0};
 	unsigned int butCounter = 0;
-	unsigned int i = 0;
+	unsigned int i = 0, j = 0, k = 0;
 	unsigned int NumBeats, NumSamples;
 	struct Folder *FirstBeatFolder = NULL, *CurrentBeatFolder = NULL, *FirstSampleFolder = NULL, *CurrentSampleFolder = NULL;
 	struct File *CurrentBeatFile = NULL, *CurrentSampleFile = NULL;
@@ -239,7 +241,8 @@ void *SC_InputThread(void *ptr)
 	char mididevices[64][64];
 	int mididevicenum = 0, oldmididevicenum = 0;
 
-	int gpiodebounce[16];
+	int iodebounce[16];
+	int gpiodebounce[5][28];
 
 	int8_t crossedZero; // 0 when we haven't crossed zero, -1 when we've crossed in anti-clockwise direction, 1 when crossed in clockwise
 
@@ -276,7 +279,98 @@ void *SC_InputThread(void *ptr)
 		picpresent = 0;
 	}
 
-	// Configure GPIO
+	// Configure A13 GPIO
+	volatile void *gpio_addr;
+	{
+
+		int fd = open("/dev/mem", O_RDWR | O_SYNC);
+		if (fd < 0)
+		{
+			fprintf(stderr, "Unable to open port\n\r");
+			exit(fd);
+		}
+		gpio_addr = mmap(NULL, 0x222, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0x01C20800);
+		if (gpio_addr == MAP_FAILED)
+		{
+			fprintf(stderr, "Unable to open mmap\n\r");
+			exit(fd);
+		}
+
+		// For each port
+		for (j = 0; j < 6; j++)
+		{
+			// For each pin (max number of pins on each port is 28)
+			for (i = 0; i < 28; i++)
+			{
+
+				map = find_GPIO_mapping(maps, j, i, 1);
+
+				if (map != NULL)
+				{
+					// which config register to use, 0-3
+					uint32_t configregister = i >> 3;
+
+					// which pull register to use, 0-1
+					uint32_t pullregister = i >> 4;
+
+					// how many bits to shift the config register
+					uint32_t configShift = (i % 8) * 4;
+
+					// how many bits to shift the pull register
+					uint32_t pullShift = (i % 16) * 2;
+
+					volatile uint32_t *PortConfigRegister = gpio_addr + (j * 0x24) + (configregister * 0x04);
+					volatile uint32_t *PortPullRegister = gpio_addr + (j * 0x24) + 0x1C + (pullregister * 0x04);
+					uint32_t portConfig = *PortConfigRegister;
+					uint32_t portPull = *PortPullRegister;
+
+					// mask to unset the relevant pins in the registers
+					uint32_t configMask = ~(0b1111 << configShift);
+					uint32_t pullMask = ~(0b11 << pullShift);
+
+					// Set port as input
+					// portConfig = (portConfig & configMask) | (0b0000 << configShift); (not needed because input is 0 anyway)
+					portConfig = (portConfig & configMask);
+
+					portPull = (portPull & pullMask) | (map->Pullup << pullShift);
+					*PortConfigRegister = portConfig;
+					*PortPullRegister = portPull;
+				}
+			}
+		}
+
+		unsigned char tmpchar;
+
+		// Bank A pullups
+		tmpchar = (unsigned char)(pullups & 0xFF);
+		i2c_write_address(file_i2c_gpio, 0x0C, tmpchar);
+
+		// Bank B pullups
+		tmpchar = (unsigned char)((pullups >> 8) & 0xFF);
+		i2c_write_address(file_i2c_gpio, 0x0D, tmpchar);
+
+		printf("PULLUPS - B");
+		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((pullups >> 8) & 0xFF));
+		printf("A");
+		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((pullups & 0xFF)));
+		printf("\n");
+
+		// Bank A direction
+		tmpchar = (unsigned char)(iodirs & 0xFF);
+		i2c_write_address(file_i2c_gpio, 0x00, tmpchar);
+
+		// Bank B direction
+		tmpchar = (unsigned char)((iodirs >> 8) & 0xFF);
+		i2c_write_address(file_i2c_gpio, 0x01, tmpchar);
+
+		printf("IODIRS  - B");
+		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((iodirs >> 8) & 0xFF));
+		printf("A");
+		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(iodirs & 0xFF));
+		printf("\n");
+	}
+
+	// Configure external IO
 	if (gpiopresent)
 	{
 
@@ -408,7 +502,7 @@ void *SC_InputThread(void *ptr)
 
 	sleep(2);
 	for (i = 0; i < 16; i++)
-		gpiodebounce[i] = 0;
+		iodebounce[i] = 0;
 
 	int secondCount = 0;
 
@@ -490,6 +584,92 @@ void *SC_InputThread(void *ptr)
 				buttons[3] = !(result >> 3 & 0x01);
 				capIsTouched = (result >> 4 & 0x01);
 
+				{ // Iterate through all gpio mappings and check the appropriate pin
+					struct mapping *last_map = maps;
+					while (last_map != NULL)
+					{
+
+						if (last_map->Type == MAP_GPIO)
+						{
+							volatile uint32_t *PortDataReg = gpio_addr + (last_map->port * 0x24) + 0x10;
+							uint32_t PortData = *PortDataReg;
+							PortData ^= 0xffffffff;
+
+							// iodebounce = 0 when button not pressed,
+							// > 0 and < scsettings.debouncetime when debouncing positive edge
+							// > scsettings.debouncetime and < scsettings.holdtime when holding
+							// = scsettings.holdtime when continuing to hold
+							// > scsettings.holdtime when waiting for release
+							// > -scsettings.debouncetime and < 0 when debouncing negative edge
+
+							// Button not pressed, check for button
+							if (gpiodebounce[last_map->port][last_map->Pin] == 0)
+							{
+								if ((PortData & (((uint32_t)0x00000001) << last_map->Pin)))
+								{
+									printf("Button %d pressed\n", last_map->Pin);
+
+									IOevent(i, 1);
+
+									// start the counter
+									gpiodebounce[last_map->port][last_map->Pin]++;
+								}
+							}
+
+							// Debouncing positive edge, increment value
+							else if (gpiodebounce[last_map->port][last_map->Pin] > 0 && gpiodebounce[last_map->port][last_map->Pin] < scsettings.debouncetime)
+							{
+								gpiodebounce[last_map->port][last_map->Pin]++;
+							}
+
+							// debounce finished, keep incrementing until hold reached
+							else if (gpiodebounce[last_map->port][last_map->Pin] >= scsettings.debouncetime && gpiodebounce[last_map->port][last_map->Pin] < scsettings.holdtime)
+							{
+								// check to see if unpressed
+								if (!(PortData & (((uint32_t)0x00000001) << last_map->Pin)))
+								{
+									printf("Button %d released\n", last_map->Pin);
+									IOevent(i, 0);
+									// start the counter
+									gpiodebounce[last_map->port][last_map->Pin] = -scsettings.debouncetime;
+								}
+
+								else
+									gpiodebounce[last_map->port][last_map->Pin]++;
+							}
+							// Button has been held for a while
+							else if (gpiodebounce[last_map->port][last_map->Pin] == scsettings.holdtime)
+							{
+								printf("Button %d held\n", last_map->Pin);
+
+								gpiodebounce[last_map->port][last_map->Pin]++;
+							}
+
+							// Button still holding, check for release
+							else if (gpiodebounce[last_map->port][last_map->Pin] > scsettings.holdtime)
+							{
+								// check to see if unpressed
+								if (!(PortData & (((uint32_t)0x00000001) << last_map->Pin)))
+								{
+									printf("Button %d released\n", last_map->Pin);
+									IOevent(i, 0);
+									// start the counter
+									gpiodebounce[last_map->port][last_map->Pin] = -scsettings.debouncetime;
+								}
+							}
+
+							// Debouncing negative edge, increment value - will reset when zero is reached
+							else if (gpiodebounce[last_map->port][last_map->Pin] < 0)
+							{
+								gpiodebounce[last_map->port][last_map->Pin]++;
+							}
+
+						}
+
+						last_map = last_map->next;
+					}
+				}
+
 				if (gpiopresent)
 				{
 					i2c_read_address(file_i2c_gpio, 0x13, &result); // Read bank B
@@ -508,7 +688,7 @@ void *SC_InputThread(void *ptr)
 					{
 						if (iodirs & (0x0001 << i))
 						{
-							// gpiodebounce = 0 when button not pressed,
+							// iodebounce = 0 when button not pressed,
 							// > 0 and < scsettings.debouncetime when debouncing positive edge
 							// > scsettings.debouncetime and < scsettings.holdtime when holding
 							// = scsettings.holdtime when continuing to hold
@@ -516,7 +696,7 @@ void *SC_InputThread(void *ptr)
 							// > -scsettings.debouncetime and < 0 when debouncing negative edge
 
 							// Button not pressed, check for button
-							if (gpiodebounce[i] == 0)
+							if (iodebounce[i] == 0)
 							{
 								if (gpios & (0x01 << i))
 								{
@@ -525,18 +705,18 @@ void *SC_InputThread(void *ptr)
 									IOevent(i, 1);
 
 									// start the counter
-									gpiodebounce[i]++;
+									iodebounce[i]++;
 								}
 							}
 
 							// Debouncing positive edge, increment value
-							else if (gpiodebounce[i] > 0 && gpiodebounce[i] < scsettings.debouncetime)
+							else if (iodebounce[i] > 0 && iodebounce[i] < scsettings.debouncetime)
 							{
-								gpiodebounce[i]++;
+								iodebounce[i]++;
 							}
 
 							// debounce finished, keep incrementing until hold reached
-							else if (gpiodebounce[i] >= scsettings.debouncetime && gpiodebounce[i] < scsettings.holdtime)
+							else if (iodebounce[i] >= scsettings.debouncetime && iodebounce[i] < scsettings.holdtime)
 							{
 								// check to see if unpressed
 								if (!(gpios & (0x01 << i)))
@@ -544,22 +724,22 @@ void *SC_InputThread(void *ptr)
 									printf("Button %d released\n", i);
 									IOevent(i, 0);
 									// start the counter
-									gpiodebounce[i] = -scsettings.debouncetime;
+									iodebounce[i] = -scsettings.debouncetime;
 								}
 
 								else
-									gpiodebounce[i]++;
+									iodebounce[i]++;
 							}
 							// Button has been held for a while
-							else if (gpiodebounce[i] == scsettings.holdtime)
+							else if (iodebounce[i] == scsettings.holdtime)
 							{
 								printf("Button %d held\n", i);
 
-								gpiodebounce[i]++;
+								iodebounce[i]++;
 							}
 
 							// Button still holding, check for release
-							else if (gpiodebounce[i] > scsettings.holdtime)
+							else if (iodebounce[i] > scsettings.holdtime)
 							{
 								// check to see if unpressed
 								if (!(gpios & (0x01 << i)))
@@ -567,14 +747,14 @@ void *SC_InputThread(void *ptr)
 									printf("Button %d released\n", i);
 									IOevent(i, 0);
 									// start the counter
-									gpiodebounce[i] = -scsettings.debouncetime;
+									iodebounce[i] = -scsettings.debouncetime;
 								}
 							}
 
 							// Debouncing negative edge, increment value - will reset when zero is reached
-							else if (gpiodebounce[i] < 0)
+							else if (iodebounce[i] < 0)
 							{
-								gpiodebounce[i]++;
+								iodebounce[i]++;
 							}
 						}
 					}
@@ -790,7 +970,6 @@ void *SC_InputThread(void *ptr)
 						if (samplesPresent)
 						{
 							deck[0].player.recordingStarted = !deck[0].player.recordingStarted;
-
 						}
 					}
 
