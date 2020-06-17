@@ -289,15 +289,17 @@ void *SC_InputThread(void *ptr)
 			fprintf(stderr, "Unable to open port\n\r");
 			exit(fd);
 		}
-		gpio_addr = mmap(NULL, 0x222, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0x01C20800);
+		gpio_addr = mmap(NULL, 65536, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0x01C20800 & 0xffff0000);
 		if (gpio_addr == MAP_FAILED)
 		{
 			fprintf(stderr, "Unable to open mmap\n\r");
 			exit(fd);
 		}
+		gpio_addr += 0x0800;
 
+	
 		// For each port
-		for (j = 0; j < 6; j++)
+		for (j = 1; j <= 6; j++)
 		{
 			// For each pin (max number of pins on each port is 28)
 			for (i = 0; i < 28; i++)
@@ -319,11 +321,13 @@ void *SC_InputThread(void *ptr)
 					// how many bits to shift the pull register
 					uint32_t pullShift = (i % 16) * 2;
 
+					uint32_t configOffset = (j * 0x24) + (configregister * 0x04);
+					uint32_t pullOffset = (j * 0x24) + 0x1C + (pullregister * 0x04);
 					volatile uint32_t *PortConfigRegister = gpio_addr + (j * 0x24) + (configregister * 0x04);
 					volatile uint32_t *PortPullRegister = gpio_addr + (j * 0x24) + 0x1C + (pullregister * 0x04);
 					uint32_t portConfig = *PortConfigRegister;
 					uint32_t portPull = *PortPullRegister;
-
+					printf("Setup Mapping %x %x\n", configOffset, pullOffset);
 					// mask to unset the relevant pins in the registers
 					uint32_t configMask = ~(0b1111 << configShift);
 					uint32_t pullMask = ~(0b11 << pullShift);
@@ -335,6 +339,7 @@ void *SC_InputThread(void *ptr)
 					portPull = (portPull & pullMask) | (map->Pullup << pullShift);
 					*PortConfigRegister = portConfig;
 					*PortPullRegister = portPull;
+					printf("Setup Mapping %x %x\n", portPull, portConfig);				
 				}
 			}
 		}
