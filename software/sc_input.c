@@ -261,15 +261,16 @@ void init_io()
 		fprintf(stderr, "Unable to open port\n\r");
 		exit(fd);
 	}
-	gpio_addr = mmap(NULL, 0x222, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0x01C20800);
+	gpio_addr = mmap(NULL, 65536, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0x01C20800 & 0xffff0000);
 	if (gpio_addr == MAP_FAILED)
 	{
 		fprintf(stderr, "Unable to open mmap\n\r");
 		exit(fd);
 	}
+	 		gpio_addr += 0x0800;
 
 	// For each port
-	for (j = 0; j < 6; j++)
+	for (j = 1; j <= 6; j++)
 	{
 		// For each pin (max number of pins on each port is 28)
 		for (i = 0; i < 28; i++)

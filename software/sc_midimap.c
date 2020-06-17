@@ -95,7 +95,7 @@ struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3]){
 	
 	while (last_map != NULL){
 			
-		if (
+		if (last_map->Type == MAP_MIDI &&
 			(((last_map->MidiBytes[0] & 0xF0) == 0xE0) && last_map->MidiBytes[0] == buf[0]) || //Pitch bend messages only match on first byte
 			(last_map->MidiBytes[0] == buf[0] && last_map->MidiBytes[1] == buf[1]) //Everything else matches on first two bytes
 			
@@ -116,7 +116,7 @@ struct mapping *find_IO_mapping(struct mapping *maps, unsigned char pin, bool ed
 	
 	while (last_map != NULL){
 			
-		if (last_map->Pin == pin && last_map->Edge == edge){
+		if (last_map->Type == MAP_IO && last_map->Pin == pin && last_map->Edge == edge){
 			return last_map;
 		} 
 		
@@ -132,7 +132,7 @@ struct mapping *find_GPIO_mapping(struct mapping *maps, unsigned char port, unsi
 	
 	while (last_map != NULL){
 			
-		if (last_map->Pin == pin && last_map->Edge == edge && last_map->port == port){
+		if (last_map->Type == MAP_GPIO && last_map->Pin == pin && last_map->Edge == edge && last_map->port == port){
 			return last_map;
 		} 
 		
