@@ -26,6 +26,7 @@
 #include "device.h"
 #include "player.h"
 #include "realtime.h"
+#include "sc_playlist.h"
 
 #define NO_PUNCH (HUGE_VAL)
 
@@ -48,6 +49,14 @@ struct deck {
 	
 	// If a shift modifier has been pressed recently
 	bool shifted;
+
+    struct Folder *FirstFolder, *CurrentFolder;
+	struct File *CurrentFile;
+    unsigned int NumFiles;
+    bool filesPresent;
+
+    int32_t angleOffset; // Offset between encoder angle and track position, reset every time the platter is touched
+    int encoderAngle, newEncoderAngle ;
 };
 
 int deck_init(struct deck *deck, struct rt *rt,
@@ -63,5 +72,11 @@ void deck_unset_cue(struct deck *deck, unsigned int label);
 void deck_cue(struct deck *deck, unsigned int label);
 void deck_punch_in(struct deck *d, unsigned int label);
 void deck_punch_out(struct deck *d);
+void deck_load_folder(struct deck *d, char *FolderName);
+void deck_next_file(struct deck *d);
+void deck_prev_file(struct deck *d);
+void deck_next_folder(struct deck *d);
+void deck_prev_folder(struct deck *d);
+void deck_random_file(struct deck *d);
 
 #endif

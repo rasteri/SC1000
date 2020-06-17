@@ -69,6 +69,8 @@ struct mapping {
 	unsigned char Action; // The action to take - cue, shift etc
 	unsigned char Param; // for example the output note
 	
+	int debounce;
+
 	struct mapping *next;
 };
 

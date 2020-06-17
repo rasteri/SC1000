@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <fcntl.h>		   //Needed for I2C port
-#include <sys/ioctl.h>	 //Needed for I2C port
+#include <sys/ioctl.h>	   //Needed for I2C port
 #include <linux/i2c-dev.h> //Needed for I2C port
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -101,39 +101,6 @@ int setupi2c(char *path, unsigned char address)
 		return file;
 }
 
-int32_t angleOffset = 0; // Offset between encoder angle and track position, reset every time the platter is touched
-int encoderAngle = 0xffff, newEncoderAngle = 0xffff;
-
-void load_track(struct deck *d, struct track *track)
-{
-	struct player *pl = &d->player;
-	cues_save_to_file(&d->cues, pl->track->path);
-	player_set_track(pl, track);
-	pl->target_position = 0;
-	pl->position = 0;
-	pl->offset = 0;
-	cues_load_from_file(&d->cues, pl->track->path);
-	pl->nominal_pitch = 1.0;
-}
-
-void load_and_sync_encoder(struct deck *d, struct track *track)
-{
-	struct player *pl = &d->player;
-	cues_save_to_file(&d->cues, pl->track->path);
-	player_set_track(pl, track);
-	pl->target_position = 0;
-	pl->position = 0;
-	pl->offset = 0;
-	cues_load_from_file(&d->cues, pl->track->path);
-	pl->nominal_pitch = 1.0;
-	// If touch sensor is enabled, set the "zero point" to the current encoder angle
-	if (scsettings.platterenabled)
-		angleOffset = 0 - encoderAngle;
-
-	else // If touch sensor is disabled, set the "zero point" to encoder zero point so sticker is exactly on each time sample is loaded
-		angleOffset = (pl->position * scsettings.platterspeed) - encoderAngle;
-}
-
 /*
  * Process an IO event
  */
@@ -205,57 +172,14 @@ void AddNewMidiDevices(char mididevices[64][64], int mididevicenum)
 		}
 	}
 }
-
-void *SC_InputThread(void *ptr)
+unsigned char gpiopresent = 1;
+int file_i2c_gpio;
+volatile void *gpio_addr;
+void init_io()
 {
-
-	int file_i2c_rot, file_i2c_pic, file_i2c_gpio;
-
-	unsigned char result;
-	unsigned char picskip = 0;
-
-	int wrappedAngle = 0x0000;
-	unsigned int ADCs[4] = {0, 0, 0, 0};
-	unsigned int numBlips = 0;
-	bool capIsTouched = 0;
-	unsigned char buttonState = 0;
-	unsigned char buttons[4] = {0, 0, 0, 0}, totalbuttons[4] = {0, 0, 0, 0};
-	unsigned int butCounter = 0;
-	unsigned int i = 0, j = 0, k = 0;
-	unsigned int NumBeats, NumSamples;
-	struct Folder *FirstBeatFolder = NULL, *CurrentBeatFolder = NULL, *FirstSampleFolder = NULL, *CurrentSampleFolder = NULL;
-	struct File *CurrentBeatFile = NULL, *CurrentSampleFile = NULL;
-	unsigned char faderOpen = 0;
-	unsigned int faderCutPoint;
-	unsigned char picpresent = 1;
-	unsigned char rotarypresent = 1;
-	unsigned char gpiopresent = 1;
-	unsigned int gpios;
-	int pitchMode = 0; // If we're in pitch-change mode
-	int oldPitchMode = 0;
-	unsigned int pullups = 0, iodirs = 0;
+	int i, j, k;
 	struct mapping *map;
-	bool firstTimeRound = 1;
-	bool beatsPresent = 0, samplesPresent = 0;
-
-	char mididevices[64][64];
-	int mididevicenum = 0, oldmididevicenum = 0;
-
-	int iodebounce[16];
-	int gpiodebounce[5][28];
-
-	int8_t crossedZero; // 0 when we haven't crossed zero, -1 when we've crossed in anti-clockwise direction, 1 when crossed in clockwise
-
-	// Initialise rotary sensor on I2C0
-
-	if ((file_i2c_rot = setupi2c("/dev/i2c-0", 0x36)) < 0)
-	{
-		printf("Couldn't init rotary sensor\n");
-		rotarypresent = 0;
-	}
-
 	// Initialise external MCP23017 GPIO on I2C1
-
 	if ((file_i2c_gpio = setupi2c("/dev/i2c-1", 0x20)) < 0)
 	{
 		printf("Couldn't init external GPIO\n");
@@ -271,112 +195,13 @@ void *SC_InputThread(void *ptr)
 		}
 	}
 
-	// Initialise PIC input processor on I2C2
-
-	if ((file_i2c_pic = setupi2c("/dev/i2c-2", 0x69)) < 0)
-	{
-		printf("Couldn't init input processor\n");
-		picpresent = 0;
-	}
-
-	// Configure A13 GPIO
-	volatile void *gpio_addr;
-	{
-
-		int fd = open("/dev/mem", O_RDWR | O_SYNC);
-		if (fd < 0)
-		{
-			fprintf(stderr, "Unable to open port\n\r");
-			exit(fd);
-		}
-		gpio_addr = mmap(NULL, 0x222, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0x01C20800);
-		if (gpio_addr == MAP_FAILED)
-		{
-			fprintf(stderr, "Unable to open mmap\n\r");
-			exit(fd);
-		}
-
-		// For each port
-		for (j = 0; j < 6; j++)
-		{
-			// For each pin (max number of pins on each port is 28)
-			for (i = 0; i < 28; i++)
-			{
-
-				map = find_GPIO_mapping(maps, j, i, 1);
-
-				if (map != NULL)
-				{
-					// which config register to use, 0-3
-					uint32_t configregister = i >> 3;
-
-					// which pull register to use, 0-1
-					uint32_t pullregister = i >> 4;
-
-					// how many bits to shift the config register
-					uint32_t configShift = (i % 8) * 4;
-
-					// how many bits to shift the pull register
-					uint32_t pullShift = (i % 16) * 2;
-
-					volatile uint32_t *PortConfigRegister = gpio_addr + (j * 0x24) + (configregister * 0x04);
-					volatile uint32_t *PortPullRegister = gpio_addr + (j * 0x24) + 0x1C + (pullregister * 0x04);
-					uint32_t portConfig = *PortConfigRegister;
-					uint32_t portPull = *PortPullRegister;
-
-					// mask to unset the relevant pins in the registers
-					uint32_t configMask = ~(0b1111 << configShift);
-					uint32_t pullMask = ~(0b11 << pullShift);
-
-					// Set port as input
-					// portConfig = (portConfig & configMask) | (0b0000 << configShift); (not needed because input is 0 anyway)
-					portConfig = (portConfig & configMask);
-
-					portPull = (portPull & pullMask) | (map->Pullup << pullShift);
-					*PortConfigRegister = portConfig;
-					*PortPullRegister = portPull;
-				}
-			}
-		}
-
-		unsigned char tmpchar;
-
-		// Bank A pullups
-		tmpchar = (unsigned char)(pullups & 0xFF);
-		i2c_write_address(file_i2c_gpio, 0x0C, tmpchar);
-
-		// Bank B pullups
-		tmpchar = (unsigned char)((pullups >> 8) & 0xFF);
-		i2c_write_address(file_i2c_gpio, 0x0D, tmpchar);
-
-		printf("PULLUPS - B");
-		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((pullups >> 8) & 0xFF));
-		printf("A");
-		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((pullups & 0xFF)));
-		printf("\n");
-
-		// Bank A direction
-		tmpchar = (unsigned char)(iodirs & 0xFF);
-		i2c_write_address(file_i2c_gpio, 0x00, tmpchar);
-
-		// Bank B direction
-		tmpchar = (unsigned char)((iodirs >> 8) & 0xFF);
-		i2c_write_address(file_i2c_gpio, 0x01, tmpchar);
-
-		printf("IODIRS  - B");
-		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((iodirs >> 8) & 0xFF));
-		printf("A");
-		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(iodirs & 0xFF));
-		printf("\n");
-	}
-
 	// Configure external IO
 	if (gpiopresent)
 	{
 
 		// default to pulled up and input
-		pullups = 0xFFFF;
-		iodirs = 0xFFFF;
+		unsigned int pullups = 0xFFFF;
+		unsigned int iodirs = 0xFFFF;
 
 		// For each pin
 		for (i = 0; i < 16; i++)
@@ -428,69 +253,528 @@ void *SC_InputThread(void *ptr)
 		printf("\n");
 	}
 
-	// Check for samples folder
-	if (access("/media/sda/samples", F_OK) == -1)
-	{
-		// Not there, so presumably the boot script didn't manage to mount the drive
-		// Maybe it hasn't initialized yet, or at least wasn't at boot time
-		// We have to do it ourselves
+	// Configure A13 GPIO
 
-		// Timeout after 12 sec, in which case emergency samples will be loaded
-		for (int uscnt = 0; uscnt < 12; uscnt++)
+	int fd = open("/dev/mem", O_RDWR | O_SYNC);
+	if (fd < 0)
+	{
+		fprintf(stderr, "Unable to open port\n\r");
+		exit(fd);
+	}
+	gpio_addr = mmap(NULL, 0x222, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0x01C20800);
+	if (gpio_addr == MAP_FAILED)
+	{
+		fprintf(stderr, "Unable to open mmap\n\r");
+		exit(fd);
+	}
+
+	// For each port
+	for (j = 0; j < 6; j++)
+	{
+		// For each pin (max number of pins on each port is 28)
+		for (i = 0; i < 28; i++)
 		{
-			printf("Waiting for USB stick...\n");
-			// Wait for /dev/sda1 to show up and then mount it
-			if (access("/dev/sda1", F_OK) != -1)
+
+			map = find_GPIO_mapping(maps, j, i, 1);
+
+			if (map != NULL)
 			{
-				printf("Found USB stick, mounting!\n");
-				system("/bin/mount /dev/sda1 /media/sda");
-				break;
-			}
-			else
-			{
-				// If not here yet, wait a second then check again
-				sleep(1);
+				// which config register to use, 0-3
+				uint32_t configregister = i >> 3;
+
+				// which pull register to use, 0-1
+				uint32_t pullregister = i >> 4;
+
+				// how many bits to shift the config register
+				uint32_t configShift = (i % 8) * 4;
+
+				// how many bits to shift the pull register
+				uint32_t pullShift = (i % 16) * 2;
+
+				volatile uint32_t *PortConfigRegister = gpio_addr + (j * 0x24) + (configregister * 0x04);
+				volatile uint32_t *PortPullRegister = gpio_addr + (j * 0x24) + 0x1C + (pullregister * 0x04);
+				uint32_t portConfig = *PortConfigRegister;
+				uint32_t portPull = *PortPullRegister;
+
+				// mask to unset the relevant pins in the registers
+				uint32_t configMask = ~(0b1111 << configShift);
+				uint32_t pullMask = ~(0b11 << pullShift);
+
+				// Set port as input
+				// portConfig = (portConfig & configMask) | (0b0000 << configShift); (not needed because input is 0 anyway)
+				portConfig = (portConfig & configMask);
+
+				portPull = (portPull & pullMask) | (map->Pullup << pullShift);
+				*PortConfigRegister = portConfig;
+				*PortPullRegister = portPull;
 			}
 		}
 	}
 
-	// Build index of all audio files on the USB stick
-	if ((FirstBeatFolder = LoadFileStructure("/media/sda/beats/", &NumBeats)) != NULL && NumBeats > 0)
-	{
-		printf("Beats Present\n");
-		beatsPresent = 1;
-	}
-	if ((FirstSampleFolder = LoadFileStructure("/media/sda/samples/", &NumSamples)) != NULL && NumSamples > 0)
-		samplesPresent = 1;
+	unsigned char tmpchar;
+}
 
-	if (beatsPresent)
+void process_io()
+{ // Iterate through all digital input mappings and check the appropriate pin
+	unsigned int gpios;
+	unsigned char result;
+	if (gpiopresent)
 	{
-		//DumpFileStructure(FirstBeatFolder);
-		CurrentBeatFolder = FirstBeatFolder;
-		CurrentBeatFile = CurrentBeatFolder->FirstFile;
-		// Load first beat
-		player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
-		cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
-	}
+		i2c_read_address(file_i2c_gpio, 0x13, &result); // Read bank B
+		gpios = ((unsigned int)result) << 8;
+		//printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(result));
+		i2c_read_address(file_i2c_gpio, 0x12, &result); // Read bank A
+		gpios |= result;
+		//printf(" - ");
+		//printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(result));
+		//printf("\n");
 
-	if (samplesPresent)
+		// invert logic
+		gpios ^= 0xFFFF;
+	}
+	struct mapping *last_map = maps;
+	while (last_map != NULL)
 	{
-		//DumpFileStructure(FirstSampleFolder);
-		CurrentSampleFolder = FirstSampleFolder;
-		CurrentSampleFile = CurrentSampleFolder->FirstFile;
-		player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
-		cues_load_from_file(&deck[1].cues, deck[1].player.track->path);
-		printf("here2\n");
+
+		// Only digital pins
+		if (last_map->Type == MAP_GPIO || (last_map->Type == MAP_IO && gpiopresent))
+		{
+
+			bool pinVal = 0;
+
+			if (last_map->Type == MAP_GPIO)
+			{
+				volatile uint32_t *PortDataReg = gpio_addr + (last_map->port * 0x24) + 0x10;
+				uint32_t PortData = *PortDataReg;
+				PortData ^= 0xffffffff;
+				pinVal = (bool)((PortData >> last_map->Pin) & 0x01);
+			}
+			else if (last_map->Type == MAP_GPIO)
+			{
+				pinVal = (bool)((gpios >> last_map->Pin) & 0x01);
+			}
+
+			// iodebounce = 0 when button not pressed,
+			// > 0 and < scsettings.debouncetime when debouncing positive edge
+			// > scsettings.debouncetime and < scsettings.holdtime when holding
+			// = scsettings.holdtime when continuing to hold
+			// > scsettings.holdtime when waiting for release
+			// > -scsettings.debouncetime and < 0 when debouncing negative edge
+
+			// Button not pressed, check for button
+			if (last_map->debounce == 0)
+			{
+				if (pinVal)
+				{
+					printf("Button %d pressed\n", last_map->Pin);
+
+					IOevent(last_map->Pin, 1);
+
+					// start the counter
+					last_map->debounce++;
+				}
+			}
+
+			// Debouncing positive edge, increment value
+			else if (last_map->debounce > 0 && last_map->debounce < scsettings.debouncetime)
+			{
+				last_map->debounce++;
+			}
+
+			// debounce finished, keep incrementing until hold reached
+			else if (last_map->debounce >= scsettings.debouncetime && last_map->debounce < scsettings.holdtime)
+			{
+				// check to see if unpressed
+				if (!pinVal)
+				{
+					printf("Button %d released\n", last_map->Pin);
+					IOevent(last_map->Pin, 0);
+					// start the counter
+					last_map->debounce = -scsettings.debouncetime;
+				}
+
+				else
+					last_map->debounce++;
+			}
+			// Button has been held for a while
+			else if (last_map->debounce == scsettings.holdtime)
+			{
+				printf("Button %d held\n", last_map->Pin);
+
+				last_map->debounce++;
+			}
+
+			// Button still holding, check for release
+			else if (last_map->debounce > scsettings.holdtime)
+			{
+				// check to see if unpressed
+				if (!pinVal)
+				{
+					printf("Button %d released\n", last_map->Pin);
+					IOevent(last_map->Pin, 0);
+					// start the counter
+					last_map->debounce = -scsettings.debouncetime;
+				}
+			}
+
+			// Debouncing negative edge, increment value - will reset when zero is reached
+			else if (last_map->debounce < 0)
+			{
+				last_map->debounce++;
+			}
+		}
+
+		last_map = last_map->next;
+	}
+}
+
+int file_i2c_rot, file_i2c_pic;
+bool firstTimeRound = 1;
+int pitchMode = 0; // If we're in pitch-change mode
+int oldPitchMode = 0;
+bool capIsTouched = 0;
+void process_pic()
+{
+	unsigned int i;
+	unsigned int ADCs[4] = {0, 0, 0, 0};
+	unsigned char result;
+	unsigned char buttonState = 0;
+	unsigned char buttons[4] = {0, 0, 0, 0}, totalbuttons[4] = {0, 0, 0, 0};
+	unsigned int butCounter = 0;
+
+	unsigned char faderOpen = 0;
+	unsigned int faderCutPoint;
+
+	i2c_read_address(file_i2c_pic, 0x00, &result);
+	ADCs[0] = result;
+	i2c_read_address(file_i2c_pic, 0x01, &result);
+	ADCs[1] = result;
+	i2c_read_address(file_i2c_pic, 0x02, &result);
+	ADCs[2] = result;
+	i2c_read_address(file_i2c_pic, 0x03, &result);
+	ADCs[3] = result;
+	i2c_read_address(file_i2c_pic, 0x04, &result);
+	ADCs[0] |= ((unsigned int)(result & 0x03) << 8);
+	ADCs[1] |= ((unsigned int)(result & 0x0C) << 6);
+	ADCs[2] |= ((unsigned int)(result & 0x30) << 4);
+	ADCs[3] |= ((unsigned int)(result & 0xC0) << 2);
+
+	// Now buttons and capsense
+
+	i2c_read_address(file_i2c_pic, 0x05, &result);
+	buttons[0] = !(result & 0x01);
+	buttons[1] = !(result >> 1 & 0x01);
+	buttons[2] = !(result >> 2 & 0x01);
+	buttons[3] = !(result >> 3 & 0x01);
+	capIsTouched = (result >> 4 & 0x01);
+
+	process_io();
+
+	// Apply volume and fader
+
+	faderCutPoint = faderOpen ? scsettings.faderclosepoint : scsettings.faderopenpoint; // Fader Hysteresis
+
+	if (ADCs[0] > faderCutPoint && ADCs[1] > faderCutPoint)
+	{ // cut on both sides of crossfader
+		deck[1].player.faderTarget = ((double)ADCs[3]) / 1024;
+		faderOpen = 1;
 	}
 	else
 	{
-		// Load the default sentence if no sample files found on usb stick
-		player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, "/var/scratchsentence.mp3"));
-		cues_load_from_file(&deck[1].cues, deck[1].player.track->path);
-		// Set the time back a bit so the sample doesn't start too soon
-		deck[1].player.target_position = -4.0;
-		deck[1].player.position = -4.0;
+		deck[1].player.faderTarget = 0.0;
+		faderOpen = 0;
 	}
+
+	deck[0].player.faderTarget = ((double)ADCs[2]) / 1024;
+
+	/*
+
+		 Button scanning logic goes like -
+
+		 1. Wait for ANY button to be pressed
+		 2. Note which buttons are pressed
+		 3. If we're still holding down buttons after an amount of time, act on held buttons, goto 5
+		 4. If ALL buttons are unpressed act on them instantaneously, goto 5
+		 5. wait half a second or so, then goto 1;
+
+		 */
+
+#define BUTTONSTATE_NONE 0
+#define BUTTONSTATE_PRESSING 1
+#define BUTTONSTATE_ACTING_INSTANT 2
+#define BUTTONSTATE_ACTING_HELD 3
+#define BUTTONSTATE_WAITING 4
+	int r;
+
+	switch (buttonState)
+	{
+
+	// No buttons pressed
+	case BUTTONSTATE_NONE:
+		if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
+		{
+			buttonState = BUTTONSTATE_PRESSING;
+			if (firstTimeRound)
+			{
+				player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/var/os-version.mp3"));
+				cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
+				buttonState = BUTTONSTATE_WAITING;
+			}
+		}
+		firstTimeRound = 0;
+		break;
+
+	// At least one button pressed
+	case BUTTONSTATE_PRESSING:
+		for (i = 0; i < 4; i++)
+			totalbuttons[i] |= buttons[i];
+
+		if (!(buttons[0] || buttons[1] || buttons[2] || buttons[3]))
+			buttonState = BUTTONSTATE_ACTING_INSTANT;
+
+		butCounter++;
+		if (butCounter > scsettings.holdtime)
+		{
+			butCounter = 0;
+			buttonState = BUTTONSTATE_ACTING_HELD;
+		}
+
+		break;
+
+	// Act on instantaneous (i.e. not held) button press
+	case BUTTONSTATE_ACTING_INSTANT:
+
+		// Any button to stop pitch mode
+		if (pitchMode)
+		{
+			pitchMode = 0;
+			oldPitchMode = 0;
+			printf("Pitch mode Disabled\n");
+		}
+		else if (totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && deck[1].filesPresent)
+			deck_prev_file(&deck[1]);
+		else if (!totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && deck[1].filesPresent)
+			deck_next_file(&deck[1]);
+		else if (totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && deck[1].filesPresent)
+			pitchMode = 2;
+		else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && !totalbuttons[3] && deck[0].filesPresent)
+			deck_prev_file(&deck[0]);
+		else if (!totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && totalbuttons[3] && deck[0].filesPresent)
+			deck_next_file(&deck[0]);
+		else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && totalbuttons[3] && deck[0].filesPresent)
+			pitchMode = 1;
+		else if (totalbuttons[0] && totalbuttons[1] && totalbuttons[2] && totalbuttons[3])
+			shiftLatched = 1;
+		else
+			printf("Sod knows what you were trying to do there\n");
+
+		buttonState = BUTTONSTATE_WAITING;
+
+		break;
+
+	// Act on whatever buttons are being held down when the timeout happens
+	case BUTTONSTATE_ACTING_HELD:
+		if (buttons[0] && !buttons[1] && !buttons[2] && !buttons[3] && deck[1].filesPresent)
+			deck_prev_folder(&deck[1]);
+		else if (!buttons[0] && buttons[1] && !buttons[2] && !buttons[3] && deck[1].filesPresent)
+			deck_next_folder(&deck[1]);
+		else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3] && deck[1].filesPresent)
+			deck_random_file(&deck[1]);
+		else if (!buttons[0] && !buttons[1] && buttons[2] && !buttons[3] && deck[0].filesPresent)
+			deck_prev_folder(&deck[0]);
+		else if (!buttons[0] && !buttons[1] && !buttons[2] && buttons[3] && deck[0].filesPresent)
+			deck_next_folder(&deck[0]);
+		else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3] && deck[0].filesPresent)
+			deck_random_folder(&deck[0]);
+		else if (buttons[0] && buttons[1] && buttons[2] && buttons[3])
+		{
+			printf("All buttons held!\n");
+			if (deck[1].filesPresent)
+				deck_record(&deck[0]);
+		}
+		else
+			printf("Sod knows what you were trying to do there\n");
+
+		buttonState = BUTTONSTATE_WAITING;
+
+		break;
+
+	case BUTTONSTATE_WAITING:
+
+		butCounter++;
+
+		// wait till buttons are released before allowing the countdown
+		if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
+			butCounter = 0;
+
+		if (butCounter > 20)
+		{
+			butCounter = 0;
+			buttonState = BUTTONSTATE_NONE;
+
+			for (i = 0; i < 4; i++)
+				totalbuttons[i] = 0;
+		}
+		break;
+	}
+}
+
+void process_rot()
+{
+	unsigned char result;
+	int8_t crossedZero; // 0 when we haven't crossed zero, -1 when we've crossed in anti-clockwise direction, 1 when crossed in clockwise
+	int wrappedAngle = 0x0000;
+	unsigned int numBlips = 0;
+	// Handle rotary sensor
+
+	i2c_read_address(file_i2c_rot, 0x0c, &result);
+	deck[1].newEncoderAngle = result << 8;
+	i2c_read_address(file_i2c_rot, 0x0d, &result);
+	deck[1].newEncoderAngle = (deck[1].newEncoderAngle & 0x0f00) | result;
+
+	// First time, make sure there's no difference
+	if (deck[1].encoderAngle == 0xffff)
+		deck[1].encoderAngle = deck[1].newEncoderAngle;
+
+	// Handle wrapping at zero
+
+	if (deck[1].newEncoderAngle < 1024 && deck[1].encoderAngle >= 3072)
+	{ // We crossed zero in the positive direction
+
+		crossedZero = 1;
+		wrappedAngle = deck[1].encoderAngle - 4096;
+	}
+	else if (deck[1].newEncoderAngle >= 3072 && deck[1].encoderAngle < 1024)
+	{ // We crossed zero in the negative direction
+		crossedZero = -1;
+		wrappedAngle = deck[1].encoderAngle + 4096;
+	}
+	else
+	{
+		crossedZero = 0;
+		wrappedAngle = deck[1].encoderAngle;
+	}
+
+	// rotary sensor sometimes returns incorrect values, if we skip more than 100 ignore that value
+	// If we see 3 blips in a row, then I guess we better accept the new value
+	if (abs(deck[1].newEncoderAngle - wrappedAngle) > 100 && numBlips < 2)
+	{
+		//printf("blip! %d %d %d\n", newEncoderAngle, encoderAngle, wrappedAngle);
+		numBlips++;
+	}
+	else
+	{
+		numBlips = 0;
+		deck[1].encoderAngle = deck[1].newEncoderAngle;
+
+		if (pitchMode)
+		{
+
+			if (!oldPitchMode)
+			{ // We just entered pitchmode, set offset etc
+
+				deck[(pitchMode - 1)].player.nominal_pitch = 1.0;
+				deck[1].angleOffset = -deck[1].encoderAngle;
+				oldPitchMode = 1;
+				capIsTouched = 0;
+			}
+
+			// Handle wrapping at zero
+
+			if (crossedZero > 0)
+			{
+				deck[1].angleOffset += 4096;
+			}
+			else if (crossedZero < 0)
+			{
+				deck[1].angleOffset -= 4096;
+			}
+
+			// Use the angle of the platter to control sample pitch
+			deck[(pitchMode - 1)].player.nominal_pitch = (((double)(deck[1].encoderAngle + deck[1].angleOffset)) / 16384) + 1.0;
+		}
+		else
+		{
+
+			if (scsettings.platterenabled)
+			{
+				// Handle touch sensor
+				if (capIsTouched)
+				{
+					// Positive touching edge
+					if (!deck[1].player.capTouch)
+					{
+						deck[1].angleOffset = (deck[1].player.position * scsettings.platterspeed) - deck[1].encoderAngle;
+						//printf("touch! %d %d\n", encoderAngle, angleOffset);
+						deck[1].player.target_position = deck[1].player.position;
+						deck[1].player.capTouch = 1;
+					}
+				}
+				else
+				{
+					deck[1].player.capTouch = 0;
+				}
+			}
+
+			else
+				deck[1].player.capTouch = 1;
+
+			if (deck[1].player.capTouch)
+			{
+
+				// Handle wrapping at zero
+
+				if (crossedZero > 0)
+				{
+					deck[1].angleOffset += 4096;
+				}
+				else if (crossedZero < 0)
+				{
+					deck[1].angleOffset -= 4096;
+				}
+
+				// Convert the raw value to track position and set player to that pos
+
+				deck[1].player.target_position = (double)(deck[1].encoderAngle + deck[1].angleOffset) / scsettings.platterspeed;
+
+				// Loop when track gets to end
+
+				/*if (deck[1].player.target_position > ((double)deck[1].player.track->length / (double)deck[1].player.track->rate))
+						{
+							deck[1].player.target_position = 0;
+							angleOffset = encoderAngle;
+						}*/
+			}
+		}
+	}
+}
+
+void *SC_InputThread(void *ptr)
+{
+	unsigned char picskip = 0;
+	unsigned char picpresent = 1;
+	unsigned char rotarypresent = 1;
+
+	char mididevices[64][64];
+	int mididevicenum = 0, oldmididevicenum = 0;
+
+	// Initialise rotary sensor on I2C0
+
+	if ((file_i2c_rot = setupi2c("/dev/i2c-0", 0x36)) < 0)
+	{
+		printf("Couldn't init rotary sensor\n");
+		rotarypresent = 0;
+	}
+
+	// Initialise PIC input processor on I2C2
+
+	if ((file_i2c_pic = setupi2c("/dev/i2c-2", 0x69)) < 0)
+	{
+		printf("Couldn't init input processor\n");
+		picpresent = 0;
+	}
+
+	init_io();
 
 	srand(time(NULL)); // TODO - need better entropy source, SoC is starting up annoyingly deterministically
 
@@ -501,8 +785,6 @@ void *SC_InputThread(void *ptr)
 	double inputtime = 0, lastinputtime = 0;
 
 	sleep(2);
-	for (i = 0; i < 16; i++)
-		iodebounce[i] = 0;
 
 	int secondCount = 0;
 
@@ -517,11 +799,12 @@ void *SC_InputThread(void *ptr)
 		{
 			lastTime = tv.tv_sec;
 			printf("\033[H\033[J"); // Clear Screen
-			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\nTP: %f, P : %f\n",
-				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], encoderAngle,
-				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
-				   deck[1].player.target_position, deck[1].player.position);
+			/*printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\nTP: %f, P : %f\n",
+				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], deck[1].encoderAngle,
+				   buttons[0], buttons[1], buttons[2], buttons[3], deck[1].capIsTouched,
+				   deck[1].player.target_position, deck[1].player.position);*/
 
+			printf("\nFPS: %06u\n", frameCount);
 			frameCount = 0;
 
 			// list midi devices
@@ -561,567 +844,10 @@ void *SC_InputThread(void *ptr)
 			if (picskip > 4)
 			{
 				picskip = 0;
-				i2c_read_address(file_i2c_pic, 0x00, &result);
-				ADCs[0] = result;
-				i2c_read_address(file_i2c_pic, 0x01, &result);
-				ADCs[1] = result;
-				i2c_read_address(file_i2c_pic, 0x02, &result);
-				ADCs[2] = result;
-				i2c_read_address(file_i2c_pic, 0x03, &result);
-				ADCs[3] = result;
-				i2c_read_address(file_i2c_pic, 0x04, &result);
-				ADCs[0] |= ((unsigned int)(result & 0x03) << 8);
-				ADCs[1] |= ((unsigned int)(result & 0x0C) << 6);
-				ADCs[2] |= ((unsigned int)(result & 0x30) << 4);
-				ADCs[3] |= ((unsigned int)(result & 0xC0) << 2);
-
-				// Now buttons and capsense
-
-				i2c_read_address(file_i2c_pic, 0x05, &result);
-				buttons[0] = !(result & 0x01);
-				buttons[1] = !(result >> 1 & 0x01);
-				buttons[2] = !(result >> 2 & 0x01);
-				buttons[3] = !(result >> 3 & 0x01);
-				capIsTouched = (result >> 4 & 0x01);
-
-				{ // Iterate through all gpio mappings and check the appropriate pin
-					struct mapping *last_map = maps;
-					while (last_map != NULL)
-					{
-
-						if (last_map->Type == MAP_GPIO)
-						{
-							volatile uint32_t *PortDataReg = gpio_addr + (last_map->port * 0x24) + 0x10;
-							uint32_t PortData = *PortDataReg;
-							PortData ^= 0xffffffff;
-
-							// iodebounce = 0 when button not pressed,
-							// > 0 and < scsettings.debouncetime when debouncing positive edge
-							// > scsettings.debouncetime and < scsettings.holdtime when holding
-							// = scsettings.holdtime when continuing to hold
-							// > scsettings.holdtime when waiting for release
-							// > -scsettings.debouncetime and < 0 when debouncing negative edge
-
-							// Button not pressed, check for button
-							if (gpiodebounce[last_map->port][last_map->Pin] == 0)
-							{
-								if ((PortData & (((uint32_t)0x00000001) << last_map->Pin)))
-								{
-									printf("Button %d pressed\n", last_map->Pin);
-
-									IOevent(i, 1);
-
-									// start the counter
-									gpiodebounce[last_map->port][last_map->Pin]++;
-								}
-							}
-
-							// Debouncing positive edge, increment value
-							else if (gpiodebounce[last_map->port][last_map->Pin] > 0 && gpiodebounce[last_map->port][last_map->Pin] < scsettings.debouncetime)
-							{
-								gpiodebounce[last_map->port][last_map->Pin]++;
-							}
-
-							// debounce finished, keep incrementing until hold reached
-							else if (gpiodebounce[last_map->port][last_map->Pin] >= scsettings.debouncetime && gpiodebounce[last_map->port][last_map->Pin] < scsettings.holdtime)
-							{
-								// check to see if unpressed
-								if (!(PortData & (((uint32_t)0x00000001) << last_map->Pin)))
-								{
-									printf("Button %d released\n", last_map->Pin);
-									IOevent(i, 0);
-									// start the counter
-									gpiodebounce[last_map->port][last_map->Pin] = -scsettings.debouncetime;
-								}
-
-								else
-									gpiodebounce[last_map->port][last_map->Pin]++;
-							}
-							// Button has been held for a while
-							else if (gpiodebounce[last_map->port][last_map->Pin] == scsettings.holdtime)
-							{
-								printf("Button %d held\n", last_map->Pin);
-
-								gpiodebounce[last_map->port][last_map->Pin]++;
-							}
-
-							// Button still holding, check for release
-							else if (gpiodebounce[last_map->port][last_map->Pin] > scsettings.holdtime)
-							{
-								// check to see if unpressed
-								if (!(PortData & (((uint32_t)0x00000001) << last_map->Pin)))
-								{
-									printf("Button %d released\n", last_map->Pin);
-									IOevent(i, 0);
-									// start the counter
-									gpiodebounce[last_map->port][last_map->Pin] = -scsettings.debouncetime;
-								}
-							}
-
-							// Debouncing negative edge, increment value - will reset when zero is reached
-							else if (gpiodebounce[last_map->port][last_map->Pin] < 0)
-							{
-								gpiodebounce[last_map->port][last_map->Pin]++;
-							}
-
-						}
-
-						last_map = last_map->next;
-					}
-				}
-
-				if (gpiopresent)
-				{
-					i2c_read_address(file_i2c_gpio, 0x13, &result); // Read bank B
-					gpios = ((unsigned int)result) << 8;
-					//printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(result));
-					i2c_read_address(file_i2c_gpio, 0x12, &result); // Read bank A
-					gpios |= result;
-					//printf(" - ");
-					//printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(result));
-					//printf("\n");
-
-					// invert logic
-					gpios ^= 0xFFFF;
-
-					for (i = 0; i < 16; i++)
-					{
-						if (iodirs & (0x0001 << i))
-						{
-							// iodebounce = 0 when button not pressed,
-							// > 0 and < scsettings.debouncetime when debouncing positive edge
-							// > scsettings.debouncetime and < scsettings.holdtime when holding
-							// = scsettings.holdtime when continuing to hold
-							// > scsettings.holdtime when waiting for release
-							// > -scsettings.debouncetime and < 0 when debouncing negative edge
-
-							// Button not pressed, check for button
-							if (iodebounce[i] == 0)
-							{
-								if (gpios & (0x01 << i))
-								{
-									printf("Button %d pressed\n", i);
-
-									IOevent(i, 1);
-
-									// start the counter
-									iodebounce[i]++;
-								}
-							}
-
-							// Debouncing positive edge, increment value
-							else if (iodebounce[i] > 0 && iodebounce[i] < scsettings.debouncetime)
-							{
-								iodebounce[i]++;
-							}
-
-							// debounce finished, keep incrementing until hold reached
-							else if (iodebounce[i] >= scsettings.debouncetime && iodebounce[i] < scsettings.holdtime)
-							{
-								// check to see if unpressed
-								if (!(gpios & (0x01 << i)))
-								{
-									printf("Button %d released\n", i);
-									IOevent(i, 0);
-									// start the counter
-									iodebounce[i] = -scsettings.debouncetime;
-								}
-
-								else
-									iodebounce[i]++;
-							}
-							// Button has been held for a while
-							else if (iodebounce[i] == scsettings.holdtime)
-							{
-								printf("Button %d held\n", i);
-
-								iodebounce[i]++;
-							}
-
-							// Button still holding, check for release
-							else if (iodebounce[i] > scsettings.holdtime)
-							{
-								// check to see if unpressed
-								if (!(gpios & (0x01 << i)))
-								{
-									printf("Button %d released\n", i);
-									IOevent(i, 0);
-									// start the counter
-									iodebounce[i] = -scsettings.debouncetime;
-								}
-							}
-
-							// Debouncing negative edge, increment value - will reset when zero is reached
-							else if (iodebounce[i] < 0)
-							{
-								iodebounce[i]++;
-							}
-						}
-					}
-				}
-
-				// Apply volume and fader
-
-				faderCutPoint = faderOpen ? scsettings.faderclosepoint : scsettings.faderopenpoint; // Fader Hysteresis
-
-				if (ADCs[0] > faderCutPoint && ADCs[1] > faderCutPoint)
-				{ // cut on both sides of crossfader
-					deck[1].player.faderTarget = ((double)ADCs[3]) / 1024;
-					faderOpen = 1;
-				}
-				else
-				{
-					deck[1].player.faderTarget = 0.0;
-					faderOpen = 0;
-				}
-
-				deck[0].player.faderTarget = ((double)ADCs[2]) / 1024;
-
-				/*
-
-		 Button scanning logic goes like -
-
-		 1. Wait for ANY button to be pressed
-		 2. Note which buttons are pressed
-		 3. If we're still holding down buttons after an amount of time, act on held buttons, goto 5
-		 4. If ALL buttons are unpressed act on them instantaneously, goto 5
-		 5. wait half a second or so, then goto 1;
-
-		 */
-
-#define BUTTONSTATE_NONE 0
-#define BUTTONSTATE_PRESSING 1
-#define BUTTONSTATE_ACTING_INSTANT 2
-#define BUTTONSTATE_ACTING_HELD 3
-#define BUTTONSTATE_WAITING 4
-				int r;
-
-				switch (buttonState)
-				{
-
-				// No buttons pressed
-				case BUTTONSTATE_NONE:
-					if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
-					{
-						buttonState = BUTTONSTATE_PRESSING;
-						if (firstTimeRound)
-						{
-							player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/var/os-version.mp3"));
-							cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
-							buttonState = BUTTONSTATE_WAITING;
-						}
-					}
-					firstTimeRound = 0;
-					break;
-
-				// At least one button pressed
-				case BUTTONSTATE_PRESSING:
-					for (i = 0; i < 4; i++)
-						totalbuttons[i] |= buttons[i];
-
-					if (!(buttons[0] || buttons[1] || buttons[2] || buttons[3]))
-						buttonState = BUTTONSTATE_ACTING_INSTANT;
-
-					butCounter++;
-					if (butCounter > scsettings.holdtime)
-					{
-						butCounter = 0;
-						buttonState = BUTTONSTATE_ACTING_HELD;
-					}
-
-					break;
-
-				// Act on instantaneous (i.e. not held) button press
-				case BUTTONSTATE_ACTING_INSTANT:
-
-					// Any button to stop pitch mode
-					if (pitchMode)
-					{
-						pitchMode = 0;
-						oldPitchMode = 0;
-						printf("Pitch mode Disabled\n");
-					}
-					else if (totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && samplesPresent)
-					{
-						printf("Samples - Up pushed\n");
-						if (CurrentSampleFile->prev != NULL)
-						{
-							CurrentSampleFile = CurrentSampleFile->prev;
-						}
-						load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
-					}
-					else if (!totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && samplesPresent)
-					{
-						printf("Samples - Down pushed\n");
-						if (CurrentSampleFile->next != NULL)
-						{
-							CurrentSampleFile = CurrentSampleFile->next;
-						}
-						load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[0].importer, CurrentSampleFile->FullPath));
-					}
-					else if (totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && samplesPresent)
-					{
-						printf("Samples - both buttons pushed\n");
-						pitchMode = 2;
-					}
-
-					else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && !totalbuttons[3] && beatsPresent)
-					{
-						printf("Beats - Up pushed\n");
-						if (CurrentBeatFile->prev != NULL)
-						{
-							CurrentBeatFile = CurrentBeatFile->prev;
-						}
-						load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
-					}
-					else if (!totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && totalbuttons[3] && beatsPresent)
-					{
-						printf("Beats - Down pushed\n");
-						if (CurrentBeatFile->next != NULL)
-						{
-							CurrentBeatFile = CurrentBeatFile->next;
-						}
-						load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
-					}
-					else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && totalbuttons[3] && beatsPresent)
-					{
-						printf("Beats - both buttons pushed\n");
-						pitchMode = 1;
-					}
-
-					else if (totalbuttons[0] && totalbuttons[1] && totalbuttons[2] && totalbuttons[3])
-					{
-						printf("All buttons pushed!\n");
-						shiftLatched = 1;
-					}
-
-					else
-						printf("Sod knows what you were trying to do there\n");
-
-					buttonState = BUTTONSTATE_WAITING;
-
-					break;
-
-				// Act on whatever buttons are being held down when the timeout happens
-				case BUTTONSTATE_ACTING_HELD:
-					if (buttons[0] && !buttons[1] && !buttons[2] && !buttons[3] && samplesPresent)
-					{
-						printf("Samples - Up held\n");
-						if (CurrentSampleFolder->prev != NULL)
-						{
-							CurrentSampleFolder = CurrentSampleFolder->prev;
-							CurrentSampleFile = CurrentSampleFolder->FirstFile;
-							load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
-						}
-					}
-					else if (!buttons[0] && buttons[1] && !buttons[2] && !buttons[3] && samplesPresent)
-					{
-						printf("Samples - Down held\n");
-						if (CurrentSampleFolder->next != NULL)
-						{
-							CurrentSampleFolder = CurrentSampleFolder->next;
-							CurrentSampleFile = CurrentSampleFolder->FirstFile;
-							load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[1].importer, CurrentSampleFile->FullPath));
-						}
-					}
-					else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3] && samplesPresent)
-					{
-						printf("Samples - both buttons held\n");
-						r = rand() % NumSamples;
-						printf("Playing file %d/%d\n", r, NumSamples);
-						load_and_sync_encoder(&deck[1], track_acquire_by_import(deck[1].importer, GetFileAtIndex(r, FirstSampleFolder)->FullPath));
-						deck[1].player.nominal_pitch = 1.0;
-					}
-
-					else if (!buttons[0] && !buttons[1] && buttons[2] && !buttons[3] && beatsPresent)
-					{
-						printf("Beats - Up held\n");
-						if (CurrentBeatFolder->prev != NULL)
-						{
-							CurrentBeatFolder = CurrentBeatFolder->prev;
-							CurrentBeatFile = CurrentBeatFolder->FirstFile;
-							load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
-						}
-					}
-					else if (!buttons[0] && !buttons[1] && !buttons[2] && buttons[3] && beatsPresent)
-					{
-						printf("Beats - Down held\n");
-
-						if (CurrentBeatFolder->next != NULL)
-						{
-							CurrentBeatFolder = CurrentBeatFolder->next;
-							CurrentBeatFile = CurrentBeatFolder->FirstFile;
-							load_track(&deck[0], track_acquire_by_import(deck[0].importer, CurrentBeatFile->FullPath));
-						}
-					}
-					else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3] && beatsPresent)
-					{
-						printf("Beats - both buttons held\n");
-						r = rand() % NumBeats;
-						printf("Playing file %d/%d\n", r, NumBeats);
-						load_track(&deck[0], track_acquire_by_import(deck[0].importer, GetFileAtIndex(r, FirstBeatFolder)->FullPath));
-					}
-
-					else if (buttons[0] && buttons[1] && buttons[2] && buttons[3])
-					{
-						printf("All buttons held!\n");
-
-						// Only record if USB stick is there
-						if (samplesPresent)
-						{
-							deck[0].player.recordingStarted = !deck[0].player.recordingStarted;
-						}
-					}
-
-					else
-						printf("Sod knows what you were trying to do there\n");
-
-					buttonState = BUTTONSTATE_WAITING;
-
-					break;
-
-				case BUTTONSTATE_WAITING:
-
-					butCounter++;
-
-					// wait till buttons are released before allowing the countdown
-					if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
-						butCounter = 0;
-
-					if (butCounter > 20)
-					{
-						butCounter = 0;
-						buttonState = BUTTONSTATE_NONE;
-
-						for (i = 0; i < 4; i++)
-							totalbuttons[i] = 0;
-					}
-					break;
-				}
+				process_pic();
 			}
 
-			// Handle rotary sensor
-
-			i2c_read_address(file_i2c_rot, 0x0c, &result);
-			newEncoderAngle = result << 8;
-			i2c_read_address(file_i2c_rot, 0x0d, &result);
-			newEncoderAngle = (newEncoderAngle & 0x0f00) | result;
-
-			// First time, make sure there's no difference
-			if (encoderAngle == 0xffff)
-				encoderAngle = newEncoderAngle;
-
-			// Handle wrapping at zero
-
-			if (newEncoderAngle < 1024 && encoderAngle >= 3072)
-			{ // We crossed zero in the positive direction
-
-				crossedZero = 1;
-				wrappedAngle = encoderAngle - 4096;
-			}
-			else if (newEncoderAngle >= 3072 && encoderAngle < 1024)
-			{ // We crossed zero in the negative direction
-				crossedZero = -1;
-				wrappedAngle = encoderAngle + 4096;
-			}
-			else
-			{
-				crossedZero = 0;
-				wrappedAngle = encoderAngle;
-			}
-
-			// rotary sensor sometimes returns incorrect values, if we skip more than 100 ignore that value
-			// If we see 3 blips in a row, then I guess we better accept the new value
-			if (abs(newEncoderAngle - wrappedAngle) > 100 && numBlips < 2)
-			{
-				//printf("blip! %d %d %d\n", newEncoderAngle, encoderAngle, wrappedAngle);
-				numBlips++;
-			}
-			else
-			{
-				numBlips = 0;
-				encoderAngle = newEncoderAngle;
-
-				if (pitchMode)
-				{
-
-					if (!oldPitchMode)
-					{ // We just entered pitchmode, set offset etc
-
-						deck[(pitchMode - 1)].player.nominal_pitch = 1.0;
-						angleOffset = -encoderAngle;
-						oldPitchMode = 1;
-						capIsTouched = 0;
-					}
-
-					// Handle wrapping at zero
-
-					if (crossedZero > 0)
-					{
-						angleOffset += 4096;
-					}
-					else if (crossedZero < 0)
-					{
-						angleOffset -= 4096;
-					}
-
-					// Use the angle of the platter to control sample pitch
-					deck[(pitchMode - 1)].player.nominal_pitch = (((double)(encoderAngle + angleOffset)) / 16384) + 1.0;
-				}
-				else
-				{
-
-					if (scsettings.platterenabled)
-					{
-						// Handle touch sensor
-						if (capIsTouched)
-						{
-							// Positive touching edge
-							if (!deck[1].player.capTouch)
-							{
-								angleOffset = (deck[1].player.position * scsettings.platterspeed) - encoderAngle;
-								//printf("touch! %d %d\n", encoderAngle, angleOffset);
-								deck[1].player.target_position = deck[1].player.position;
-								deck[1].player.capTouch = 1;
-							}
-						}
-						else
-						{
-							deck[1].player.capTouch = 0;
-						}
-					}
-
-					else
-						deck[1].player.capTouch = 1;
-
-					if (deck[1].player.capTouch)
-					{
-
-						// Handle wrapping at zero
-
-						if (crossedZero > 0)
-						{
-							angleOffset += 4096;
-						}
-						else if (crossedZero < 0)
-						{
-							angleOffset -= 4096;
-						}
-
-						// Convert the raw value to track position and set player to that pos
-
-						deck[1].player.target_position = (double)(encoderAngle + angleOffset) / scsettings.platterspeed;
-
-						// Loop when track gets to end
-
-						/*if (deck[1].player.target_position > ((double)deck[1].player.track->length / (double)deck[1].player.track->rate))
-						{
-							deck[1].player.target_position = 0;
-							angleOffset = encoderAngle;
-						}*/
-					}
-				}
-			}
+			process_rot();
 		}
 		else // couldn't find input processor, just play the tracks
 		{

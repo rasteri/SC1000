@@ -27,7 +27,7 @@
 
 #include <unistd.h>		   //Needed for I2C port
 #include <fcntl.h>		   //Needed for I2C port
-#include <sys/ioctl.h>	 //Needed for I2C port
+#include <sys/ioctl.h>	   //Needed for I2C port
 #include <linux/i2c-dev.h> //Needed for I2C port
 #include <time.h>
 #include <dirent.h>
@@ -68,7 +68,7 @@ void loadSettings()
 	ssize_t read;
 	char *param, *actions;
 	char *value;
-	unsigned char channel=0, notenum=0, action=69, deckno=0, parameter=0, controlType=0, pin=0, pullup=0, port=0;
+	unsigned char channel = 0, notenum = 0, action = 69, deckno = 0, parameter = 0, controlType = 0, pin = 0, pullup = 0, port = 0;
 	char edge;
 	char *portString;
 	char delim[] = "=";
@@ -89,7 +89,7 @@ void loadSettings()
 	scsettings.slippiness = 300;
 	scsettings.brakespeed = 3000;
 	scsettings.pitchrange = 50;
-	scsettings.mididelay = 5; 	
+	scsettings.mididelay = 5;
 
 	// Load any settings from config file
 	fp = fopen("/media/sda/scsettings.txt", "r");
@@ -98,7 +98,7 @@ void loadSettings()
 		// couldn't open settings
 	}
 	else
-	{ 
+	{
 		while ((read = getline(&line, &len, fp)) != -1)
 		{
 			if (strlen(line) < 2 || line[0] == '#')
@@ -141,37 +141,44 @@ void loadSettings()
 					notenum = atoi(strtok_r(NULL, delimc, &valuetok));
 					actions = strtok_r(NULL, delimc, &valuetok);
 					parameter = 0;
-					
+
 					// Extract deck no from action (CHx)
-					if (actions[2] == '0') deckno = 0;
-					if (actions[2] == '1') deckno = 1;
-					
+					if (actions[2] == '0')
+						deckno = 0;
+					if (actions[2] == '1')
+						deckno = 1;
+
 					// figure out which action it is
-					if (strstr(actions+4, "CUE") != NULL) action = ACTION_CUE;
-					else if (strstr(actions+4, "SHIFTON") != NULL) action = ACTION_SHIFTON;
-					else if (strstr(actions+4, "SHIFTOFF") != NULL) action = ACTION_SHIFTOFF;
-					else if (strstr(actions+4, "STARTSTOP") != NULL) action = ACTION_STARTSTOP;
-					else if (strstr(actions+4, "PITCH") != NULL) action = ACTION_PITCH;
-					else if (strstr(actions+4, "NOTE") != NULL) {
+					if (strstr(actions + 4, "CUE") != NULL)
+						action = ACTION_CUE;
+					else if (strstr(actions + 4, "SHIFTON") != NULL)
+						action = ACTION_SHIFTON;
+					else if (strstr(actions + 4, "SHIFTOFF") != NULL)
+						action = ACTION_SHIFTOFF;
+					else if (strstr(actions + 4, "STARTSTOP") != NULL)
+						action = ACTION_STARTSTOP;
+					else if (strstr(actions + 4, "PITCH") != NULL)
+						action = ACTION_PITCH;
+					else if (strstr(actions + 4, "NOTE") != NULL)
+					{
 						action = ACTION_NOTE;
-						parameter = atoi(actions+8);
+						parameter = atoi(actions + 8);
 					}
-					
+
 					// Build MIDI command
 					midicommand[0] = (controlType << 4) | channel;
 					midicommand[1] = notenum;
 					midicommand[2] = 0;
-					
+
 					add_MIDI_mapping(
-						&maps, 
+						&maps,
 						midicommand,
 						deckno,
-						action, 
-						parameter
-					);
-					
+						action,
+						parameter);
 				}
-				else if (strstr(param, "gpio") != NULL){
+				else if (strstr(param, "gpio") != NULL)
+				{
 					printf("Found gpio\n");
 					port = atoi(strtok_r(value, delimc, &valuetok));
 					pin = atoi(strtok_r(NULL, delimc, &valuetok));
@@ -181,32 +188,40 @@ void loadSettings()
 					parameter = 0;
 
 					// Extract deck no from action (CHx)
-					if (actions[2] == '0') deckno = 0;
-					if (actions[2] == '1') deckno = 1;
+					if (actions[2] == '0')
+						deckno = 0;
+					if (actions[2] == '1')
+						deckno = 1;
 
 					// figure out which action it is
-					if (strstr(actions+4, "CUE") != NULL) action = ACTION_CUE;
-					else if (strstr(actions+4, "SHIFTON") != NULL) action = ACTION_SHIFTON;
-					else if (strstr(actions+4, "SHIFTOFF") != NULL) action = ACTION_SHIFTOFF;
-					else if (strstr(actions+4, "STARTSTOP") != NULL) action = ACTION_STARTSTOP;
-					else if (strstr(actions+4, "GND") != NULL) action = ACTION_GND;
-					else if (strstr(actions+4, "NOTE") != NULL) {
+					if (strstr(actions + 4, "CUE") != NULL)
+						action = ACTION_CUE;
+					else if (strstr(actions + 4, "SHIFTON") != NULL)
+						action = ACTION_SHIFTON;
+					else if (strstr(actions + 4, "SHIFTOFF") != NULL)
+						action = ACTION_SHIFTOFF;
+					else if (strstr(actions + 4, "STARTSTOP") != NULL)
+						action = ACTION_STARTSTOP;
+					else if (strstr(actions + 4, "GND") != NULL)
+						action = ACTION_GND;
+					else if (strstr(actions + 4, "NOTE") != NULL)
+					{
 						action = ACTION_NOTE;
-						parameter = atoi(actions+9);
+						parameter = atoi(actions + 9);
 					}
 
 					add_GPIO_mapping(
-						&maps, 
+						&maps,
 						port,
 						pin,
 						pullup,
 						edge,
 						deckno,
-						action, 
-						parameter
-					);
+						action,
+						parameter);
 				}
-				else if (strstr(param, "io") != NULL){
+				else if (strstr(param, "io") != NULL)
+				{
 					pin = atoi(strtok_r(value, delimc, &valuetok));
 					pullup = atoi(strtok_r(NULL, delimc, &valuetok));
 					edge = atoi(strtok_r(NULL, delimc, &valuetok));
@@ -214,76 +229,91 @@ void loadSettings()
 					parameter = 0;
 
 					// Extract deck no from action (CHx)
-					if (actions[2] == '0') deckno = 0;
-					if (actions[2] == '1') deckno = 1;
+					if (actions[2] == '0')
+						deckno = 0;
+					if (actions[2] == '1')
+						deckno = 1;
 
 					// figure out which action it is
-					if (strstr(actions+4, "CUE") != NULL) action = ACTION_CUE;
-					else if (strstr(actions+4, "SHIFTON") != NULL) action = ACTION_SHIFTON;
-					else if (strstr(actions+4, "SHIFTOFF") != NULL) action = ACTION_SHIFTOFF;
-					else if (strstr(actions+4, "STARTSTOP") != NULL) action = ACTION_STARTSTOP;
-					else if (strstr(actions+4, "GND") != NULL) action = ACTION_GND;
-					else if (strstr(actions+4, "NOTE") != NULL) {
+					if (strstr(actions + 4, "CUE") != NULL)
+						action = ACTION_CUE;
+					else if (strstr(actions + 4, "SHIFTON") != NULL)
+						action = ACTION_SHIFTON;
+					else if (strstr(actions + 4, "SHIFTOFF") != NULL)
+						action = ACTION_SHIFTOFF;
+					else if (strstr(actions + 4, "STARTSTOP") != NULL)
+						action = ACTION_STARTSTOP;
+					else if (strstr(actions + 4, "GND") != NULL)
+						action = ACTION_GND;
+					else if (strstr(actions + 4, "NOTE") != NULL)
+					{
 						action = ACTION_NOTE;
-						parameter = atoi(actions+9);
+						parameter = atoi(actions + 9);
 					}
 
 					add_IO_mapping(
-						&maps, 
+						&maps,
 						pin,
 						pullup,
 						edge,
 						deckno,
-						action, 
-						parameter
-					);
+						action,
+						parameter);
 				}
-				
+
 				else if (strcmp(param, "mididelay") == 0) // Literally just a sleep to allow USB devices longer to initialize
 					scsettings.mididelay = atoi(value);
-				else {
+				else
+				{
 					printf("Unrecognised configuration line - Param : %s , value : %s\n", param, value);
 				}
 			}
 		}
 	}
-	
+
 	// If we got no MIDI remaps, set up a default map
-	if (!midiRemapped){
-		
+	if (!midiRemapped)
+	{
+
 		// Set up per-deck cue/startstop/pitchbend mappings
-		for (deckno = 0; deckno < 2; deckno++){
+		for (deckno = 0; deckno < 2; deckno++)
+		{
 			// Notes on channels 0 and 1 are cue points
-			for (notenum = 0; notenum < 128; notenum++){
+			for (notenum = 0; notenum < 128; notenum++)
+			{
 				midicommand[0] = 0x90 + deckno;
 				midicommand[1] = notenum;
 				add_MIDI_mapping(&maps, midicommand, deckno, ACTION_CUE, 0);
 			}
-			
+
 			// Notes on channels 2 and 3 are C1-style notes
-			for (notenum = 0; notenum < 128; notenum++){
+			for (notenum = 0; notenum < 128; notenum++)
+			{
 				midicommand[0] = 0x92 + deckno;
 				midicommand[1] = notenum;
 				add_MIDI_mapping(&maps, midicommand, deckno, ACTION_NOTE, notenum);
 			}
-			
+
 			// Pitch bend on channels 0 and 1 is, well, pitchbend
-			midicommand[0] = 0xE0 + deckno; midicommand[1] = 0; midicommand[2] = 0;
+			midicommand[0] = 0xE0 + deckno;
+			midicommand[1] = 0;
+			midicommand[2] = 0;
 			add_MIDI_mapping(&maps, midicommand, deckno, ACTION_PITCH, 0);
-			
+
 			// Notes 0-1 of channel 4 are startstop
-			midicommand[0] = 0x94; midicommand[1] = deckno;
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno;
 			add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
 		}
-		
+
 		// note 7F of channel 4 is shift
-		midicommand[0] = 0x94; midicommand[1] = 0x7F;
+		midicommand[0] = 0x94;
+		midicommand[1] = 0x7F;
 		add_MIDI_mapping(&maps, midicommand, deckno, ACTION_SHIFTON, 0);
-		midicommand[0] = 0x84; midicommand[1] = 0x7F;
+		midicommand[0] = 0x84;
+		midicommand[1] = 0x7F;
 		add_MIDI_mapping(&maps, midicommand, deckno, ACTION_SHIFTOFF, 0);
-		
 	}
-	
 
 	printf("bs %d, fcp %d, fop %d, pe %d, ps %d, sr %d, ur %d\n",
 		   scsettings.buffersize,
@@ -302,10 +332,11 @@ void loadSettings()
 
 void sig_handler(int signo)
 {
-  if (signo == SIGINT){
-    printf("received SIGINT\n");
-exit(0);
-}
+	if (signo == SIGINT)
+	{
+		printf("received SIGINT\n");
+		exit(0);
+	}
 }
 
 int main(int argc, char *argv[])
@@ -316,7 +347,8 @@ int main(int argc, char *argv[])
 
 	int rate;
 
-	if (signal(SIGINT, sig_handler) == SIG_ERR){
+	if (signal(SIGINT, sig_handler) == SIG_ERR)
+	{
 		printf("\ncan't catch SIGINT\n");
 		exit(1);
 	}
@@ -359,12 +391,47 @@ int main(int argc, char *argv[])
 
 	rc = EXIT_FAILURE; /* until clean exit */
 
+	// Check for samples folder
+	if (access("/media/sda/samples", F_OK) == -1)
+	{
+		// Not there, so presumably the boot script didn't manage to mount the drive
+		// Maybe it hasn't initialized yet, or at least wasn't at boot time
+		// We have to do it ourselves
+
+		// Timeout after 12 sec, in which case emergency samples will be loaded
+		for (int uscnt = 0; uscnt < 12; uscnt++)
+		{
+			printf("Waiting for USB stick...\n");
+			// Wait for /dev/sda1 to show up and then mount it
+			if (access("/dev/sda1", F_OK) != -1)
+			{
+				printf("Found USB stick, mounting!\n");
+				system("/bin/mount /dev/sda1 /media/sda");
+				break;
+			}
+			else
+			{
+				// If not here yet, wait a second then check again
+				sleep(1);
+			}
+		}
+	}
+
+	deck_load_folder(&deck[0], "/media/sda/beats");
+	deck_load_folder(&deck[1], "/media/sda/samples");
+	if (!deck[1].filesPresent)
+	{
+		// Load the default sentence if no sample files found on usb stick
+		player_set_track(&deck[1].player, track_acquire_by_import(deck[1].importer, "/var/scratchsentence.mp3"));
+		cues_load_from_file(&deck[1].cues, deck[1].player.track->path);
+		// Set the time back a bit so the sample doesn't start too soon
+		deck[1].player.target_position = -4.0;
+		deck[1].player.position = -4.0;
+	}
+
 	// Start input processing thread
 
 	SC_Input_Start();
-
-
-
 
 	// Start realtime stuff
 
