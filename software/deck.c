@@ -202,7 +202,7 @@ void deck_punch_out(struct deck *d)
 void deck_load_folder(struct deck *d, char *FolderName)
 {
 	// Build index of all audio files on the USB stick
-	if ((d->FirstFolder = LoadFileStructure("/media/sda/beats/", &d->NumFiles)) != NULL && d->NumFiles > 0)
+	if ((d->FirstFolder = LoadFileStructure(FolderName, &d->NumFiles)) != NULL && d->NumFiles > 0)
 	{
 		printf("Folder '%s' Indexed with %d files: \n", FolderName, d->NumFiles);
 		d->filesPresent = 1;

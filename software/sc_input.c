@@ -105,9 +105,8 @@ int setupi2c(char *path, unsigned char address)
  * Process an IO event
  */
 
-static void IOevent(unsigned char pin, bool edge)
+static void IOevent(struct mapping *map)
 {
-	struct mapping *map = find_IO_mapping(maps, pin, edge);
 
 	if (map != NULL)
 	{
@@ -117,11 +116,11 @@ static void IOevent(unsigned char pin, bool edge)
 		{
 			if (shifted || shiftLatched)
 			{
-				deck_unset_cue(&deck[map->DeckNo], pin);
+				deck_unset_cue(&deck[map->DeckNo], (map->port * 32) + map->Pin + 128);
 				shiftLatched = 0;
 			}
 			else
-				deck_cue(&deck[map->DeckNo], pin);
+				deck_cue(&deck[map->DeckNo], (map->port * 32) + map->Pin + 128);
 		}
 		else if (map->Action == ACTION_NOTE)
 		{
@@ -350,7 +349,7 @@ void process_io()
 				PortData ^= 0xffffffff;
 				pinVal = (bool)((PortData >> last_map->Pin) & 0x01);
 			}
-			else if (last_map->Type == MAP_GPIO)
+			else if (last_map->Type == MAP_IO)
 			{
 				pinVal = (bool)((gpios >> last_map->Pin) & 0x01);
 			}
@@ -369,7 +368,8 @@ void process_io()
 				{
 					printf("Button %d pressed\n", last_map->Pin);
 
-					IOevent(last_map->Pin, 1);
+					if (last_map->Edge == 1)
+						IOevent(last_map);
 
 					// start the counter
 					last_map->debounce++;
@@ -389,7 +389,8 @@ void process_io()
 				if (!pinVal)
 				{
 					printf("Button %d released\n", last_map->Pin);
-					IOevent(last_map->Pin, 0);
+					if (last_map->Edge == 0)
+						IOevent(last_map);
 					// start the counter
 					last_map->debounce = -scsettings.debouncetime;
 				}
@@ -412,7 +413,8 @@ void process_io()
 				if (!pinVal)
 				{
 					printf("Button %d released\n", last_map->Pin);
-					IOevent(last_map->Pin, 0);
+					if (last_map->Edge == 0)
+						IOevent(last_map);
 					// start the counter
 					last_map->debounce = -scsettings.debouncetime;
 				}
@@ -434,14 +436,17 @@ bool firstTimeRound = 1;
 int pitchMode = 0; // If we're in pitch-change mode
 int oldPitchMode = 0;
 bool capIsTouched = 0;
+unsigned char buttons[4] = {0, 0, 0, 0}, totalbuttons[4] = {0, 0, 0, 0};
+unsigned int ADCs[4] = {0, 0, 0, 0};
+unsigned char buttonState = 0;
+unsigned int butCounter = 0;
 void process_pic()
 {
 	unsigned int i;
-	unsigned int ADCs[4] = {0, 0, 0, 0};
+
 	unsigned char result;
-	unsigned char buttonState = 0;
-	unsigned char buttons[4] = {0, 0, 0, 0}, totalbuttons[4] = {0, 0, 0, 0};
-	unsigned int butCounter = 0;
+
+
 
 	unsigned char faderOpen = 0;
 	unsigned int faderCutPoint;
@@ -515,15 +520,18 @@ void process_pic()
 		if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
 		{
 			buttonState = BUTTONSTATE_PRESSING;
+			
 			if (firstTimeRound)
 			{
 				player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/var/os-version.mp3"));
 				cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
 				buttonState = BUTTONSTATE_WAITING;
 			}
+
 		}
 		firstTimeRound = 0;
-		break;
+		
+	break;
 
 	// At least one button pressed
 	case BUTTONSTATE_PRESSING:
@@ -539,7 +547,7 @@ void process_pic()
 			butCounter = 0;
 			buttonState = BUTTONSTATE_ACTING_HELD;
 		}
-
+		
 		break;
 
 	// Act on instantaneous (i.e. not held) button press
@@ -586,7 +594,7 @@ void process_pic()
 		else if (!buttons[0] && !buttons[1] && !buttons[2] && buttons[3] && deck[0].filesPresent)
 			deck_next_folder(&deck[0]);
 		else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3] && deck[0].filesPresent)
-			deck_random_folder(&deck[0]);
+			deck_random_file(&deck[0]);
 		else if (buttons[0] && buttons[1] && buttons[2] && buttons[3])
 		{
 			printf("All buttons held!\n");
@@ -800,12 +808,12 @@ void *SC_InputThread(void *ptr)
 		{
 			lastTime = tv.tv_sec;
 			printf("\033[H\033[J"); // Clear Screen
-			/*printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\nTP: %f, P : %f\n",
+			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\nTP: %f, P : %f\n",
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], deck[1].encoderAngle,
-				   buttons[0], buttons[1], buttons[2], buttons[3], deck[1].capIsTouched,
-				   deck[1].player.target_position, deck[1].player.position);*/
+				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
+				   deck[1].player.target_position, deck[1].player.position);
 
-			printf("\nFPS: %06u\n", frameCount);
+			//printf("\nFPS: %06u\n", frameCount);
 			frameCount = 0;
 
 			// list midi devices

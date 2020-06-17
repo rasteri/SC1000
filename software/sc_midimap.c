@@ -40,6 +40,7 @@ void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Pullup, bool 
 	new_map->Param = Param;
 	new_map->next = NULL;
 	new_map->Type = MAP_IO;
+	new_map->port = 0;
 	//printf("Adding Mapping - pn%x pl:%x ed%x - dn:%d, a:%d, p:%d\n", Pin, Pullup, Edge, DeckNo, Action, Param); 
 	if (*maps == NULL){
 		*maps = new_map;

@@ -22,7 +22,7 @@
 
 #include <math.h>
 
-#define MAX_CUES 128
+#define MAX_CUES 512
 #define CUE_UNSET (HUGE_VAL)
 
 /*

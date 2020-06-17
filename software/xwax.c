@@ -417,8 +417,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	deck_load_folder(&deck[0], "/media/sda/beats");
-	deck_load_folder(&deck[1], "/media/sda/samples");
+	deck_load_folder(&deck[0], "/media/sda/beats/");
+	deck_load_folder(&deck[1], "/media/sda/samples/");
 	if (!deck[1].filesPresent)
 	{
 		// Load the default sentence if no sample files found on usb stick

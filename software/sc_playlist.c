@@ -56,6 +56,8 @@ struct Folder * LoadFileStructure(char *BaseFolderPath,
 	unsigned int FilesCount = 0;
 	
 	*TotalNum = 0;
+	
+	printf("indexing %s\n", BaseFolderPath);
 
 	n = scandir(BaseFolderPath, &dirList, 0, alphasort);
 	if (n <= 0){
