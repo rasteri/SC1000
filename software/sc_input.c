@@ -140,6 +140,26 @@ static void IOevent(struct mapping *map)
 			shiftLatched = 0;
 			shifted = 0;
 		}
+		else if (map->Action == ACTION_NEXTFILE)
+		{
+			deck_next_file(&deck[map->DeckNo]);
+		}
+		else if (map->Action == ACTION_PREVFILE)
+		{
+			deck_prev_file(&deck[map->DeckNo]);
+		}
+		else if (map->Action == ACTION_RANDOMFILE)
+		{
+			deck_random_file(&deck[map->DeckNo]);
+		}
+		else if (map->Action == ACTION_NEXTFOLDER)
+		{
+			deck_next_folder(&deck[map->DeckNo]);
+		}
+		else if (map->Action == ACTION_PREVFOLDER)
+		{
+			deck_prev_folder(&deck[map->DeckNo]);
+		}
 	}
 }
 
@@ -266,7 +286,7 @@ void init_io()
 		fprintf(stderr, "Unable to open mmap\n\r");
 		exit(fd);
 	}
-	 		gpio_addr += 0x0800;
+	gpio_addr += 0x0800;
 
 	// For each port
 	for (j = 1; j <= 6; j++)
@@ -316,7 +336,7 @@ void init_io()
 
 void process_io()
 { // Iterate through all digital input mappings and check the appropriate pin
-	unsigned int gpios;
+	unsigned int gpios = 0x00000000;
 	unsigned char result;
 	if (gpiopresent)
 	{
@@ -368,7 +388,7 @@ void process_io()
 				{
 					printf("Button %d pressed\n", last_map->Pin);
 
-					if (last_map->Edge == 1)
+					if ((!shifted && last_map->Edge == 1) || (shifted && last_map->Edge == 3))
 						IOevent(last_map);
 
 					// start the counter
@@ -402,7 +422,8 @@ void process_io()
 			else if (last_map->debounce == scsettings.holdtime)
 			{
 				printf("Button %d held\n", last_map->Pin);
-
+				if ((!shifted && last_map->Edge == 2) || (shifted && last_map->Edge == 4))
+					IOevent(last_map);
 				last_map->debounce++;
 			}
 
@@ -445,8 +466,6 @@ void process_pic()
 	unsigned int i;
 
 	unsigned char result;
-
-
 
 	unsigned char faderOpen = 0;
 	unsigned int faderCutPoint;
@@ -520,18 +539,17 @@ void process_pic()
 		if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
 		{
 			buttonState = BUTTONSTATE_PRESSING;
-			
+
 			if (firstTimeRound)
 			{
 				player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/var/os-version.mp3"));
 				cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
 				buttonState = BUTTONSTATE_WAITING;
 			}
-
 		}
 		firstTimeRound = 0;
-		
-	break;
+
+		break;
 
 	// At least one button pressed
 	case BUTTONSTATE_PRESSING:
@@ -547,7 +565,7 @@ void process_pic()
 			butCounter = 0;
 			buttonState = BUTTONSTATE_ACTING_HELD;
 		}
-		
+
 		break;
 
 	// Act on instantaneous (i.e. not held) button press

@@ -204,6 +204,16 @@ void loadSettings()
 						action = ACTION_STARTSTOP;
 					else if (strstr(actions + 4, "GND") != NULL)
 						action = ACTION_GND;
+					else if (strstr(actions + 4, "NEXTFILE") != NULL)
+						action = ACTION_NEXTFILE;
+					else if (strstr(actions + 4, "PREVFILE") != NULL)
+						action = ACTION_PREVFILE;
+					else if (strstr(actions + 4, "RANDOMFILE") != NULL)
+						action = ACTION_RANDOMFILE;
+					else if (strstr(actions + 4, "NEXTFOLDER") != NULL)
+						action = ACTION_NEXTFOLDER;
+					else if (strstr(actions + 4, "PREVFOLDER") != NULL)
+						action = ACTION_PREVFOLDER;
 					else if (strstr(actions + 4, "NOTE") != NULL)
 					{
 						action = ACTION_NOTE;

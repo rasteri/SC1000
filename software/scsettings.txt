@@ -52,7 +52,7 @@ mididelay=5
 # port is 123456 for BCDEFG
 # pin is pin number
 # pull is 1 for pullup, 2 for pulldown
-# edge is 1 for pressing edge, 0 for releasing edge
+# edge is 1 for pressing edge, 2 for holding action, 3 for pressed while shifted, 4 for held while shifted, 0 for releasing edge
 # action is one of :
 # 
 # (replace x with 0 for beats or 1 for samples) :
@@ -63,10 +63,17 @@ mididelay=5
 # CHx_NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
 # CHx_GND - make the pin an output and set it low - used to provide additional ground connections (ignores x)
 
-gpio=2,5,1,1,CH1_CUE
-gpio=2,6,1,1,CH1_CUE
-gpio=2,7,1,1,CH1_CUE
-gpio=2,8,1,1,CH1_CUE
+gpio=2,6,1,1,CH1_NEXTFILE
+gpio=2,5,1,1,CH1_STARTSTOP
+gpio=2,7,1,1,CH1_NEXTFILE
+gpio=2,8,1,1,CH1_SHIFTON
+gpio=2,8,1,0,CH1_SHIFTOFF
+gpio=2,9,1,1,CH1_CUE
+gpio=2,11,1,1,CH1_CUE
+gpio=2,1,1,1,CH1_CUE
+gpio=2,19,1,1,CH0_PREVFILE
+gpio=4,4,1,1,CH0_STARTSTOP
+gpio=4,5,1,1,CH0_NEXTFILE
 
 ###########################
 # External I/O Mapping    #
