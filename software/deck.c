@@ -153,8 +153,10 @@ void deck_cue(struct deck *d, unsigned int label)
 	double p;
 
 	p = cues_get(&d->cues, label);
-	if (p == CUE_UNSET)
+	if (p == CUE_UNSET){
 		cues_set(&d->cues, label, player_get_elapsed(&d->player));
+		cues_save_to_file(&d->cues, d->player.track->path);
+	}
 	else
 		player_seek_to(&d->player, p);
 }

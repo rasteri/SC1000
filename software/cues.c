@@ -49,6 +49,7 @@ void cues_set(struct cues *q, unsigned int label, double position)
 	printf("setting cue point %d to %0.2f\n", label, position);
     assert(label < MAX_CUES);
     q->position[label] = position;
+    
 }
 
 double cues_get(const struct cues *q, unsigned int label)
