@@ -101,68 +101,6 @@ int setupi2c(char *path, unsigned char address)
 		return file;
 }
 
-/*
- * Process an IO event
- */
-
-static void IOevent(struct mapping *map)
-{
-
-	if (map != NULL)
-	{
-		printf("Map notnull deck:%d edge:%d pin:%d action:%d param:%d\n", map->DeckNo, map->Edge, map->Pin, map->Action, map->Param);
-
-		if (map->Action == ACTION_CUE)
-		{
-			if (shifted || shiftLatched)
-			{
-				deck_unset_cue(&deck[map->DeckNo], (map->port * 32) + map->Pin + 128);
-				shiftLatched = 0;
-			}
-			else
-				deck_cue(&deck[map->DeckNo], (map->port * 32) + map->Pin + 128);
-		}
-		else if (map->Action == ACTION_NOTE)
-		{
-			deck[map->DeckNo].player.nominal_pitch = pow(pow(2, (double)1 / 12), map->Param - 0x3C); // equal temperament
-		}
-		else if (map->Action == ACTION_STARTSTOP)
-		{
-			printf("Startstop %d %d\n", map->DeckNo, deck[map->DeckNo].player.stopped);
-			deck[map->DeckNo].player.stopped = !deck[map->DeckNo].player.stopped;
-		}
-		else if (map->Action == ACTION_SHIFTON)
-		{
-			shifted = 1;
-		}
-		else if (map->Action == ACTION_SHIFTOFF)
-		{
-			shiftLatched = 0;
-			shifted = 0;
-		}
-		else if (map->Action == ACTION_NEXTFILE)
-		{
-			deck_next_file(&deck[map->DeckNo]);
-		}
-		else if (map->Action == ACTION_PREVFILE)
-		{
-			deck_prev_file(&deck[map->DeckNo]);
-		}
-		else if (map->Action == ACTION_RANDOMFILE)
-		{
-			deck_random_file(&deck[map->DeckNo]);
-		}
-		else if (map->Action == ACTION_NEXTFOLDER)
-		{
-			deck_next_folder(&deck[map->DeckNo]);
-		}
-		else if (map->Action == ACTION_PREVFOLDER)
-		{
-			deck_prev_folder(&deck[map->DeckNo]);
-		}
-	}
-}
-
 void AddNewMidiDevices(char mididevices[64][64], int mididevicenum)
 {
 	bool alreadyAdded;
@@ -225,7 +163,7 @@ void init_io()
 		// For each pin
 		for (i = 0; i < 16; i++)
 		{
-			map = find_IO_mapping(maps, i, 1);
+			map = find_IO_mapping(maps, 0, i, 1);
 			// If pin is marked as ground
 			if (map != NULL && map->Action == ACTION_GND)
 			{
@@ -295,7 +233,7 @@ void init_io()
 		for (i = 0; i < 28; i++)
 		{
 
-			map = find_GPIO_mapping(maps, j, i, 1);
+			map = find_IO_mapping(maps, j, i, 1);
 
 			if (map != NULL)
 			{
@@ -357,21 +295,20 @@ void process_io()
 	{
 
 		// Only digital pins
-		if (last_map->Type == MAP_GPIO || (last_map->Type == MAP_IO && gpiopresent))
+		if (!(last_map->port == 0 && !gpiopresent))
 		{
 
 			bool pinVal = 0;
-
-			if (last_map->Type == MAP_GPIO)
+			if (last_map->port == 0) // port 0, I2C GPIO expander
+			{
+				pinVal = (bool)((gpios >> last_map->Pin) & 0x01);
+			}
+			else // Ports 1-6, olimex GPIO
 			{
 				volatile uint32_t *PortDataReg = gpio_addr + (last_map->port * 0x24) + 0x10;
 				uint32_t PortData = *PortDataReg;
 				PortData ^= 0xffffffff;
 				pinVal = (bool)((PortData >> last_map->Pin) & 0x01);
-			}
-			else if (last_map->Type == MAP_IO)
-			{
-				pinVal = (bool)((gpios >> last_map->Pin) & 0x01);
 			}
 
 			// iodebounce = 0 when button not pressed,
@@ -389,7 +326,7 @@ void process_io()
 					printf("Button %d pressed\n", last_map->Pin);
 
 					if ((!shifted && last_map->Edge == 1) || (shifted && last_map->Edge == 3))
-						IOevent(last_map);
+						IOevent(last_map, NULL);
 
 					// start the counter
 					last_map->debounce++;
@@ -410,7 +347,7 @@ void process_io()
 				{
 					printf("Button %d released\n", last_map->Pin);
 					if (last_map->Edge == 0)
-						IOevent(last_map);
+						IOevent(last_map, NULL);
 					// start the counter
 					last_map->debounce = -scsettings.debouncetime;
 				}
@@ -423,7 +360,7 @@ void process_io()
 			{
 				printf("Button %d held\n", last_map->Pin);
 				if ((!shifted && last_map->Edge == 2) || (shifted && last_map->Edge == 4))
-					IOevent(last_map);
+					IOevent(last_map, NULL);
 				last_map->debounce++;
 			}
 
@@ -435,7 +372,7 @@ void process_io()
 				{
 					printf("Button %d released\n", last_map->Pin);
 					if (last_map->Edge == 0)
-						IOevent(last_map);
+						IOevent(last_map, NULL);
 					// start the counter
 					last_map->debounce = -scsettings.debouncetime;
 				}
@@ -497,11 +434,17 @@ void process_pic()
 
 	// Apply volume and fader
 
+	if (!scsettings.disablevolumeadc)
+	{
+		deck[0].player.setVolume = ((double)ADCs[2]) / 1024;
+		deck[1].player.setVolume = ((double)ADCs[3]) / 1024;
+	}
+
 	faderCutPoint = faderOpen ? scsettings.faderclosepoint : scsettings.faderopenpoint; // Fader Hysteresis
 
 	if (ADCs[0] > faderCutPoint && ADCs[1] > faderCutPoint)
 	{ // cut on both sides of crossfader
-		deck[1].player.faderTarget = ((double)ADCs[3]) / 1024;
+		deck[1].player.faderTarget = deck[1].player.setVolume;
 		faderOpen = 1;
 	}
 	else
@@ -510,10 +453,11 @@ void process_pic()
 		faderOpen = 0;
 	}
 
-	deck[0].player.faderTarget = ((double)ADCs[2]) / 1024;
+	deck[0].player.faderTarget = deck[0].player.setVolume;
 
-	/*
-
+	if (!scsettings.disablepicbuttons)
+	{
+		/*
 		 Button scanning logic goes like -
 
 		 1. Wait for ANY button to be pressed
@@ -524,125 +468,126 @@ void process_pic()
 
 		 */
 
-#define BUTTONSTATE_NONE 0
-#define BUTTONSTATE_PRESSING 1
-#define BUTTONSTATE_ACTING_INSTANT 2
-#define BUTTONSTATE_ACTING_HELD 3
-#define BUTTONSTATE_WAITING 4
-	int r;
+		#define BUTTONSTATE_NONE 0
+		#define BUTTONSTATE_PRESSING 1
+		#define BUTTONSTATE_ACTING_INSTANT 2
+		#define BUTTONSTATE_ACTING_HELD 3
+		#define BUTTONSTATE_WAITING 4
+		int r;
 
-	switch (buttonState)
-	{
-
-	// No buttons pressed
-	case BUTTONSTATE_NONE:
-		if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
+		switch (buttonState)
 		{
-			buttonState = BUTTONSTATE_PRESSING;
 
-			if (firstTimeRound)
+		// No buttons pressed
+		case BUTTONSTATE_NONE:
+			if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
 			{
-				player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/var/os-version.mp3"));
-				cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
-				buttonState = BUTTONSTATE_WAITING;
+				buttonState = BUTTONSTATE_PRESSING;
+
+				if (firstTimeRound)
+				{
+					player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/var/os-version.mp3"));
+					cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
+					buttonState = BUTTONSTATE_WAITING;
+				}
 			}
-		}
-		firstTimeRound = 0;
+			firstTimeRound = 0;
 
-		break;
+			break;
 
-	// At least one button pressed
-	case BUTTONSTATE_PRESSING:
-		for (i = 0; i < 4; i++)
-			totalbuttons[i] |= buttons[i];
-
-		if (!(buttons[0] || buttons[1] || buttons[2] || buttons[3]))
-			buttonState = BUTTONSTATE_ACTING_INSTANT;
-
-		butCounter++;
-		if (butCounter > scsettings.holdtime)
-		{
-			butCounter = 0;
-			buttonState = BUTTONSTATE_ACTING_HELD;
-		}
-
-		break;
-
-	// Act on instantaneous (i.e. not held) button press
-	case BUTTONSTATE_ACTING_INSTANT:
-
-		// Any button to stop pitch mode
-		if (pitchMode)
-		{
-			pitchMode = 0;
-			oldPitchMode = 0;
-			printf("Pitch mode Disabled\n");
-		}
-		else if (totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && deck[1].filesPresent)
-			deck_prev_file(&deck[1]);
-		else if (!totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && deck[1].filesPresent)
-			deck_next_file(&deck[1]);
-		else if (totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && deck[1].filesPresent)
-			pitchMode = 2;
-		else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && !totalbuttons[3] && deck[0].filesPresent)
-			deck_prev_file(&deck[0]);
-		else if (!totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && totalbuttons[3] && deck[0].filesPresent)
-			deck_next_file(&deck[0]);
-		else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && totalbuttons[3] && deck[0].filesPresent)
-			pitchMode = 1;
-		else if (totalbuttons[0] && totalbuttons[1] && totalbuttons[2] && totalbuttons[3])
-			shiftLatched = 1;
-		else
-			printf("Sod knows what you were trying to do there\n");
-
-		buttonState = BUTTONSTATE_WAITING;
-
-		break;
-
-	// Act on whatever buttons are being held down when the timeout happens
-	case BUTTONSTATE_ACTING_HELD:
-		if (buttons[0] && !buttons[1] && !buttons[2] && !buttons[3] && deck[1].filesPresent)
-			deck_prev_folder(&deck[1]);
-		else if (!buttons[0] && buttons[1] && !buttons[2] && !buttons[3] && deck[1].filesPresent)
-			deck_next_folder(&deck[1]);
-		else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3] && deck[1].filesPresent)
-			deck_random_file(&deck[1]);
-		else if (!buttons[0] && !buttons[1] && buttons[2] && !buttons[3] && deck[0].filesPresent)
-			deck_prev_folder(&deck[0]);
-		else if (!buttons[0] && !buttons[1] && !buttons[2] && buttons[3] && deck[0].filesPresent)
-			deck_next_folder(&deck[0]);
-		else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3] && deck[0].filesPresent)
-			deck_random_file(&deck[0]);
-		else if (buttons[0] && buttons[1] && buttons[2] && buttons[3])
-		{
-			printf("All buttons held!\n");
-			if (deck[1].filesPresent)
-				deck_record(&deck[0]);
-		}
-		else
-			printf("Sod knows what you were trying to do there\n");
-
-		buttonState = BUTTONSTATE_WAITING;
-
-		break;
-
-	case BUTTONSTATE_WAITING:
-
-		butCounter++;
-
-		// wait till buttons are released before allowing the countdown
-		if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
-			butCounter = 0;
-
-		if (butCounter > 20)
-		{
-			butCounter = 0;
-			buttonState = BUTTONSTATE_NONE;
-
+		// At least one button pressed
+		case BUTTONSTATE_PRESSING:
 			for (i = 0; i < 4; i++)
-				totalbuttons[i] = 0;
+				totalbuttons[i] |= buttons[i];
+
+			if (!(buttons[0] || buttons[1] || buttons[2] || buttons[3]))
+				buttonState = BUTTONSTATE_ACTING_INSTANT;
+
+			butCounter++;
+			if (butCounter > scsettings.holdtime)
+			{
+				butCounter = 0;
+				buttonState = BUTTONSTATE_ACTING_HELD;
+			}
+
+			break;
+
+		// Act on instantaneous (i.e. not held) button press
+		case BUTTONSTATE_ACTING_INSTANT:
+
+			// Any button to stop pitch mode
+			if (pitchMode)
+			{
+				pitchMode = 0;
+				oldPitchMode = 0;
+				printf("Pitch mode Disabled\n");
+			}
+			else if (totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && deck[1].filesPresent)
+				deck_prev_file(&deck[1]);
+			else if (!totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && deck[1].filesPresent)
+				deck_next_file(&deck[1]);
+			else if (totalbuttons[0] && totalbuttons[1] && !totalbuttons[2] && !totalbuttons[3] && deck[1].filesPresent)
+				pitchMode = 2;
+			else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && !totalbuttons[3] && deck[0].filesPresent)
+				deck_prev_file(&deck[0]);
+			else if (!totalbuttons[0] && !totalbuttons[1] && !totalbuttons[2] && totalbuttons[3] && deck[0].filesPresent)
+				deck_next_file(&deck[0]);
+			else if (!totalbuttons[0] && !totalbuttons[1] && totalbuttons[2] && totalbuttons[3] && deck[0].filesPresent)
+				pitchMode = 1;
+			else if (totalbuttons[0] && totalbuttons[1] && totalbuttons[2] && totalbuttons[3])
+				shiftLatched = 1;
+			else
+				printf("Sod knows what you were trying to do there\n");
+
+			buttonState = BUTTONSTATE_WAITING;
+
+			break;
+
+		// Act on whatever buttons are being held down when the timeout happens
+		case BUTTONSTATE_ACTING_HELD:
+			if (buttons[0] && !buttons[1] && !buttons[2] && !buttons[3] && deck[1].filesPresent)
+				deck_prev_folder(&deck[1]);
+			else if (!buttons[0] && buttons[1] && !buttons[2] && !buttons[3] && deck[1].filesPresent)
+				deck_next_folder(&deck[1]);
+			else if (buttons[0] && buttons[1] && !buttons[2] && !buttons[3] && deck[1].filesPresent)
+				deck_random_file(&deck[1]);
+			else if (!buttons[0] && !buttons[1] && buttons[2] && !buttons[3] && deck[0].filesPresent)
+				deck_prev_folder(&deck[0]);
+			else if (!buttons[0] && !buttons[1] && !buttons[2] && buttons[3] && deck[0].filesPresent)
+				deck_next_folder(&deck[0]);
+			else if (!buttons[0] && !buttons[1] && buttons[2] && buttons[3] && deck[0].filesPresent)
+				deck_random_file(&deck[0]);
+			else if (buttons[0] && buttons[1] && buttons[2] && buttons[3])
+			{
+				printf("All buttons held!\n");
+				if (deck[1].filesPresent)
+					deck_record(&deck[0]);
+			}
+			else
+				printf("Sod knows what you were trying to do there\n");
+
+			buttonState = BUTTONSTATE_WAITING;
+
+			break;
+
+		case BUTTONSTATE_WAITING:
+
+			butCounter++;
+
+			// wait till buttons are released before allowing the countdown
+			if (buttons[0] || buttons[1] || buttons[2] || buttons[3])
+				butCounter = 0;
+
+			if (butCounter > 20)
+			{
+				butCounter = 0;
+				buttonState = BUTTONSTATE_NONE;
+
+				for (i = 0; i < 4; i++)
+					totalbuttons[i] = 0;
+			}
+			break;
 		}
-		break;
 	}
 }
 
@@ -815,7 +760,7 @@ void *SC_InputThread(void *ptr)
 
 	int secondCount = 0;
 
-	while (1)
+	while (1) // Main input loop
 	{
 
 		frameCount++;

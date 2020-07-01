@@ -41,11 +41,13 @@
 #define ACTION_NEXTFOLDER 13
 #define ACTION_PREVFOLDER 14
 #define ACTION_RECORD 15
+#define ACTION_VOLUP 16
+#define ACTION_VOLDOWN 17
+#define ACTION_PITCHMODE 18
 
 
 #define MAP_MIDI 0
 #define MAP_IO 1
-#define MAP_GPIO 2
 
 // Defines a mapping between a MIDI event and an action
 struct mapping {
@@ -73,11 +75,8 @@ struct mapping {
 
 	struct mapping *next;
 };
-
-void add_MIDI_mapping(struct mapping **maps, unsigned char buf[3], unsigned char DeckNo, unsigned char Action, unsigned char Param);
-void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Pullup, bool Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param);
-void add_GPIO_mapping(struct mapping **maps, unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char DeckNo, unsigned char Action, unsigned char Param);
+void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, bool Edge, unsigned char action, unsigned char parameter);
 struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3]);
-struct mapping *find_IO_mapping(struct mapping *maps, unsigned char pin, bool edge);
-struct mapping *find_GPIO_mapping(struct mapping *maps, unsigned char port, unsigned char pin, char edge);
+struct mapping *find_IO_mapping(struct mapping *maps, unsigned char port, unsigned char pin, char edge);
+void IOevent(struct mapping *map, unsigned char MidiBuffer[3]);
 #endif

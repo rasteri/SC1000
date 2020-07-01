@@ -76,6 +76,11 @@ typedef struct SC_SETTINGS {
 	// How many seconds to wait before initializing MIDI
 	int mididelay;
 
+	// whether or not to take input from the volume knobs (sc500 should enable this setting)
+	int disablevolumeadc;
+
+    // whether or not to take input from the PIC buttons (sc500 should enable this setting)
+	int disablepicbuttons;
 
 } SC_SETTINGS;
 

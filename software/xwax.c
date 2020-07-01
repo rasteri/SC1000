@@ -60,6 +60,20 @@ SC_SETTINGS scsettings;
 
 struct mapping *maps = NULL;
 
+unsigned int countChars(char *string, char c)
+{
+	unsigned int count;
+
+	do
+	{
+		if ((*string) == c)
+		{
+			count++;
+		}
+	} while ((*(string++)));
+	return count;
+}
+
 void loadSettings()
 {
 	FILE *fp;
@@ -91,6 +105,9 @@ void loadSettings()
 	scsettings.pitchrange = 50;
 	scsettings.mididelay = 5;
 
+	// todo - check for sc500 pin and use it to set following setting
+	scsettings.disablevolumeadc = 1;
+
 	// Load any settings from config file
 	fp = fopen("/media/sda/scsettings.txt", "r");
 	if (fp == NULL)
@@ -117,6 +134,8 @@ void loadSettings()
 					scsettings.faderopenpoint = atoi(value);
 				else if (strcmp(param, "platterenabled") == 0)
 					scsettings.platterenabled = atoi(value);
+				else if (strcmp(param, "disablevolumeadc") == 0)
+					scsettings.disablevolumeadc = atoi(value);
 				else if (strcmp(param, "platterspeed") == 0)
 					scsettings.platterspeed = atoi(value);
 				else if (strcmp(param, "samplerate") == 0)
@@ -140,137 +159,43 @@ void loadSettings()
 					channel = atoi(strtok_r(NULL, delimc, &valuetok));
 					notenum = atoi(strtok_r(NULL, delimc, &valuetok));
 					actions = strtok_r(NULL, delimc, &valuetok);
-					parameter = 0;
-
-					// Extract deck no from action (CHx)
-					if (actions[2] == '0')
-						deckno = 0;
-					if (actions[2] == '1')
-						deckno = 1;
-
-					// figure out which action it is
-					if (strstr(actions + 4, "CUE") != NULL)
-						action = ACTION_CUE;
-					else if (strstr(actions + 4, "SHIFTON") != NULL)
-						action = ACTION_SHIFTON;
-					else if (strstr(actions + 4, "SHIFTOFF") != NULL)
-						action = ACTION_SHIFTOFF;
-					else if (strstr(actions + 4, "STARTSTOP") != NULL)
-						action = ACTION_STARTSTOP;
-					else if (strstr(actions + 4, "PITCH") != NULL)
-						action = ACTION_PITCH;
-					else if (strstr(actions + 4, "NOTE") != NULL)
-					{
-						action = ACTION_NOTE;
-						parameter = atoi(actions + 8);
-					}
 
 					// Build MIDI command
 					midicommand[0] = (controlType << 4) | channel;
 					midicommand[1] = notenum;
 					midicommand[2] = 0;
-
-					add_MIDI_mapping(
+					add_config_mapping(
 						&maps,
+						MAP_MIDI,
 						midicommand,
-						deckno,
-						action,
-						parameter);
+						0,
+						0,
+						0,
+						0,
+						actions);
 				}
-				else if (strstr(param, "gpio") != NULL)
+				else if (strstr(param, "io") != NULL)
 				{
-					printf("Found gpio\n");
-					port = atoi(strtok_r(value, delimc, &valuetok));
+					printf("Found io\n");
+					unsigned char commaCount = countChars(param, ',');
+					port = 0;
+					if (commaCount == 4)
+						port = atoi(strtok_r(value, delimc, &valuetok));
 					pin = atoi(strtok_r(NULL, delimc, &valuetok));
 					pullup = atoi(strtok_r(NULL, delimc, &valuetok));
 					edge = atoi(strtok_r(NULL, delimc, &valuetok));
 					actions = strtok_r(NULL, delimc, &valuetok);
-					parameter = 0;
 
-					// Extract deck no from action (CHx)
-					if (actions[2] == '0')
-						deckno = 0;
-					if (actions[2] == '1')
-						deckno = 1;
-
-					// figure out which action it is
-					if (strstr(actions + 4, "CUE") != NULL)
-						action = ACTION_CUE;
-					else if (strstr(actions + 4, "SHIFTON") != NULL)
-						action = ACTION_SHIFTON;
-					else if (strstr(actions + 4, "SHIFTOFF") != NULL)
-						action = ACTION_SHIFTOFF;
-					else if (strstr(actions + 4, "STARTSTOP") != NULL)
-						action = ACTION_STARTSTOP;
-					else if (strstr(actions + 4, "GND") != NULL)
-						action = ACTION_GND;
-					else if (strstr(actions + 4, "NEXTFILE") != NULL)
-						action = ACTION_NEXTFILE;
-					else if (strstr(actions + 4, "PREVFILE") != NULL)
-						action = ACTION_PREVFILE;
-					else if (strstr(actions + 4, "RANDOMFILE") != NULL)
-						action = ACTION_RANDOMFILE;
-					else if (strstr(actions + 4, "NEXTFOLDER") != NULL)
-						action = ACTION_NEXTFOLDER;
-					else if (strstr(actions + 4, "PREVFOLDER") != NULL)
-						action = ACTION_PREVFOLDER;
-					else if (strstr(actions + 4, "NOTE") != NULL)
-					{
-						action = ACTION_NOTE;
-						parameter = atoi(actions + 9);
-					}
-
-					add_GPIO_mapping(
+					add_config_mapping(
 						&maps,
+						MAP_IO,
+						NULL,
 						port,
 						pin,
 						pullup,
 						edge,
-						deckno,
-						action,
-						parameter);
+						actions);
 				}
-				else if (strstr(param, "io") != NULL)
-				{
-					pin = atoi(strtok_r(value, delimc, &valuetok));
-					pullup = atoi(strtok_r(NULL, delimc, &valuetok));
-					edge = atoi(strtok_r(NULL, delimc, &valuetok));
-					actions = strtok_r(NULL, delimc, &valuetok);
-					parameter = 0;
-
-					// Extract deck no from action (CHx)
-					if (actions[2] == '0')
-						deckno = 0;
-					if (actions[2] == '1')
-						deckno = 1;
-
-					// figure out which action it is
-					if (strstr(actions + 4, "CUE") != NULL)
-						action = ACTION_CUE;
-					else if (strstr(actions + 4, "SHIFTON") != NULL)
-						action = ACTION_SHIFTON;
-					else if (strstr(actions + 4, "SHIFTOFF") != NULL)
-						action = ACTION_SHIFTOFF;
-					else if (strstr(actions + 4, "STARTSTOP") != NULL)
-						action = ACTION_STARTSTOP;
-					else if (strstr(actions + 4, "GND") != NULL)
-						action = ACTION_GND;
-					else if (strstr(actions + 4, "NOTE") != NULL)
-					{
-						action = ACTION_NOTE;
-						parameter = atoi(actions + 9);
-					}
-
-					add_IO_mapping(
-						&maps,
-						pin,
-						pullup,
-						edge,
-						deckno,
-						action,
-						parameter);
-				}
-
 				else if (strcmp(param, "mididelay") == 0) // Literally just a sleep to allow USB devices longer to initialize
 					scsettings.mididelay = atoi(value);
 				else
@@ -293,7 +218,8 @@ void loadSettings()
 			{
 				midicommand[0] = 0x90 + deckno;
 				midicommand[1] = notenum;
-				add_MIDI_mapping(&maps, midicommand, deckno, ACTION_CUE, 0);
+				//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_CUE, 0);
+				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 0, ACTION_CUE, 0);
 			}
 
 			// Notes on channels 2 and 3 are C1-style notes
@@ -301,28 +227,33 @@ void loadSettings()
 			{
 				midicommand[0] = 0x92 + deckno;
 				midicommand[1] = notenum;
-				add_MIDI_mapping(&maps, midicommand, deckno, ACTION_NOTE, notenum);
+				//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_NOTE, notenum);
+				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 0, ACTION_NOTE, notenum);
 			}
 
 			// Pitch bend on channels 0 and 1 is, well, pitchbend
 			midicommand[0] = 0xE0 + deckno;
 			midicommand[1] = 0;
 			midicommand[2] = 0;
-			add_MIDI_mapping(&maps, midicommand, deckno, ACTION_PITCH, 0);
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_PITCH, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 0, ACTION_PITCH, 0);
 
 			// Notes 0-1 of channel 4 are startstop
 			midicommand[0] = 0x94;
 			midicommand[1] = deckno;
-			add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 0, ACTION_STARTSTOP, 0);
 		}
 
 		// note 7F of channel 4 is shift
 		midicommand[0] = 0x94;
 		midicommand[1] = 0x7F;
-		add_MIDI_mapping(&maps, midicommand, deckno, ACTION_SHIFTON, 0);
+		//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_SHIFTON, 0);
+		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 0, ACTION_SHIFTON, 0);
 		midicommand[0] = 0x84;
 		midicommand[1] = 0x7F;
-		add_MIDI_mapping(&maps, midicommand, deckno, ACTION_SHIFTOFF, 0);
+		//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_SHIFTOFF, 0);
+		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 0, ACTION_SHIFTOFF, 0);
 	}
 
 	printf("bs %d, fcp %d, fop %d, pe %d, ps %d, sr %d, ur %d\n",

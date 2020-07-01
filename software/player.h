@@ -69,6 +69,7 @@ struct player {
 	bool justPlay;
 	double faderTarget; // Player should slowly fade to this level
 	double faderVolume; // current fader volume
+    double setVolume; // volume set by the volume controls on the back of the sc1000 or the volume buttons on the sc500 (or whatever over midi)
 	bool capTouch;
 	
 	bool GoodToGo;
