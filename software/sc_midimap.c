@@ -72,6 +72,7 @@ void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Pullup, bool 
  * Process an IO event
  */
 extern bool shifted;
+extern int pitchMode;
 void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 {
 
@@ -90,7 +91,20 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 			/*if (shifted)
 				deck_unset_cue(&deck[map->DeckNo], cuenum);
 			else*/
-				deck_cue(&deck[map->DeckNo], cuenum);
+			deck_cue(&deck[map->DeckNo], cuenum);
+		}
+		if (map->Action == ACTION_DELETECUE)
+		{
+			unsigned int cuenum = 0;
+			if (map->Type == MAP_MIDI)
+				cuenum = map->MidiBytes[1];
+			else
+				cuenum = (map->port * 32) + map->Pin + 128;
+
+			//if (shifted)
+			deck_unset_cue(&deck[map->DeckNo], cuenum);
+			/*else
+				deck_cue(&deck[map->DeckNo], cuenum);*/
 		}
 		if (map->Action == ACTION_DELETECUE)
 		{
@@ -147,22 +161,59 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		}
 		else if (map->Action == ACTION_PITCH)
 		{
-			if (map->Type == MAP_MIDI){
-			double pitch = 0.0;
-			// If this came from a pitch bend message, use 14 bit accuracy
-			if ((MidiBuffer[0] & 0xF0) == 0xE0)
+			if (map->Type == MAP_MIDI)
 			{
-				unsigned int pval = (((unsigned int)MidiBuffer[2]) << 7) | ((unsigned int)MidiBuffer[1]);
-				pitch = (((double)pval - 8192.0) * ((double)scsettings.pitchrange / 819200.0)) + 1;
-			}
-			// Otherwise 7bit (boo)
-			else
-			{
-				pitch = (((double)MidiBuffer[2] - 64.0) * ((double)scsettings.pitchrange / 6400.0) + 1);
-			}
+				double pitch = 0.0;
+				// If this came from a pitch bend message, use 14 bit accuracy
+				if ((MidiBuffer[0] & 0xF0) == 0xE0)
+				{
+					unsigned int pval = (((unsigned int)MidiBuffer[2]) << 7) | ((unsigned int)MidiBuffer[1]);
+					pitch = (((double)pval - 8192.0) * ((double)scsettings.pitchrange / 819200.0)) + 1;
+				}
+				// Otherwise 7bit (boo)
+				else
+				{
+					pitch = (((double)MidiBuffer[2] - 64.0) * ((double)scsettings.pitchrange / 6400.0) + 1);
+				}
 
-			deck[map->DeckNo].player.nominal_pitch = pitch;
+				deck[map->DeckNo].player.nominal_pitch = pitch;
 			}
+		}
+		else if (map->Action == ACTION_PITCHMODE)
+		{
+			if (pitchMode != map->DeckNo)
+				pitchMode = map->DeckNo;
+			else
+				pitchMode = 0;
+		}
+		else if (map->Action == ACTION_SC500)
+		{
+			scsettings.disablevolumeadc = 1;
+			scsettings.disablepicbuttons = 1;
+		}
+		else if (map->Action == ACTION_VOLUP)
+		{
+			deck[map->DeckNo].player.setVolume += scsettings.volAmount;
+			if (deck[map->DeckNo].player.setVolume > 1.0)
+				deck[map->DeckNo].player.setVolume = 1.0;
+		}
+		else if (map->Action == ACTION_VOLDOWN)
+		{
+			deck[map->DeckNo].player.setVolume -= scsettings.volAmount;
+			if (deck[map->DeckNo].player.setVolume < 0.0)
+				deck[map->DeckNo].player.setVolume = 0.0;	
+		}
+		else if (map->Action == ACTION_VOLUPHOLD)
+		{
+			deck[map->DeckNo].player.setVolume += scsettings.volAmountHeld;
+			if (deck[map->DeckNo].player.setVolume > 1.0)
+				deck[map->DeckNo].player.setVolume = 1.0;
+		}
+		else if (map->Action == ACTION_VOLDOWNHOLD)
+		{
+			deck[map->DeckNo].player.setVolume -= scsettings.volAmountHeld;
+			if (deck[map->DeckNo].player.setVolume < 0.0)
+				deck[map->DeckNo].player.setVolume = 0.0;	
 		}
 	}
 }
@@ -205,6 +256,14 @@ void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char
 		action = ACTION_PITCH;
 	else if (strstr(actions + 4, "RECORD") != NULL)
 		action = ACTION_RECORD;
+	else if (strstr(actions + 4, "VOLUP") != NULL)
+		action = ACTION_VOLUP;
+	else if (strstr(actions + 4, "VOLDOWN") != NULL)
+		action = ACTION_VOLDOWN;
+	else if (strstr(actions + 4, "VOLUPHOLD") != NULL)
+		action = ACTION_VOLUP;
+	else if (strstr(actions + 4, "VOLDOWNHOLD") != NULL)
+		action = ACTION_VOLDOWN;
 	else if (strstr(actions + 4, "NOTE") != NULL)
 	{
 		action = ACTION_NOTE;
@@ -215,7 +274,7 @@ void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char
 
 void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, bool Edge, unsigned char action, unsigned char parameter)
 {
-	
+
 	struct mapping *new_map = (struct mapping *)malloc(sizeof(struct mapping));
 	if (Type == MAP_IO)
 	{
@@ -236,6 +295,7 @@ void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno
 	new_map->next = NULL;
 	new_map->Type = Type;
 	new_map->DeckNo = deckno;
+	new_map->debounce = 0;
 
 	printf("Adding Mapping - po:%d pn%x pl:%x ed%x - dn:%d, a:%d, p:%d\n", port, Pin, Pullup, Edge, deckno, action, parameter);
 

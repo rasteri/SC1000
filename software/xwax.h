@@ -82,6 +82,10 @@ typedef struct SC_SETTINGS {
     // whether or not to take input from the PIC buttons (sc500 should enable this setting)
 	int disablepicbuttons;
 
+    // how much to adjust the volumes when the volume up/down buttons are pressed or held
+    double volAmount;
+    double volAmountHeld;
+
 } SC_SETTINGS;
 
 extern SC_SETTINGS scsettings;

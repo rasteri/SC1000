@@ -106,9 +106,12 @@ void loadSettings()
 	scsettings.brakespeed = 3000;
 	scsettings.pitchrange = 50;
 	scsettings.mididelay = 5;
+	scsettings.volAmount = 0.03;
+	scsettings.volAmountHeld = 0.001;
 
-	// todo - check for sc500 pin and use it to set following setting
+	// later we'll check for sc500 pin and use it to set following settings
 	scsettings.disablevolumeadc = 0;
+	scsettings.disablepicbuttons = 0;
 
 	// Load any settings from config file
 	fp = fopen("/media/sda/scsettings.txt", "r");

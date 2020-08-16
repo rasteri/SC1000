@@ -33,6 +33,7 @@
 bool shifted = 0;
 bool shiftLatched = 0;
 
+
 extern struct rt rt;
 
 struct controller midiControllers[32];
@@ -422,8 +423,6 @@ void process_pic()
 	ADCs[1] |= ((unsigned int)(result & 0x0C) << 6);
 	ADCs[2] |= ((unsigned int)(result & 0x30) << 4);
 	ADCs[3] |= ((unsigned int)(result & 0xC0) << 2);
-	ADCs[2] = 512;
-	ADCs[3] = 512;
 	// Now buttons and capsense
 
 	i2c_read_address(file_i2c_pic, 0x05, &result);
