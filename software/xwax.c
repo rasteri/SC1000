@@ -62,7 +62,9 @@ struct mapping *maps = NULL;
 
 unsigned int countChars(char *string, char c)
 {
-	unsigned int count;
+	unsigned int count = 0;
+	
+	printf("Checking for commas in %s\n", string);
 
 	do
 	{
@@ -106,7 +108,7 @@ void loadSettings()
 	scsettings.mididelay = 5;
 
 	// todo - check for sc500 pin and use it to set following setting
-	scsettings.disablevolumeadc = 1;
+	scsettings.disablevolumeadc = 0;
 
 	// Load any settings from config file
 	fp = fopen("/media/sda/scsettings.txt", "r");
@@ -176,12 +178,17 @@ void loadSettings()
 				}
 				else if (strstr(param, "io") != NULL)
 				{
-					printf("Found io\n");
-					unsigned char commaCount = countChars(param, ',');
+					
+					unsigned int commaCount = countChars(value, ',');
+					printf("Found io %s - comacount %d\n", value, commaCount);
 					port = 0;
-					if (commaCount == 4)
+					if (commaCount == 4){
 						port = atoi(strtok_r(value, delimc, &valuetok));
-					pin = atoi(strtok_r(NULL, delimc, &valuetok));
+						pin = atoi(strtok_r(NULL, delimc, &valuetok));
+					}
+					else {
+						pin = atoi(strtok_r(value, delimc, &valuetok));
+					}
 					pullup = atoi(strtok_r(NULL, delimc, &valuetok));
 					edge = atoi(strtok_r(NULL, delimc, &valuetok));
 					actions = strtok_r(NULL, delimc, &valuetok);

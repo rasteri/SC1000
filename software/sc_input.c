@@ -293,6 +293,8 @@ void process_io()
 	struct mapping *last_map = maps;
 	while (last_map != NULL)
 	{
+		
+		//printf("%d %d\n", last_map->port, last_map->Pin);
 
 		// Only digital pins
 		if (!(last_map->port == 0 && !gpiopresent))
@@ -420,7 +422,8 @@ void process_pic()
 	ADCs[1] |= ((unsigned int)(result & 0x0C) << 6);
 	ADCs[2] |= ((unsigned int)(result & 0x30) << 4);
 	ADCs[3] |= ((unsigned int)(result & 0xC0) << 2);
-
+	ADCs[2] = 512;
+	ADCs[3] = 512;
 	// Now buttons and capsense
 
 	i2c_read_address(file_i2c_pic, 0x05, &result);
@@ -677,7 +680,7 @@ void process_rot()
 					if (!deck[1].player.capTouch)
 					{
 						deck[1].angleOffset = (deck[1].player.position * scsettings.platterspeed) - deck[1].encoderAngle;
-						//printf("touch! %d %d\n", encoderAngle, angleOffset);
+						printf("touch!\n");
 						deck[1].player.target_position = deck[1].player.position;
 						deck[1].player.capTouch = 1;
 					}

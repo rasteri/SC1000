@@ -87,10 +87,23 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 			else
 				cuenum = (map->port * 32) + map->Pin + 128;
 
-			if (shifted)
+			/*if (shifted)
 				deck_unset_cue(&deck[map->DeckNo], cuenum);
-			else
+			else*/
 				deck_cue(&deck[map->DeckNo], cuenum);
+		}
+		if (map->Action == ACTION_DELETECUE)
+		{
+			unsigned int cuenum = 0;
+			if (map->Type == MAP_MIDI)
+				cuenum = map->MidiBytes[1];
+			else
+				cuenum = (map->port * 32) + map->Pin + 128;
+
+			//if (shifted)
+				deck_unset_cue(&deck[map->DeckNo], cuenum);
+			/*else
+				deck_cue(&deck[map->DeckNo], cuenum);*/
 		}
 		else if (map->Action == ACTION_NOTE)
 		{
@@ -134,6 +147,7 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		}
 		else if (map->Action == ACTION_PITCH)
 		{
+			if (map->Type == MAP_MIDI){
 			double pitch = 0.0;
 			// If this came from a pitch bend message, use 14 bit accuracy
 			if ((MidiBuffer[0] & 0xF0) == 0xE0)
@@ -148,6 +162,7 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 			}
 
 			deck[map->DeckNo].player.nominal_pitch = pitch;
+			}
 		}
 	}
 }
@@ -166,6 +181,8 @@ void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char
 	// figure out which action it is
 	if (strstr(actions + 4, "CUE") != NULL)
 		action = ACTION_CUE;
+	if (strstr(actions + 4, "DELETECUE") != NULL)
+		action = ACTION_DELETECUE;
 	else if (strstr(actions + 4, "SHIFTON") != NULL)
 		action = ACTION_SHIFTON;
 	else if (strstr(actions + 4, "SHIFTOFF") != NULL)
@@ -186,6 +203,8 @@ void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char
 		action = ACTION_PREVFOLDER;
 	else if (strstr(actions + 4, "PITCH") != NULL)
 		action = ACTION_PITCH;
+	else if (strstr(actions + 4, "RECORD") != NULL)
+		action = ACTION_RECORD;
 	else if (strstr(actions + 4, "NOTE") != NULL)
 	{
 		action = ACTION_NOTE;
