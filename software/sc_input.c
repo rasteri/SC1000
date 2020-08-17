@@ -370,8 +370,15 @@ void process_io()
 			// Button still holding, check for release
 			else if (last_map->debounce > scsettings.holdtime)
 			{
+				if (pinVal){
+					if (last_map->Action == ACTION_VOLUHOLD || last_map->Action == ACTION_VOLDHOLD){
+						// keep running the vol up/down actions if they're held
+						if ((!shifted && last_map->Edge == 2) || (shifted && last_map->Edge == 4))
+							IOevent(last_map, NULL);
+					}
+				}
 				// check to see if unpressed
-				if (!pinVal)
+				else
 				{
 					printf("Button %d released\n", last_map->Pin);
 					if (last_map->Edge == 0)
@@ -379,6 +386,7 @@ void process_io()
 					// start the counter
 					last_map->debounce = -scsettings.debouncetime;
 				}
+				
 			}
 
 			// Debouncing negative edge, increment value - will reset when zero is reached
@@ -441,6 +449,7 @@ void process_pic()
 		deck[0].player.setVolume = ((double)ADCs[2]) / 1024;
 		deck[1].player.setVolume = ((double)ADCs[3]) / 1024;
 	}
+
 
 	faderCutPoint = faderOpen ? scsettings.faderclosepoint : scsettings.faderopenpoint; // Fader Hysteresis
 
@@ -719,7 +728,8 @@ void process_rot()
 							angleOffset = encoderAngle;
 						}*/
 			}
-		}
+		} 
+		oldPitchMode = pitchMode;
 	}
 }
 
@@ -749,6 +759,17 @@ void *SC_InputThread(void *ptr)
 	}
 
 	init_io();
+	
+	//detect SC500 by seeing if G11 is pulled high
+	
+	volatile uint32_t *PortDataReg = gpio_addr + (6 * 0x24) + 0x10;
+	uint32_t PortData = *PortDataReg;
+	PortData ^= 0xffffffff;
+	if ((PortData >> 11) & 0x01){
+		printf("SC500 detected\n");
+			scsettings.disablevolumeadc = 1;
+			scsettings.disablepicbuttons = 1;
+	}
 
 	srand(time(NULL)); // TODO - need better entropy source, SoC is starting up annoyingly deterministically
 
@@ -773,10 +794,11 @@ void *SC_InputThread(void *ptr)
 		{
 			lastTime = tv.tv_sec;
 			printf("\033[H\033[J"); // Clear Screen
-			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\nTP: %f, P : %f\n",
+			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\nTP: %f, P : %f\n%f -- %f\n",
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], deck[1].encoderAngle,
 				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
-				   deck[1].player.target_position, deck[1].player.position);
+				   deck[1].player.target_position, deck[1].player.position,
+					deck[0].player.setVolume, deck[1].player.setVolume);
 
 			//printf("\nFPS: %06u\n", frameCount);
 			frameCount = 0;

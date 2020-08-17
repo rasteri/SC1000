@@ -78,7 +78,7 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 
 	if (map != NULL)
 	{
-		printf("Map notnull deck:%d edge:%d pin:%d action:%d param:%d\n", map->DeckNo, map->Edge, map->Pin, map->Action, map->Param);
+		//printf("Map notnull deck:%d edge:%d pin:%d action:%d param:%d\n", map->DeckNo, map->Edge, map->Pin, map->Action, map->Param);
 
 		if (map->Action == ACTION_CUE)
 		{
@@ -179,17 +179,20 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 				deck[map->DeckNo].player.nominal_pitch = pitch;
 			}
 		}
-		else if (map->Action == ACTION_PITCHMODE)
+		else if (map->Action == ACTION_JOGPIT)
 		{
-			if (pitchMode != map->DeckNo)
-				pitchMode = map->DeckNo;
-			else
-				pitchMode = 0;
+			pitchMode = map->DeckNo + 1;
+			printf("Set Pitch Mode %d\n", pitchMode);
+		}
+		else if (map->Action == ACTION_JOGPSTOP)
+		{
+			pitchMode = 0;
 		}
 		else if (map->Action == ACTION_SC500)
 		{
-			scsettings.disablevolumeadc = 1;
-			scsettings.disablepicbuttons = 1;
+
+			printf("SC500 detected\n");
+			
 		}
 		else if (map->Action == ACTION_VOLUP)
 		{
@@ -203,13 +206,13 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 			if (deck[map->DeckNo].player.setVolume < 0.0)
 				deck[map->DeckNo].player.setVolume = 0.0;	
 		}
-		else if (map->Action == ACTION_VOLUPHOLD)
+		else if (map->Action == ACTION_VOLUHOLD)
 		{
 			deck[map->DeckNo].player.setVolume += scsettings.volAmountHeld;
 			if (deck[map->DeckNo].player.setVolume > 1.0)
 				deck[map->DeckNo].player.setVolume = 1.0;
 		}
-		else if (map->Action == ACTION_VOLDOWNHOLD)
+		else if (map->Action == ACTION_VOLDHOLD)
 		{
 			deck[map->DeckNo].player.setVolume -= scsettings.volAmountHeld;
 			if (deck[map->DeckNo].player.setVolume < 0.0)
@@ -254,16 +257,20 @@ void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char
 		action = ACTION_PREVFOLDER;
 	else if (strstr(actions + 4, "PITCH") != NULL)
 		action = ACTION_PITCH;
+	else if (strstr(actions + 4, "JOGPIT") != NULL)
+		action = ACTION_JOGPIT;
+	else if (strstr(actions + 4, "JOGPSTOP") != NULL)
+		action = ACTION_JOGPSTOP;
 	else if (strstr(actions + 4, "RECORD") != NULL)
 		action = ACTION_RECORD;
 	else if (strstr(actions + 4, "VOLUP") != NULL)
 		action = ACTION_VOLUP;
 	else if (strstr(actions + 4, "VOLDOWN") != NULL)
 		action = ACTION_VOLDOWN;
-	else if (strstr(actions + 4, "VOLUPHOLD") != NULL)
-		action = ACTION_VOLUP;
-	else if (strstr(actions + 4, "VOLDOWNHOLD") != NULL)
-		action = ACTION_VOLDOWN;
+	else if (strstr(actions + 4, "VOLUHOLD") != NULL)
+		action = ACTION_VOLUHOLD;
+	else if (strstr(actions + 4, "VOLDHOLD") != NULL)
+		action = ACTION_VOLDHOLD;
 	else if (strstr(actions + 4, "NOTE") != NULL)
 	{
 		action = ACTION_NOTE;
@@ -273,7 +280,7 @@ void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char
 }
 
 void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, bool Edge, unsigned char action, unsigned char parameter)
-{
+{ 
 
 	struct mapping *new_map = (struct mapping *)malloc(sizeof(struct mapping));
 	if (Type == MAP_IO)

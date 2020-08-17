@@ -85,6 +85,9 @@ typedef struct SC_SETTINGS {
     // how much to adjust the volumes when the volume up/down buttons are pressed or held
     double volAmount;
     double volAmountHeld;
+	
+	
+	double initialVolume;
 
 } SC_SETTINGS;
 

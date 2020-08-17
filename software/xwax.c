@@ -108,6 +108,7 @@ void loadSettings()
 	scsettings.mididelay = 5;
 	scsettings.volAmount = 0.03;
 	scsettings.volAmountHeld = 0.001;
+	scsettings.initialVolume = 0.125;
 
 	// later we'll check for sc500 pin and use it to set following settings
 	scsettings.disablevolumeadc = 0;

@@ -253,7 +253,7 @@ void player_init(struct player *pl, unsigned int sample_rate,
 	pl->pitch = 0.0;
 	pl->sync_pitch = 1.0;
 	pl->volume = 0.0;
-	pl->setVolume = 0.0;
+	pl->setVolume = scsettings.initialVolume;
 	pl->GoodToGo = 0;
 	pl->samplesSoFar = 0;
 	pl->nominal_pitch = 1.0;
