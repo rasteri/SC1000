@@ -93,20 +93,7 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 			else*/
 			deck_cue(&deck[map->DeckNo], cuenum);
 		}
-		if (map->Action == ACTION_DELETECUE)
-		{
-			unsigned int cuenum = 0;
-			if (map->Type == MAP_MIDI)
-				cuenum = map->MidiBytes[1];
-			else
-				cuenum = (map->port * 32) + map->Pin + 128;
-
-			//if (shifted)
-			deck_unset_cue(&deck[map->DeckNo], cuenum);
-			/*else
-				deck_cue(&deck[map->DeckNo], cuenum);*/
-		}
-		if (map->Action == ACTION_DELETECUE)
+		else if (map->Action == ACTION_DELETECUE)
 		{
 			unsigned int cuenum = 0;
 			if (map->Type == MAP_MIDI)
@@ -158,6 +145,10 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		else if (map->Action == ACTION_RECORD)
 		{
 			deck_record(&deck[0]); // Always record on deck 0
+		}
+		else if (map->Action == ACTION_VOLUME)
+		{
+			deck[map->DeckNo].player.setVolume = 128.0 / (double)MidiBuffer[2];
 		}
 		else if (map->Action == ACTION_PITCH)
 		{
@@ -222,7 +213,7 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 }
 
 // Add a mapping from an action string and other params
-void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, bool Edge, unsigned char *actions)
+void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char *actions)
 {
 	unsigned char deckno, action, parameter;
 
@@ -263,6 +254,8 @@ void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char
 		action = ACTION_JOGPSTOP;
 	else if (strstr(actions + 4, "RECORD") != NULL)
 		action = ACTION_RECORD;
+	else if (strstr(actions + 4, "VOLUME") != NULL)
+		action = ACTION_VOLUME;
 	else if (strstr(actions + 4, "VOLUP") != NULL)
 		action = ACTION_VOLUP;
 	else if (strstr(actions + 4, "VOLDOWN") != NULL)
@@ -279,16 +272,14 @@ void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char
 	add_mapping(maps, Type, deckno, buf, port, Pin, Pullup, Edge, action, parameter);
 }
 
-void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, bool Edge, unsigned char action, unsigned char parameter)
-{ 
-
+void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char action, unsigned char parameter)
+{
 	struct mapping *new_map = (struct mapping *)malloc(sizeof(struct mapping));
 	if (Type == MAP_IO)
 	{
 		new_map->Pin = Pin;
 		new_map->port = port;
 		new_map->Pullup = Pullup;
-		new_map->Edge = Edge;
 	}
 	else if (Type == MAP_MIDI)
 	{
@@ -297,6 +288,7 @@ void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno
 		new_map->MidiBytes[2] = buf[2];
 	}
 
+	new_map->Edge = Edge;
 	new_map->Action = action;
 	new_map->Param = parameter;
 	new_map->next = NULL;
@@ -324,7 +316,7 @@ void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno
 }
 
 // Find a mapping from a MIDI event
-struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3])
+struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3], char edge)
 {
 
 	struct mapping *last_map = maps;
@@ -340,7 +332,7 @@ struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3])
 		if (last_map->Type == MAP_MIDI &&
 				(((last_map->MidiBytes[0] & 0xF0) == 0xE0) && last_map->MidiBytes[0] == buf[0]) || //Pitch bend messages only match on first byte
 			(last_map->MidiBytes[0] == buf[0] && last_map->MidiBytes[1] == buf[1])				   //Everything else matches on first two bytes
-
+			&& last_map->Edge == edge
 		)
 		{
 			return last_map;

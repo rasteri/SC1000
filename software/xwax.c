@@ -229,8 +229,12 @@ void loadSettings()
 			{
 				midicommand[0] = 0x90 + deckno;
 				midicommand[1] = notenum;
-				//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_CUE, 0);
-				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 0, ACTION_CUE, 0);
+				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_CUE, 0);
+
+				// Also add the delete cue command for shift modifier
+				midicommand[0] = 0x90 + deckno;
+				midicommand[1] = notenum;
+				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 3, ACTION_DELETECUE, 0);
 			}
 
 			// Notes on channels 2 and 3 are C1-style notes
@@ -239,7 +243,7 @@ void loadSettings()
 				midicommand[0] = 0x92 + deckno;
 				midicommand[1] = notenum;
 				//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_NOTE, notenum);
-				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 0, ACTION_NOTE, notenum);
+				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_NOTE, notenum);
 			}
 
 			// Pitch bend on channels 0 and 1 is, well, pitchbend
@@ -247,24 +251,64 @@ void loadSettings()
 			midicommand[1] = 0;
 			midicommand[2] = 0;
 			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_PITCH, 0);
-			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 0, ACTION_PITCH, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_PITCH, 0);
 
 			// Notes 0-1 of channel 4 are startstop
 			midicommand[0] = 0x94;
 			midicommand[1] = deckno;
 			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
-			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 0, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_STARTSTOP, 0);
+
+			// Notes 2-3 of channel 4 are Next File
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 2;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_NEXTFILE, 0);
+
+			// Notes 4-5 of channel 4 are Next Folder
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 4;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_NEXTFOLDER, 0);
+
+			// Notes 6-7 of channel 4 are Prev File
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 6;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_PREVFILE, 0);
+
+			// Notes 8-9 of channel 4 are Prev Folder
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 8;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_PREVFOLDER, 0);
+
+			// Notes 10-11 of channel 4 are Random File
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 10;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_RANDOMFILE, 0);
+
+			// Notes 10-11 of channel 4 are Random File
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 10;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_RANDOMFILE, 0);
+	
 		}
+
+		// Note 7E of channel 4 is RECORD
+		midicommand[0] = 0x94;
+		midicommand[1] = 0x7E;
+		add_mapping(&maps, MAP_MIDI, 0, midicommand, 0, 0, 0, 1, ACTION_RECORD, 0);
 
 		// note 7F of channel 4 is shift
 		midicommand[0] = 0x94;
 		midicommand[1] = 0x7F;
-		//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_SHIFTON, 0);
-		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 0, ACTION_SHIFTON, 0);
+		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_SHIFTON, 0);
 		midicommand[0] = 0x84;
 		midicommand[1] = 0x7F;
-		//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_SHIFTOFF, 0);
-		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 0, ACTION_SHIFTOFF, 0);
+		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_SHIFTOFF, 0);
 	}
 
 	printf("bs %d, fcp %d, fop %d, pe %d, ps %d, sr %d, ur %d\n",

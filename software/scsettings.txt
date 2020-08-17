@@ -160,7 +160,7 @@ io=15,1,1,CH1_CUE
 ################
 #
 # Format is :
-# Status,channel,data,action
+# Status,channel,data,edge, action
 # 
 # Status can be : 
 # 8 - Note OFF (will also match zero-velocity Note ON)
@@ -180,7 +180,8 @@ io=15,1,1,CH1_CUE
 # CHx_PITCH - Change the speed of the track
 # CHx_NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
 
-# Hold down shift and a cue button to delete a cue point
+
+# edge is 1 for pressing, 3 for pressing while shifted
 
 # Here's an annotated example for my Akai MPD18
 # Which has 16 pads from C2(36) to Eb3(51)
