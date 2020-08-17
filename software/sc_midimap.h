@@ -34,7 +34,7 @@
 #define ACTION_PITCH 6
 #define ACTION_NOTE 7
 #define ACTION_GND 8
-#define ACTION_VOL 9
+#define ACTION_VOLUME 9
 #define ACTION_NEXTFILE 10
 #define ACTION_PREVFILE 11
 #define ACTION_RANDOMFILE 12
@@ -79,8 +79,9 @@ struct mapping {
 
 	struct mapping *next;
 };
-void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, bool Edge, unsigned char action, unsigned char parameter);
-struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3]);
+void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char action, unsigned char parameter);
+struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3], char edge);
 struct mapping *find_IO_mapping(struct mapping *maps, unsigned char port, unsigned char pin, char edge);
 void IOevent(struct mapping *map, unsigned char MidiBuffer[3]);
+void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char *actions);
 #endif

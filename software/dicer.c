@@ -52,6 +52,7 @@ typedef unsigned char led_t;
 #define SYNCED 0x4
 
 extern struct mapping *maps;
+extern bool shifted;
 
 /*
  * Add a deck to the dicer or pair of dicer
@@ -85,11 +86,11 @@ static int add_deck(struct controller *c, struct deck *k)
 static void event(struct dicer *d)
 {
 	//	printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
-	struct mapping *map = find_MIDI_mapping(maps, d->MidiBuffer);
+	struct mapping *map = find_MIDI_mapping(maps, d->MidiBuffer, shifted ? 3 : 1);
 	unsigned int pval;
 	IOevent(map, d->MidiBuffer);
 
-
+/*
 	if (map != NULL)
 	{
 		//		printf("Map notnull %d %d %d\n", map->DeckNo, map->Action, map->Param);
@@ -134,7 +135,7 @@ static void event(struct dicer *d)
 
 			d->decks[map->DeckNo]->player.nominal_pitch = pitch;
 		}
-	}
+	}*/
 }
 
 static ssize_t pollfds(struct controller *c, struct pollfd *pe, size_t z)
