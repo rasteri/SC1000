@@ -398,6 +398,12 @@ void process_io()
 
 		last_map = last_map->next;
 	}
+	
+	// Dumb hack to process MIDI commands in this thread rather than the realtime one
+	if (QueuedMidiCommand != NULL){
+		IOevent(QueuedMidiCommand, QueuedMidiBuffer);
+		QueuedMidiCommand = NULL;
+	}
 }
 
 int file_i2c_rot, file_i2c_pic;

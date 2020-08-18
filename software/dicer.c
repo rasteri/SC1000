@@ -82,13 +82,19 @@ static int add_deck(struct controller *c, struct deck *k)
 /*
  * Process an event from the device, given the MIDI control codes
  */
+ 
+ // This is so dumb
 
 static void event(struct dicer *d)
 {
-		printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
-	struct mapping *map = find_MIDI_mapping(maps, d->MidiBuffer, shifted ? 3 : 1);
-	unsigned int pval;
-	IOevent(map, d->MidiBuffer);
+	printf("%x %x %x\n",d->MidiBuffer[0], d->MidiBuffer[1], d->MidiBuffer[2]);
+		
+	// This is so dumb, there should be a proper event buffer, but oh well
+	QueuedMidiCommand = find_MIDI_mapping(maps, d->MidiBuffer, shifted ? 3 : 1);
+	QueuedMidiBuffer[0] = d->MidiBuffer[0];
+	QueuedMidiBuffer[1] = d->MidiBuffer[1];
+	QueuedMidiBuffer[2] = d->MidiBuffer[2];
+
 
 /*
 	if (map != NULL)

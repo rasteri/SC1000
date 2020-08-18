@@ -73,12 +73,20 @@ void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Pullup, bool 
  */
 extern bool shifted;
 extern int pitchMode;
+
+
+// Queued command from the realtime thread
+// this is so dumb
+
+struct mapping *QueuedMidiCommand = NULL;
+unsigned char QueuedMidiBuffer[3];
+
 void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 {
 
 	if (map != NULL)
 	{
-		//printf("Map notnull deck:%d edge:%d pin:%d action:%d param:%d\n", map->DeckNo, map->Edge, map->Pin, map->Action, map->Param);
+		printf("Map notnull deck:%d edge:%d pin:%d action:%d param:%d\n", map->DeckNo, map->Edge, map->Pin, map->Action, map->Param);
 
 		if (map->Action == ACTION_CUE)
 		{
@@ -116,10 +124,12 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		}
 		else if (map->Action == ACTION_SHIFTON)
 		{
+			printf("Shifton\n");
 			shifted = 1;
 		}
 		else if (map->Action == ACTION_SHIFTOFF)
 		{
+			printf("Shiftoff\n");
 			shifted = 0;
 		}
 		else if (map->Action == ACTION_NEXTFILE)
@@ -148,7 +158,7 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		}
 		else if (map->Action == ACTION_VOLUME)
 		{
-			deck[map->DeckNo].player.setVolume = 128.0 / (double)MidiBuffer[2];
+			deck[map->DeckNo].player.setVolume = (double)MidiBuffer[2] / 128.0;
 		}
 		else if (map->Action == ACTION_PITCH)
 		{
@@ -296,7 +306,7 @@ void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno
 	new_map->DeckNo = deckno;
 	new_map->debounce = 0;
 
-	printf("Adding Mapping - po:%d pn%x pl:%x ed%x - dn:%d, a:%d, p:%d\n", port, Pin, Pullup, Edge, deckno, action, parameter);
+	printf("Adding Mapping - po:%d pn%x pl:%x ed%x mid:%x:%x:%x- dn:%d, a:%d, p:%d\n", port, Pin, Pullup, Edge,new_map->MidiBytes[0],new_map->MidiBytes[1],new_map->MidiBytes[2], deckno, action, parameter);
 
 	if (*maps == NULL)
 	{

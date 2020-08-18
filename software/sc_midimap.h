@@ -79,6 +79,11 @@ struct mapping {
 
 	struct mapping *next;
 };
+
+extern struct mapping *QueuedMidiCommand;
+extern unsigned char QueuedMidiBuffer[3];
+
+
 void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char action, unsigned char parameter);
 struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3], char edge);
 struct mapping *find_IO_mapping(struct mapping *maps, unsigned char port, unsigned char pin, char edge);

@@ -224,6 +224,11 @@ void loadSettings()
 		// Set up per-deck cue/startstop/pitchbend mappings
 		for (deckno = 0; deckno < 2; deckno++)
 		{
+			//CC 0 of channels 0/1 is volume
+			midicommand[0] = 0xB0 + deckno;
+			midicommand[1] = 0x00;
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_VOLUME, 0);		
+	
 			// Notes on channels 0 and 1 are cue points
 			for (notenum = 0; notenum < 128; notenum++)
 			{
@@ -308,7 +313,8 @@ void loadSettings()
 		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_SHIFTON, 0);
 		midicommand[0] = 0x84;
 		midicommand[1] = 0x7F;
-		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_SHIFTOFF, 0);
+		// Edge is 3 in this next statement because obviously we're shifted if we're disengaging shift 
+		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 3, ACTION_SHIFTOFF, 0);
 	}
 
 	printf("bs %d, fcp %d, fop %d, pe %d, ps %d, sr %d, ur %d\n",
