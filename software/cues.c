@@ -166,7 +166,7 @@ void cues_save_to_file(struct cues *q, char const* pathname)
         fprintf(f, "%lf\n", q->position[i]);
 
     fclose(f);
-    sprintf(syncCommandLine, "/bin/sync %s", cuepath);
+    sprintf(syncCommandLine, "/bin/sync \"%s\"", cuepath);
     system(syncCommandLine);
     free(cuepath);
 

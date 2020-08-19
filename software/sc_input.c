@@ -238,6 +238,9 @@ void addDefaultIOMap(bool ExternalGPIO)
 
 	// Now onto GPIO
 
+	// SC500 detection pin, always mapped no matter what
+	add_mapping(&maps, MAP_IO, 0, midicommand, 6, 11, 1, 1, ACTION_SC500, 0);
+
 	if (!scsettings.ioRemapped)
 	{
 		// To start with we always map SC500 buttons, no harm in it even on the SC1000
@@ -293,9 +296,6 @@ void addDefaultIOMap(bool ExternalGPIO)
 		add_mapping(&maps, MAP_IO, 1, midicommand, 1, 4, 1, 1, ACTION_VOLDOWN, 0);
 		add_mapping(&maps, MAP_IO, 1, midicommand, 1, 4, 1, 2, ACTION_VOLDHOLD, 0);
 
-		// SC500 detection pin
-		add_mapping(&maps, MAP_IO, 1, midicommand, 6, 11, 1, 3, ACTION_SC500, 0);
-
 		// If there's an external GPIO on the expansion port (J7),
 		// map it like in the default settings file of v1.4
 		if (ExternalGPIO)
@@ -337,6 +337,8 @@ void addDefaultIOMap(bool ExternalGPIO)
 			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 1, 1, 1, ACTION_CUE, 0); // J7 pin 7
 		}
 	}
+
+
 }
 
 void init_io()
@@ -450,6 +452,7 @@ void init_io()
 
 			if (map != NULL)
 			{
+				printf("Pulling %d %d %d\n", j, i, map->Pullup);
 				// which config register to use, 0-3
 				uint32_t configregister = i >> 3;
 
