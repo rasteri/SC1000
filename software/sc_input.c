@@ -33,7 +33,6 @@
 bool shifted = 0;
 bool shiftLatched = 0;
 
-
 extern struct rt rt;
 
 struct controller midiControllers[32];
@@ -133,10 +132,218 @@ void AddNewMidiDevices(char mididevices[64][64], int mididevicenum)
 unsigned char gpiopresent = 1;
 int file_i2c_gpio;
 volatile void *gpio_addr;
+
+void addDefaultIOMap(bool ExternalGPIO)
+{
+
+	unsigned char midicommand[3];
+	unsigned char deckno;
+	unsigned char notenum;
+	if (!scsettings.midiRemapped)
+	{
+		// Set up per-deck cue/startstop/pitchbend mappings
+		for (deckno = 0; deckno < 2; deckno++)
+		{
+			//CC 0 of channels 0/1 is volume
+			midicommand[0] = 0xB0 + deckno;
+			midicommand[1] = 0x00;
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_VOLUME, 0);
+
+			// Notes on channels 0 and 1 are cue points
+			for (notenum = 0; notenum < 128; notenum++)
+			{
+				midicommand[0] = 0x90 + deckno;
+				midicommand[1] = notenum;
+				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_CUE, 0);
+
+				// Also add the delete cue command for shift modifier
+				midicommand[0] = 0x90 + deckno;
+				midicommand[1] = notenum;
+				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 3, ACTION_DELETECUE, 0);
+			}
+
+			// Notes on channels 2 and 3 are C1-style notes
+			for (notenum = 0; notenum < 128; notenum++)
+			{
+				midicommand[0] = 0x92 + deckno;
+				midicommand[1] = notenum;
+				//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_NOTE, notenum);
+				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_NOTE, notenum);
+			}
+
+			// Pitch bend on channels 0 and 1 is, well, pitchbend
+			midicommand[0] = 0xE0 + deckno;
+			midicommand[1] = 0;
+			midicommand[2] = 0;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_PITCH, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_PITCH, 0);
+
+			// Notes 0-1 of channel 4 are startstop
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_STARTSTOP, 0);
+
+			// Notes 2-3 of channel 4 are Next File
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 2;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_NEXTFILE, 0);
+
+			// Notes 4-5 of channel 4 are Next Folder
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 4;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_NEXTFOLDER, 0);
+
+			// Notes 6-7 of channel 4 are Prev File
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 6;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_PREVFILE, 0);
+
+			// Notes 8-9 of channel 4 are Prev Folder
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 8;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_PREVFOLDER, 0);
+
+			// Notes 10-11 of channel 4 are Random File
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 10;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_RANDOMFILE, 0);
+
+			// Notes 10-11 of channel 4 are Random File
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 10;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_RANDOMFILE, 0);
+		}
+
+		// Note 7E of channel 4 is RECORD
+		midicommand[0] = 0x94;
+		midicommand[1] = 0x7E;
+		add_mapping(&maps, MAP_MIDI, 0, midicommand, 0, 0, 0, 1, ACTION_RECORD, 0);
+
+		// note 7F of channel 4 is shift
+		midicommand[0] = 0x94;
+		midicommand[1] = 0x7F;
+		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_SHIFTON, 0);
+		midicommand[0] = 0x84;
+		midicommand[1] = 0x7F;
+		// Edge is 3 in this next statement because obviously we're shifted if we're disengaging shift
+		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 3, ACTION_SHIFTOFF, 0);
+	}
+
+	// Now onto GPIO
+
+	if (!scsettings.ioRemapped)
+	{
+		// To start with we always map SC500 buttons, no harm in it even on the SC1000
+
+		// CH0 Transport
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 1, ACTION_PREVFILE, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 2, ACTION_PREVFOLDER, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 3, ACTION_JOGPIT, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 0, ACTION_JOGPSTOP, 0);
+
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 13, 1, 1, ACTION_STARTSTOP, 0);
+
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 1, ACTION_NEXTFILE, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 2, ACTION_NEXTFOLDER, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 3, ACTION_RANDOMFILE, 0);
+
+		// CH0 Volume
+		add_mapping(&maps, MAP_IO, 0, midicommand, 4, 5, 1, 1, ACTION_VOLUP, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 4, 5, 1, 2, ACTION_VOLUHOLD, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 4, 4, 1, 1, ACTION_VOLDOWN, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 4, 4, 1, 2, ACTION_VOLDHOLD, 0);
+
+		// Shift
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 9, 1, 1, ACTION_SHIFTON, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 9, 1, 0, ACTION_SHIFTOFF, 0);
+
+		// CH1 cues
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 4, 1, 1, ACTION_CUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 4, 1, 3, ACTION_DELETECUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 7, 1, 1, ACTION_CUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 7, 1, 3, ACTION_DELETECUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 11, 1, 1, ACTION_CUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 11, 1, 3, ACTION_DELETECUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 12, 1, 1, ACTION_CUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 12, 1, 3, ACTION_DELETECUE, 0);
+
+		// CH1 transport
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 5, 1, 1, ACTION_PREVFILE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 5, 1, 2, ACTION_PREVFOLDER, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 5, 1, 3, ACTION_JOGPIT, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 5, 1, 0, ACTION_JOGPSTOP, 0);
+
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 6, 1, 1, ACTION_STARTSTOP, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 6, 1, 3, ACTION_RECORD, 0);
+
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 8, 1, 1, ACTION_NEXTFILE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 8, 1, 2, ACTION_NEXTFOLDER, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 8, 1, 3, ACTION_RANDOMFILE, 0);
+
+		// CH1 Volume
+		add_mapping(&maps, MAP_IO, 1, midicommand, 1, 10, 1, 1, ACTION_VOLUP, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 1, 10, 1, 2, ACTION_VOLUHOLD, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 1, 4, 1, 1, ACTION_VOLDOWN, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 1, 4, 1, 2, ACTION_VOLDHOLD, 0);
+
+		// SC500 detection pin
+		add_mapping(&maps, MAP_IO, 1, midicommand, 6, 11, 1, 3, ACTION_SC500, 0);
+
+		// If there's an external GPIO on the expansion port (J7),
+		// map it like in the default settings file of v1.4
+		if (ExternalGPIO)
+		{
+			add_mapping(&maps, MAP_IO, 0, midicommand, 0, 0, 0, 1, ACTION_GND, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 1, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 2, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 3, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 4, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 5, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 6, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 7, 1, 1, ACTION_CUE, 0);
+
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 8, 1, 1, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_IO, 0, midicommand, 0, 9, 1, 1, ACTION_SHIFTON, 0);
+			add_mapping(&maps, MAP_IO, 0, midicommand, 0, 9, 1, 0, ACTION_SHIFTOFF, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 10, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 0, midicommand, 0, 11, 1, 1, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 12, 0, 1, ACTION_GND, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 13, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 14, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 15, 1, 1, ACTION_CUE, 0);
+		}
+
+		// If not, map the expansion port pins as regular inputs
+		else
+		{
+			// Shift, startstop for first three pins
+			add_mapping(&maps, MAP_IO, 0, midicommand, 6, 10, 1, 1, ACTION_SHIFTON, 0);	  //J7 pin 3
+			add_mapping(&maps, MAP_IO, 0, midicommand, 6, 10, 1, 0, ACTION_SHIFTOFF, 0);  //J7 pin 3
+			add_mapping(&maps, MAP_IO, 0, midicommand, 1, 15, 1, 1, ACTION_STARTSTOP, 0); //J7 pin 4
+			//J7 pin5 is pulled down through an LED so probably won't work as a switch input
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 7, 1, 1, ACTION_STARTSTOP, 0); //J7 pin 6
+
+			// Everything else is sample cues
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 3, 1, 1, ACTION_CUE, 0); // J7 pin 7
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 0, 1, 1, ACTION_CUE, 0); // J7 pin 8
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 2, 1, 1, ACTION_CUE, 0); // J7 pin 7
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 1, 1, 1, ACTION_CUE, 0); // J7 pin 7
+		}
+	}
+}
+
 void init_io()
 {
 	int i, j, k;
 	struct mapping *map;
+
 	// Initialise external MCP23017 GPIO on I2C1
 	if ((file_i2c_gpio = setupi2c("/dev/i2c-1", 0x20)) < 0)
 	{
@@ -209,6 +416,11 @@ void init_io()
 		printf("A");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(iodirs & 0xFF));
 		printf("\n");
+		addDefaultIOMap(true);
+	}
+	else
+	{
+		addDefaultIOMap(false);
 	}
 
 	// Configure A13 GPIO
@@ -294,7 +506,7 @@ void process_io()
 	struct mapping *last_map = maps;
 	while (last_map != NULL)
 	{
-		
+
 		//printf("%d %d\n", last_map->port, last_map->Pin);
 
 		// Only digital pins
@@ -370,8 +582,10 @@ void process_io()
 			// Button still holding, check for release
 			else if (last_map->debounce > scsettings.holdtime)
 			{
-				if (pinVal){
-					if (last_map->Action == ACTION_VOLUHOLD || last_map->Action == ACTION_VOLDHOLD){
+				if (pinVal)
+				{
+					if (last_map->Action == ACTION_VOLUHOLD || last_map->Action == ACTION_VOLDHOLD)
+					{
 						// keep running the vol up/down actions if they're held
 						if ((!shifted && last_map->Edge == 2) || (shifted && last_map->Edge == 4))
 							IOevent(last_map, NULL);
@@ -386,7 +600,6 @@ void process_io()
 					// start the counter
 					last_map->debounce = -scsettings.debouncetime;
 				}
-				
 			}
 
 			// Debouncing negative edge, increment value - will reset when zero is reached
@@ -398,9 +611,10 @@ void process_io()
 
 		last_map = last_map->next;
 	}
-	
+
 	// Dumb hack to process MIDI commands in this thread rather than the realtime one
-	if (QueuedMidiCommand != NULL){
+	if (QueuedMidiCommand != NULL)
+	{
 		IOevent(QueuedMidiCommand, QueuedMidiBuffer);
 		QueuedMidiCommand = NULL;
 	}
@@ -456,7 +670,6 @@ void process_pic()
 		deck[1].player.setVolume = ((double)ADCs[3]) / 1024;
 	}
 
-
 	faderCutPoint = faderOpen ? scsettings.faderclosepoint : scsettings.faderopenpoint; // Fader Hysteresis
 
 	if (ADCs[0] > faderCutPoint && ADCs[1] > faderCutPoint)
@@ -485,11 +698,11 @@ void process_pic()
 
 		 */
 
-		#define BUTTONSTATE_NONE 0
-		#define BUTTONSTATE_PRESSING 1
-		#define BUTTONSTATE_ACTING_INSTANT 2
-		#define BUTTONSTATE_ACTING_HELD 3
-		#define BUTTONSTATE_WAITING 4
+#define BUTTONSTATE_NONE 0
+#define BUTTONSTATE_PRESSING 1
+#define BUTTONSTATE_ACTING_INSTANT 2
+#define BUTTONSTATE_ACTING_HELD 3
+#define BUTTONSTATE_WAITING 4
 		int r;
 
 		switch (buttonState)
@@ -734,7 +947,7 @@ void process_rot()
 							angleOffset = encoderAngle;
 						}*/
 			}
-		} 
+		}
 		oldPitchMode = pitchMode;
 	}
 }
@@ -765,16 +978,17 @@ void *SC_InputThread(void *ptr)
 	}
 
 	init_io();
-	
+
 	//detect SC500 by seeing if G11 is pulled high
-	
+
 	volatile uint32_t *PortDataReg = gpio_addr + (6 * 0x24) + 0x10;
 	uint32_t PortData = *PortDataReg;
 	PortData ^= 0xffffffff;
-	if ((PortData >> 11) & 0x01){
+	if ((PortData >> 11) & 0x01)
+	{
 		printf("SC500 detected\n");
-			scsettings.disablevolumeadc = 1;
-			scsettings.disablepicbuttons = 1;
+		scsettings.disablevolumeadc = 1;
+		scsettings.disablepicbuttons = 1;
 	}
 
 	srand(time(NULL)); // TODO - need better entropy source, SoC is starting up annoyingly deterministically
@@ -804,7 +1018,7 @@ void *SC_InputThread(void *ptr)
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], deck[1].encoderAngle,
 				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
 				   deck[1].player.target_position, deck[1].player.position,
-					deck[0].player.setVolume, deck[1].player.setVolume);
+				   deck[0].player.setVolume, deck[1].player.setVolume);
 
 			//printf("\nFPS: %06u\n", frameCount);
 			frameCount = 0;

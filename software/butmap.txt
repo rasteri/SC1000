@@ -15,3 +15,14 @@ S14 - 13 - 8 - B4= SAMPVOL
 S15 - 24 - 30 - E5= BEATVOL
 S16 - 26 - 29 - E4= BEATVOL
 G11 - SC500 detection port
+
+J7
+3 - 38 - G10
+4 - 10 - B15
+5 - 37 (LED1?) - G9
+6 - 19 - C7
+7 - 15 - C3
+8 - 12 - C0
+9 - 14 - C2
+10 - 13 - C1
+

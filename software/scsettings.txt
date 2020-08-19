@@ -62,7 +62,7 @@ mididelay=5
 # CHx_STARTSTOP - Start or Stop the track
 # CHx_NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
 # CHx_GND - make the pin an output and set it low - used to provide additional ground connections (ignores x)
-
+# gpio=port,pin,pull,edge,action
 gpio=2,4,1,1,CH1_CUE
 gpio=2,4,1,3,CH1_DELETECUE
 gpio=2,7,1,1,CH1_CUE

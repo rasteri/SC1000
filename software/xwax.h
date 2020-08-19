@@ -89,6 +89,9 @@ typedef struct SC_SETTINGS {
 	
 	double initialVolume;
 
+    bool midiRemapped;
+    bool ioRemapped;
+
 } SC_SETTINGS;
 
 extern SC_SETTINGS scsettings;
