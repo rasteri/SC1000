@@ -26,3 +26,7 @@ J7
 9 - 14 - C2
 10 - 13 - C1
 
+01C20800 base
+
+pull register AC set to 00000500
+data register A0 should be 0x00000020 or 0x00000010 if we're upgrading
