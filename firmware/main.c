@@ -87,11 +87,14 @@ void __interrupt () ISR(void) {
 
 unsigned int getADC(unsigned char channel) {
 
+    
+    OSCCON = 0b01010000; // Fix for broken silicon - reduce OSC freq to 4mhz while ADC is converting
     ADCON0bits.CHS = channel;
     ADCON0bits.ADON = 1;
-    __delay_us(40);
+    __delay_us(2);
     ADCON0bits.GO_DONE = 1;
     while (ADCON0bits.GO_DONE);
+    OSCCON = 0b01110000; // restore 16mhz clock
     return ((signed int) ADRESH << 8) | ADRESL;
 }
 
@@ -100,11 +103,9 @@ void main(void) {
     char touchState = 0;
     char calibrationMode = 1;
     unsigned int calibrationCount;
-    float threshold = 1023.0;
+    unsigned int threshold = 0xffff;
     unsigned int touchedNum = 0;
     unsigned int tmp1, tmp2, tmp3, tmp4, tmp5;
-    float touchAverage = 1023.0;
-    unsigned int touchAverageInt = 0, thresholdInt = 0;;
 
     // Initialize the device
     SYSTEM_Initialize();
@@ -142,9 +143,6 @@ void main(void) {
     // Delay while we wait for everything to settle
     for (calibrationCount = 0; calibrationCount < 60000; calibrationCount++);
 
-    
-    threshold = 1023.0;
-    
     calibrationCount = 0;
     while (1) {
 
@@ -165,42 +163,41 @@ void main(void) {
         // Now make it an input and get result
         TRISB5 = 1;
         tmp5 = getADC(11);
-        #define ALPHA 0.01
-        touchAverage = (ALPHA * tmp5) + (1.0 - ALPHA) * touchAverage;
+
 
         // First 3000 readings are to calibrate the threshold
         if (calibrationMode) {
 
-            if (touchAverage < threshold)
-                threshold = touchAverage;
+            if (tmp5 < threshold)
+                threshold = tmp5;
 
             calibrationCount++;
             if (calibrationCount > 3000) {
                 calibrationMode = 0;
-                threshold -= 100; // Give ourselves some margin
+                threshold -= 0x60; // Give ourselves some margin
             }
 
         } else {
-            
+
             if (touchState) {
-                if (touchAverage > threshold)
+                if (tmp5 > threshold)
                     touchedNum++;
                 else
                     touchedNum = 0;
 
                 // Require 200 above-threshold readings before we consider the platter released
-                if (touchedNum > 20) {
+                if (touchedNum > 100) {
                     touchState = 0;
                     touchedNum = 0;
                 }
 
             } else {
-                if (touchAverage <= threshold)
+                if (tmp5 <= threshold)
                     touchedNum++;
                 else
                     touchedNum = 0;
 
-                if (touchedNum > 20) {
+                if (touchedNum > 3) {
                     touchState = 1;
                     touchedNum = 0;
                 }
@@ -208,7 +205,7 @@ void main(void) {
             }
 
         }
-        
+
         // ADC LSBs
         STATUSDATA[0] = (unsigned char) (tmp1 & 0xFF);
         STATUSDATA[1] = (unsigned char) (tmp2 & 0xFF);
@@ -220,10 +217,9 @@ void main(void) {
 
         // Digital I/Os and capsense
         STATUSDATA[5] = (unsigned char) ((PORTBbits.RB7) | (PORTCbits.RC7 << 1) | (PORTCbits.RC4 << 2) | (PORTCbits.RC5 << 3) | touchState << 4);
-        
-        touchAverageInt = (unsigned int)touchAverage;
-        STATUSDATA[6] = (unsigned char) (touchAverageInt & 0xFF);
-        STATUSDATA[7] = (unsigned char) ((touchAverageInt & 0x300) >> 8);
+        STATUSDATA[6] = (unsigned char) (tmp5 & 0xFF);
+        STATUSDATA[7] = (unsigned char) ((tmp5 & 0x300) >> 8);
+        //STATUSDATA[5] = tmp5 >> 2;
     }
 }
 /**

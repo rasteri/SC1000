@@ -51,7 +51,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define _XTAL_FREQ  32000000
+#define _XTAL_FREQ  16000000
 
 
 /**
