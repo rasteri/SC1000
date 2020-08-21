@@ -1,30 +1,67 @@
 #!/bin/sh
 
-# If one of the beats buttons is pressed, perform update
-if i2cget -y 2 0x69 0x05 | grep -Exq "0x[0-f](7|b|3)"; then
-	echo "---SC1000 Update Script v1.3---"
+function do_upgrade {
+        echo "---SC500/SC1000 Update Script v1.5 ALPHA---"
 
-	mkdir /tmp/bootpart
+        mkdir /tmp/bootpart
 
-	mount /dev/mmcblk0p1 /tmp/bootpart
+        mount /dev/mmcblk0p1 /tmp/bootpart
 
 	if tar -C /tmp/bootpart/ -xf /media/sda/sc.tar zImage && tar -C /tmp/bootpart/ -xf /media/sda/sc.tar sun5i-a13-olinuxino.dtb && tar -C /usr/bin -xf /media/sda/sc.tar xwax && tar -C /var -xf /media/sda/sc.tar os-version.mp3 && tar -C /var -xf /media/sda/sc.tar scratchsentence.mp3 ; then
-		echo "SC1000 software updated!"
-		umount /tmp/bootpart
-		sync
-		tar -C /tmp/ -xf /media/sda/sc.tar successful.mp3
-		sync
-		mpg123 --loop -1 /tmp/successful.mp3
-		
-	else
-		echo "ERROR : Could not un-tar files"
-		umount /tmp/bootpart
-		sync
-		tar -C /tmp/ -xf /media/sda/sc.tar failed.mp3
-		mpg123 --loop -1 /tmp/failed.mp3
-	fi
+                echo "Software updated successfully!"
+                umount /tmp/bootpart
+                sync
+                tar -C /tmp/ -xf /media/sda/sc.tar successful.mp3
+                sync
+                mpg123 --loop -1 /tmp/successful.mp3
 
-# If no beat buttons pressed, just run the local xwax
-else
-        /usr/bin/xwax
+        else
+                echo "ERROR : Could not un-tar files"
+                umount /tmp/bootpart
+                sync
+                tar -C /tmp/ -xf /media/sda/sc.tar failed.mp3
+                mpg123 --loop -1 /tmp/failed.mp3
+        fi
+
+}
+
+# set SC500 detection pin as input
+/sbin/devmem 0x01C208DC 32 0x00010010 
+
+# pull it up also
+/sbin/devmem 0x01C208F4 32 0x00400119
+
+# Bit 11 will be high if SC1000, low if SC500
+PORTG=$(/sbin/devmem 0x01C208E8)
+if [ $(($PORTG & 0x800)) -eq $((0x800))  ]; then SC500=0; else SC500=1; fi
+
+if [ $SC500 -eq 1 ]; then 
+	echo "SC500 Detected"
+	# Pull up beat buttons
+	/sbin/devmem 0x01C208AC 32 0x00000500 
+	
+	# bit 4 or 5 being low indicates beat buttons are held
+	PORTE=$(/sbin/devmem 0x01C208A0 32)
+	
+	if [ $(($PORTE & 0x10)) -ne $((0x10))  ]; then 
+		DOUPGRADE=1	
+	elif [ $(($PORTE & 0x20)) -ne $((0x20))  ]; then 
+		DOUPGRADE=1
+	else
+		DOUPGRADE=0
+	fi
+	
+else 
+	# check input processor for buttons held
+	echo "SC1000 Detected"
+	if i2cget -y 2 0x69 0x05 | grep -Exq "0x[0-f](7|b|3)"; then DOUPGRADE=1; else DOUPGRADE=0; fi
 fi
+
+if [ $DOUPGRADE -eq 1 ]; then
+	do_upgrade
+else
+	echo "No buttons held, not performing upgrade"
+	/usr/bin/xwax
+fi
+
+

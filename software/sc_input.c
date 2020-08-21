@@ -337,10 +337,8 @@ void addDefaultIOMap(bool ExternalGPIO)
 			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 1, 1, 1, ACTION_CUE, 0); // J7 pin 7
 		}
 	}
-
-
 }
-
+bool firstTimeRound = 1;
 void init_io()
 {
 	int i, j, k;
@@ -542,12 +540,19 @@ void process_io()
 				if (pinVal)
 				{
 					printf("Button %d pressed\n", last_map->Pin);
+					if (firstTimeRound && last_map->DeckNo == 1 && (last_map->Action == ACTION_VOLUP || last_map->Action == ACTION_VOLDOWN))
+					{
+						player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/var/os-version.mp3"));
+						cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
+					}
+					else
+					{
+						if ((!shifted && last_map->Edge == 1) || (shifted && last_map->Edge == 3))
+							IOevent(last_map, NULL);
 
-					if ((!shifted && last_map->Edge == 1) || (shifted && last_map->Edge == 3))
-						IOevent(last_map, NULL);
-
-					// start the counter
-					last_map->debounce++;
+						// start the counter
+						last_map->debounce++;
+					}
 				}
 			}
 
@@ -576,7 +581,7 @@ void process_io()
 			// Button has been held for a while
 			else if (last_map->debounce == scsettings.holdtime)
 			{
-				printf("Button %d held\n", last_map->Pin);
+				printf("Button %d-%d held\n", last_map->port, last_map->Pin);
 				if ((!shifted && last_map->Edge == 2) || (shifted && last_map->Edge == 4))
 					IOevent(last_map, NULL);
 				last_map->debounce++;
@@ -624,7 +629,7 @@ void process_io()
 }
 
 int file_i2c_rot, file_i2c_pic;
-bool firstTimeRound = 1;
+
 int pitchMode = 0; // If we're in pitch-change mode
 int oldPitchMode = 0;
 bool capIsTouched = 0;
@@ -724,7 +729,6 @@ void process_pic()
 					buttonState = BUTTONSTATE_WAITING;
 				}
 			}
-			firstTimeRound = 0;
 
 			break;
 
@@ -1088,6 +1092,7 @@ void *SC_InputThread(void *ptr)
 		}
 
 		//usleep(scsettings.updaterate);
+		firstTimeRound = 0;
 	}
 }
 
