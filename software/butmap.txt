@@ -28,5 +28,11 @@ J7
 
 01C20800 base
 
+
+
+
 pull register AC set to 00000500
 data register A0 should be 0x00000020 or 0x00000010 if we're upgrading
+portG config 0x01C208DC default 0x00011010, should be set to 0x00010010
+portG pull F4 default 0x00000119, should be 0x00400119
+portG data register E8. Will be A06 if SC500, 206 if SC500
