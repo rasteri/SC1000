@@ -3,7 +3,7 @@
 
 // Folders contain files
 struct Folder {
-	char FullPath[256];
+	char FullPath[260];
 	struct File* FirstFile;
 	struct Folder* next;
 	struct Folder* prev;
@@ -11,7 +11,7 @@ struct Folder {
 
 // Struct to hold file (beat or sample)
 struct File {
-	char FullPath[256];
+	char FullPath[260];
 	unsigned int Index;
 	struct File* next;
 	struct File* prev;

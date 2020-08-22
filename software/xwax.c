@@ -64,7 +64,7 @@ unsigned int countChars(char *string, char c)
 {
 	unsigned int count = 0;
 	
-	printf("Checking for commas in %s\n", string);
+	//printf("Checking for commas in %s\n", string);
 
 	do
 	{
@@ -186,7 +186,7 @@ void loadSettings()
 				{
 					scsettings.ioRemapped = 1;
 					unsigned int commaCount = countChars(value, ',');
-					printf("Found io %s - comacount %d\n", value, commaCount);
+					//printf("Found io %s - comacount %d\n", value, commaCount);
 					port = 0;
 					if (commaCount == 4){
 						port = atoi(strtok_r(value, delimc, &valuetok));

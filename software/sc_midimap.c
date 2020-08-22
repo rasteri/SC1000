@@ -74,7 +74,6 @@ void add_IO_mapping(struct mapping **maps, unsigned char Pin, bool Pullup, bool 
 extern bool shifted;
 extern int pitchMode;
 
-
 // Queued command from the realtime thread
 // this is so dumb
 
@@ -86,8 +85,8 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 
 	if (map != NULL)
 	{
-		printf("Map notnull deck:%d edge:%d pin:%d action:%d param:%d\n", map->DeckNo, map->Edge, map->Pin, map->Action, map->Param);
-
+		printf("Map notnull type:%d deck:%d po:%d edge:%d pin:%d action:%d param:%d\n", map->Type, map->DeckNo, map->port, map->Edge, map->Pin, map->Action, map->Param);
+		//dump_maps();
 		if (map->Action == ACTION_CUE)
 		{
 			unsigned int cuenum = 0;
@@ -110,7 +109,7 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 				cuenum = (map->port * 32) + map->Pin + 128;
 
 			//if (shifted)
-				deck_unset_cue(&deck[map->DeckNo], cuenum);
+			deck_unset_cue(&deck[map->DeckNo], cuenum);
 			/*else
 				deck_cue(&deck[map->DeckNo], cuenum);*/
 		}
@@ -193,7 +192,6 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		{
 
 			printf("SC500 detected\n");
-			
 		}
 		else if (map->Action == ACTION_VOLUP)
 		{
@@ -205,7 +203,7 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		{
 			deck[map->DeckNo].player.setVolume -= scsettings.volAmount;
 			if (deck[map->DeckNo].player.setVolume < 0.0)
-				deck[map->DeckNo].player.setVolume = 0.0;	
+				deck[map->DeckNo].player.setVolume = 0.0;
 		}
 		else if (map->Action == ACTION_VOLUHOLD)
 		{
@@ -217,7 +215,7 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		{
 			deck[map->DeckNo].player.setVolume -= scsettings.volAmountHeld;
 			if (deck[map->DeckNo].player.setVolume < 0.0)
-				deck[map->DeckNo].player.setVolume = 0.0;	
+				deck[map->DeckNo].player.setVolume = 0.0;
 		}
 	}
 }
@@ -285,28 +283,23 @@ void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char
 void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char action, unsigned char parameter)
 {
 	struct mapping *new_map = (struct mapping *)malloc(sizeof(struct mapping));
-	if (Type == MAP_IO)
-	{
-		new_map->Pin = Pin;
-		new_map->port = port;
-		new_map->Pullup = Pullup;
-	}
-	else if (Type == MAP_MIDI)
-	{
-		new_map->MidiBytes[0] = buf[0];
-		new_map->MidiBytes[1] = buf[1];
-		new_map->MidiBytes[2] = buf[2];
-	}
+	new_map->Type = Type;
+	new_map->Pin = Pin;
+	new_map->port = port;
+	new_map->Pullup = Pullup;
+	new_map->MidiBytes[0] = buf[0];
+	new_map->MidiBytes[1] = buf[1];
+	new_map->MidiBytes[2] = buf[2];
 
 	new_map->Edge = Edge;
 	new_map->Action = action;
 	new_map->Param = parameter;
 	new_map->next = NULL;
-	new_map->Type = Type;
+
 	new_map->DeckNo = deckno;
 	new_map->debounce = 0;
 
-	printf("Adding Mapping - po:%d pn%x pl:%x ed%x mid:%x:%x:%x- dn:%d, a:%d, p:%d\n", port, Pin, Pullup, Edge,new_map->MidiBytes[0],new_map->MidiBytes[1],new_map->MidiBytes[2], deckno, action, parameter);
+	//printf("Adding Mapping - ty:%d po:%d pn%x pl:%x ed%x mid:%x:%x:%x- dn:%d, a:%d, p:%d\n", new_map->Type, new_map->port, new_map->Pin, new_map->Pullup, new_map->Edge, new_map->MidiBytes[0], new_map->MidiBytes[1], new_map->MidiBytes[2], new_map->DeckNo, new_map->Action, new_map->Param);
 
 	if (*maps == NULL)
 	{
@@ -342,8 +335,7 @@ struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3], ch
 		if (last_map->Type == MAP_MIDI &&
 				(((last_map->MidiBytes[0] & 0xF0) == 0xE0) && last_map->MidiBytes[0] == buf[0]) || //Pitch bend messages only match on first byte
 			(last_map->MidiBytes[0] == buf[0] && last_map->MidiBytes[1] == buf[1])				   //Everything else matches on first two bytes
-			&& last_map->Edge == edge
-		)
+				&& last_map->Edge == edge)
 		{
 			return last_map;
 		}

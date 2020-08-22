@@ -82,6 +82,16 @@ int i2c_write_address(int file_i2c, unsigned char address, unsigned char value)
 		return 1;
 }
 
+void dump_maps(){
+	struct mapping *new_map = maps;
+	while (new_map != NULL)
+	{
+		printf("Dump Mapping - ty:%d po:%d pn%x pl:%x ed%x mid:%x:%x:%x- dn:%d, a:%d, p:%d\n", new_map->Type, new_map->port, new_map->Pin, new_map->Pullup, new_map->Edge,new_map->MidiBytes[0],new_map->MidiBytes[1],new_map->MidiBytes[2], new_map->DeckNo, new_map->Action, new_map->Param);
+		new_map = new_map->next;
+	}
+
+}
+
 int setupi2c(char *path, unsigned char address)
 {
 
@@ -139,6 +149,7 @@ void addDefaultIOMap(bool ExternalGPIO)
 	unsigned char midicommand[3];
 	unsigned char deckno;
 	unsigned char notenum;
+	
 	if (!scsettings.midiRemapped)
 	{
 		// Set up per-deck cue/startstop/pitchbend mappings
@@ -328,7 +339,7 @@ void addDefaultIOMap(bool ExternalGPIO)
 			add_mapping(&maps, MAP_IO, 0, midicommand, 6, 10, 1, 0, ACTION_SHIFTOFF, 0);  //J7 pin 3
 			add_mapping(&maps, MAP_IO, 0, midicommand, 1, 15, 1, 1, ACTION_STARTSTOP, 0); //J7 pin 4
 			//J7 pin5 is pulled down through an LED so probably won't work as a switch input
-			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 7, 1, 1, ACTION_STARTSTOP, 0); //J7 pin 6
+			add_mapping(&maps, MAP_IO, 1, midicommand, 1, 16, 1, 1, ACTION_STARTSTOP, 0); //J7 pin 6
 
 			// Everything else is sample cues
 			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 3, 1, 1, ACTION_CUE, 0); // J7 pin 7
@@ -423,6 +434,8 @@ void init_io()
 		addDefaultIOMap(false);
 	}
 
+
+
 	// Configure A13 GPIO
 
 	int fd = open("/dev/mem", O_RDWR | O_SYNC);
@@ -507,11 +520,10 @@ void process_io()
 	struct mapping *last_map = maps;
 	while (last_map != NULL)
 	{
-
-		//printf("%d %d\n", last_map->port, last_map->Pin);
+		//printf("arses : %d %d\n", last_map->port, last_map->Pin);
 
 		// Only digital pins
-		if (!(last_map->port == 0 && !gpiopresent))
+		if (last_map->Type = MAP_IO && (!(last_map->port == 0 && !gpiopresent)))
 		{
 
 			bool pinVal = 0;
@@ -542,8 +554,11 @@ void process_io()
 					printf("Button %d pressed\n", last_map->Pin);
 					if (firstTimeRound && last_map->DeckNo == 1 && (last_map->Action == ACTION_VOLUP || last_map->Action == ACTION_VOLDOWN))
 					{
+						printf("doing\n", last_map->Pin);
 						player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/var/os-version.mp3"));
 						cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
+						deck[1].player.setVolume = 0.0;
+
 					}
 					else
 					{
@@ -1026,6 +1041,7 @@ void *SC_InputThread(void *ptr)
 				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
 				   deck[1].player.target_position, deck[1].player.position,
 				   deck[0].player.setVolume, deck[1].player.setVolume);
+				   	//dump_maps();
 
 			//printf("\nFPS: %06u\n", frameCount);
 			frameCount = 0;
@@ -1068,6 +1084,7 @@ void *SC_InputThread(void *ptr)
 			{
 				picskip = 0;
 				process_pic();
+				firstTimeRound = 0;
 			}
 
 			process_rot();
@@ -1092,7 +1109,7 @@ void *SC_InputThread(void *ptr)
 		}
 
 		//usleep(scsettings.updaterate);
-		firstTimeRound = 0;
+
 	}
 }
 
