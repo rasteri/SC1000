@@ -313,6 +313,7 @@ void addDefaultIOMap(bool ExternalGPIO)
 		if (ExternalGPIO)
 		{
 			add_mapping(&maps, MAP_IO, 0, midicommand, 0, 0, 0, 1, ACTION_GND, 0);
+			
 			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 1, 1, 1, ACTION_CUE, 0);
 			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 2, 1, 1, ACTION_CUE, 0);
 			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 3, 1, 1, ACTION_CUE, 0);
@@ -320,6 +321,14 @@ void addDefaultIOMap(bool ExternalGPIO)
 			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 5, 1, 1, ACTION_CUE, 0);
 			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 6, 1, 1, ACTION_CUE, 0);
 			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 7, 1, 1, ACTION_CUE, 0);
+			
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 1, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 2, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 3, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 4, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 5, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 6, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 7, 1, 3, ACTION_DELETECUE, 0);
 
 			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 8, 1, 1, ACTION_STARTSTOP, 0);
 			add_mapping(&maps, MAP_IO, 0, midicommand, 0, 9, 1, 1, ACTION_SHIFTON, 0);
@@ -330,6 +339,11 @@ void addDefaultIOMap(bool ExternalGPIO)
 			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 13, 1, 1, ACTION_CUE, 0);
 			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 14, 1, 1, ACTION_CUE, 0);
 			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 15, 1, 1, ACTION_CUE, 0);
+			
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 10, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 13, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 14, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 15, 1, 3, ACTION_DELETECUE, 0);
 		}
 
 		// If not, map the expansion port pins as regular inputs
