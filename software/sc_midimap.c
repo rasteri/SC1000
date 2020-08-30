@@ -292,14 +292,12 @@ void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno
 		new_map->MidiBytes[0] = 0x00;
 		new_map->MidiBytes[1] = 0x00;
 		new_map->MidiBytes[2] = 0x00;
-		printf("Nulbuf\n");
 	}
 	else
 	{
 		new_map->MidiBytes[0] = buf[0];
 		new_map->MidiBytes[1] = buf[1];
 		new_map->MidiBytes[2] = buf[2];
-		printf("NonNulbuf\n");
 	}
 
 	new_map->Edge = Edge;

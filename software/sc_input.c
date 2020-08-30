@@ -1047,7 +1047,7 @@ void *SC_InputThread(void *ptr)
 				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
 				   deck[1].player.target_position, deck[1].player.position,
 				   deck[0].player.setVolume, deck[1].player.setVolume);
-			dump_maps();
+			//dump_maps();
 
 			//printf("\nFPS: %06u\n", frameCount);
 			frameCount = 0;

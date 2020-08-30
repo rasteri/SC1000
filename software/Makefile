@@ -38,7 +38,7 @@ DOCDIR ?= $(PREFIX)/share/doc
 
 # Build flags
 
-CFLAGS ?= -Og -fstack-protector-all
+CFLAGS ?= -O3
 CFLAGS += -Wall
 CPPFLAGS += -MMD
 LDFLAGS ?= -O3
