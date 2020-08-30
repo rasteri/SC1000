@@ -1,0 +1,209 @@
+#######################
+# SC1000 config file #
+######################
+# Any lines beginning with # are ignored
+
+
+###################
+# General Options #
+###################
+#
+# Fader thresholds for hysteresis
+# You might need to adjust these for different faders
+# faderopenpoint should always be 
+# more than faderclosepoint
+
+# Value required to open the fader when it's closed
+faderopenpoint=5
+
+# Value required to close the fader when it's opened
+faderclosepoint=3
+
+
+# 0 to disable platter, default 1 (enabled)
+platterenabled=1
+
+# Ratio of platter movement to sample movement
+# 4096 = 1 second for every platter rotation
+# 3072 = equivalent to 45rpm record (default)
+# 2275 = equivalent to 33rpm
+platterspeed=2275
+
+# How long the stop button takes to stop the track
+# Higher is longer, default = 3000
+brakespeed=3000
+
+# Pitch range % of pitch bend MIDI command, default 50%
+pitchrange=50
+
+# How long to delay before looking for MIDI devices
+# Useful if your MIDI device takes a long time to initialize
+# Or to give you time to switch your phone to MIDI mode
+mididelay=5
+
+
+###########################
+# Internal GPIO Mapping   #
+###########################
+#
+# This section is used to wire buttons directly onto the Olimex module's GPIO
+# Format is : 
+# gpio=port,pin,pull,edge,action
+# port is 123456 for BCDEFG
+# pin is pin number
+# pull is 1 for pullup, 2 for pulldown
+# edge is 1 for pressing edge, 2 for holding action, 3 for pressed while shifted, 4 for held while shifted, 0 for releasing edge
+# action is one of :
+# 
+# (replace x with 0 for beats or 1 for samples) :
+# CHx_CUE - Set and trigger cue points
+# CHx_SHIFTON - Activate shift mode (ignores x)
+# CHx_SHIFTOFF - Deactivate shift mode (also ignores x)
+# CHx_STARTSTOP - Start or Stop the track
+# CHx_NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
+# CHx_GND - make the pin an output and set it low - used to provide additional ground connections (ignores x)
+# gpio=port,pin,pull,edge,action
+gpio=2,4,1,1,CH1_CUE
+gpio=2,4,1,3,CH1_DELETECUE
+gpio=2,7,1,1,CH1_CUE
+gpio=2,7,1,3,CH1_DELETECUE
+gpio=2,11,1,1,CH1_CUE
+gpio=2,11,1,3,CH1_DELETECUE
+gpio=2,12,1,1,CH1_CUE
+gpio=2,12,1,3,CH1_DELETECUE
+
+gpio=2,5,1,1,CH1_PREVFILE
+gpio=2,5,1,2,CH1_PREVFOLDER
+gpio=2,5,1,3,CH1_JOGPIT
+gpio=2,5,1,0,CH1_JOGPSTOP
+
+gpio=2,6,1,1,CH1_STARTSTOP
+gpio=2,6,1,3,CH1_RECORD
+
+gpio=2,8,1,1,CH1_NEXTFILE
+gpio=2,8,1,2,CH1_NEXTFOLDER
+gpio=2,8,1,3,CH1_RANDOMFILE
+
+
+gpio=2,9,1,1,CH1_SHIFTON
+gpio=2,9,1,0,CH1_SHIFTOFF
+
+gpio=2,14,1,1,CH0_PREVFILE
+gpio=2,14,1,2,CH0_PREVFOLDER
+gpio=2,14,1,3,CH0_JOGPIT
+gpio=2,14,1,0,CH0_JOGPSTOP
+
+gpio=2,13,1,1,CH0_STARTSTOP
+
+gpio=2,10,1,1,CH0_NEXTFILE
+gpio=2,10,1,2,CH0_NEXTFOLDER
+gpio=2,10,1,3,CH0_RANDOMFILE
+
+gpio=4,5,1,1,CH0_VOLUP
+gpio=4,5,1,2,CH0_VOLUHOLD
+gpio=4,4,1,1,CH0_VOLDOWN
+gpio=4,4,1,2,CH0_VOLDHOLD
+
+gpio=1,10,1,1,CH1_VOLUP
+gpio=1,10,1,2,CH1_VOLUHOLD
+gpio=1,4,1,1,CH1_VOLDOWN
+gpio=1,4,1,2,CH1_VOLDHOLD
+
+gpio=6,11,1,1,ACTION_SC500
+gpio=6,11,1,3,ACTION_SC500
+
+
+###########################
+# External I/O Mapping    #
+###########################
+#
+# This section is used to connect an external MCP23017 to the expansion connector on the board (J7)
+# Format is :
+# io=pin,pullup,edge,action
+# pin is the io number - A0-A7 is 0-7, B0-B7 is 8-15
+# pullup is 1 if pullup is enabled, 0 if disabled (perhaps disable for piezo buttons)
+# edge is 1 for pressing edge, 0 for releasing edge
+# action is one of :
+# 
+# (replace x with 0 for beats or 1 for samples) :
+# CHx_CUE - Set and trigger cue points
+# CHx_SHIFTON - Activate shift mode (ignores x)
+# CHx_SHIFTOFF - Deactivate shift mode (also ignores x)
+# CHx_STARTSTOP - Start or Stop the track
+# CHx_NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
+# CHx_GND - make the pin an output and set it low - used to provide additional ground connections (ignores x)
+
+io=0,0,1,CH0_GND
+io=1,1,1,CH1_CUE
+io=2,1,1,CH1_CUE
+io=3,1,1,CH1_CUE
+io=4,1,1,CH1_CUE
+io=5,1,1,CH1_CUE
+io=6,1,1,CH1_CUE
+io=7,1,1,CH1_CUE
+
+io=8,1,1,CH1_STARTSTOP
+io=9,1,1,CH0_SHIFTON
+io=9,1,0,CH0_SHIFTOFF 
+io=10,1,1,CH1_CUE
+io=11,1,1,CH0_STARTSTOP
+io=12,0,1,CH1_GND
+io=13,1,1,CH1_CUE
+io=14,1,1,CH1_CUE
+io=15,1,1,CH1_CUE
+
+
+
+
+################
+# MIDI Mapping #
+################
+#
+# Format is :
+# Status,channel,data,edge, action
+# 
+# Status can be : 
+# 8 - Note OFF (will also match zero-velocity Note ON)
+# 9 - Note ON
+# 11 - Control Change
+# 14 - Pitch Bend
+#
+# Channel is the MIDI channel of the incoming MIDI message
+#
+# Data is the note or CC number
+#
+# Action can be (replace x with 0 for beats or 1 for samples) :
+# CHx_CUE - Set and trigger cue points
+# CHx_SHIFTON - Activate shift mode (ignores x)
+# CHx_SHIFTOFF - Deactivate shift mode (also ignores x)
+# CHx_STARTSTOP - Start or Stop the track
+# CHx_PITCH - Change the speed of the track
+# CHx_NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
+
+
+# edge is 1 for pressing, 3 for pressing while shifted
+
+# Here's an annotated example for my Akai MPD18
+# Which has 16 pads from C2(36) to Eb3(51)
+# And a fader on CC #0
+
+#Bottom 2 rows (8 pads) are cue points for track 1 (samples)
+#midii=9,0,36,CH1_CUE
+#midii=9,0,37,CH1_CUE
+#midii=9,0,38,CH1_CUE
+#midii=9,0,39,CH1_CUE
+#midii=9,0,40,CH1_CUE
+#midii=9,0,41,CH1_CUE
+#midii=9,0,42,CH1_CUE
+#midii=9,0,43,CH1_CUE
+
+# Top left and top-middle-left pads are Start/Stop for beat and sample respectively
+#midii=9,0,48,CH0_STARTSTOP
+#midii=9,0,49,CH1_STARTSTOP
+
+# Top Right is shift key, need to define both NOTE OFF and NOTE ON commands
+#midii=9,0,51,CH0_SHIFTON
+#midii=8,0,51,CH0_SHIFTOFF
+
+# Fader is assigned to sample pitch
+#midii=11,0,0,CH1_PITCH

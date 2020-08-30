@@ -345,10 +345,11 @@ void addDefaultIOMap(bool ExternalGPIO)
 			// Everything else is sample cues
 			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 3, 1, 1, ACTION_CUE, 0); // J7 pin 7
 			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 0, 1, 1, ACTION_CUE, 0); // J7 pin 8
-			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 2, 1, 1, ACTION_CUE, 0); // J7 pin 7
-			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 1, 1, 1, ACTION_CUE, 0); // J7 pin 7
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 2, 1, 1, ACTION_CUE, 0); // J7 pin 9
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 1, 1, 1, ACTION_CUE, 0); // J7 pin 10
 		}
 	}
+	//dump_maps();
 }
 bool firstTimeRound = 1;
 void init_io()
@@ -375,6 +376,7 @@ void init_io()
 	// Configure external IO
 	if (gpiopresent)
 	{
+		addDefaultIOMap(true);
 
 		// default to pulled up and input
 		unsigned int pullups = 0xFFFF;
@@ -397,6 +399,7 @@ void init_io()
 				printf("Disabling pin %d pullup\n", i);
 				pullups &= ~(0x0001 << i);
 			}
+			else printf ("Pulling up pin %d\n", i);
 		}
 
 		unsigned char tmpchar;
@@ -428,7 +431,6 @@ void init_io()
 		printf("A");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(iodirs & 0xFF));
 		printf("\n");
-		addDefaultIOMap(true);
 	}
 	else
 	{
@@ -1114,7 +1116,7 @@ void *SC_InputThread(void *ptr)
 			lastinputtime = inputtime;
 		}
 
-		usleep(scsettings.updaterate);
+		//usleep(scsettings.updaterate);
 	}
 }
 
