@@ -84,9 +84,8 @@ void loadSettings()
 	ssize_t read;
 	char *param, *actions;
 	char *value;
-	unsigned char channel = 0, notenum = 0, action = 69, deckno = 0, parameter = 0, controlType = 0, pin = 0, pullup = 0, port = 0;
+	unsigned char channel = 0, notenum = 0, controlType = 0, pin = 0, pullup = 0, port = 0;
 	char edge;
-	char *portString;
 	char delim[] = "=";
 	char delimc[] = ",";
 	unsigned char midicommand[3];

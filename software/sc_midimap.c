@@ -221,9 +221,9 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 }
 
 // Add a mapping from an action string and other params
-void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char *actions)
+void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char *buf, unsigned char port, unsigned char Pin, bool Pullup, char Edge, char *actions)
 {
-	unsigned char deckno, action, parameter;
+	unsigned char deckno, action, parameter = 0;
 
 	// Extract deck no from action (CHx)
 	if (actions[2] == '0')
@@ -280,16 +280,27 @@ void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char
 	add_mapping(maps, Type, deckno, buf, port, Pin, Pullup, Edge, action, parameter);
 }
 
-void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char action, unsigned char parameter)
+void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno, unsigned char *buf, unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char action, unsigned char parameter)
 {
 	struct mapping *new_map = (struct mapping *)malloc(sizeof(struct mapping));
 	new_map->Type = Type;
 	new_map->Pin = Pin;
 	new_map->port = port;
 	new_map->Pullup = Pullup;
-	new_map->MidiBytes[0] = buf[0];
-	new_map->MidiBytes[1] = buf[1];
-	new_map->MidiBytes[2] = buf[2];
+	if (buf == NULL)
+	{
+		new_map->MidiBytes[0] = 0x00;
+		new_map->MidiBytes[1] = 0x00;
+		new_map->MidiBytes[2] = 0x00;
+		printf("Nulbuf\n");
+	}
+	else
+	{
+		new_map->MidiBytes[0] = buf[0];
+		new_map->MidiBytes[1] = buf[1];
+		new_map->MidiBytes[2] = buf[2];
+		printf("NonNulbuf\n");
+	}
 
 	new_map->Edge = Edge;
 	new_map->Action = action;
@@ -332,10 +343,11 @@ struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3], ch
 	while (last_map != NULL)
 	{
 
-		if (last_map->Type == MAP_MIDI &&
-				(((last_map->MidiBytes[0] & 0xF0) == 0xE0) && last_map->MidiBytes[0] == buf[0]) || //Pitch bend messages only match on first byte
-			(last_map->MidiBytes[0] == buf[0] && last_map->MidiBytes[1] == buf[1])				   //Everything else matches on first two bytes
-				&& last_map->Edge == edge)
+		if (
+			last_map->Type == MAP_MIDI && last_map->Edge == edge &&
+			((((last_map->MidiBytes[0] & 0xF0) == 0xE0) && last_map->MidiBytes[0] == buf[0]) || //Pitch bend messages only match on first byte
+			 (last_map->MidiBytes[0] == buf[0] && last_map->MidiBytes[1] == buf[1]))			//Everything else matches on first two bytes
+		)
 		{
 			return last_map;
 		}

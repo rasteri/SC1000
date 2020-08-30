@@ -82,14 +82,14 @@ int i2c_write_address(int file_i2c, unsigned char address, unsigned char value)
 		return 1;
 }
 
-void dump_maps(){
+void dump_maps()
+{
 	struct mapping *new_map = maps;
 	while (new_map != NULL)
 	{
-		printf("Dump Mapping - ty:%d po:%d pn%x pl:%x ed%x mid:%x:%x:%x- dn:%d, a:%d, p:%d\n", new_map->Type, new_map->port, new_map->Pin, new_map->Pullup, new_map->Edge,new_map->MidiBytes[0],new_map->MidiBytes[1],new_map->MidiBytes[2], new_map->DeckNo, new_map->Action, new_map->Param);
+		printf("Dump Mapping - ty:%d po:%d pn%x pl:%x ed%x mid:%x:%x:%x- dn:%d, a:%d, p:%d\n", new_map->Type, new_map->port, new_map->Pin, new_map->Pullup, new_map->Edge, new_map->MidiBytes[0], new_map->MidiBytes[1], new_map->MidiBytes[2], new_map->DeckNo, new_map->Action, new_map->Param);
 		new_map = new_map->next;
 	}
-
 }
 
 int setupi2c(char *path, unsigned char address)
@@ -140,6 +140,7 @@ void AddNewMidiDevices(char mididevices[64][64], int mididevicenum)
 	}
 }
 unsigned char gpiopresent = 1;
+unsigned char mmappresent = 1;
 int file_i2c_gpio;
 volatile void *gpio_addr;
 
@@ -149,7 +150,7 @@ void addDefaultIOMap(bool ExternalGPIO)
 	unsigned char midicommand[3];
 	unsigned char deckno;
 	unsigned char notenum;
-	
+
 	if (!scsettings.midiRemapped)
 	{
 		// Set up per-deck cue/startstop/pitchbend mappings
@@ -352,7 +353,7 @@ void addDefaultIOMap(bool ExternalGPIO)
 bool firstTimeRound = 1;
 void init_io()
 {
-	int i, j, k;
+	int i, j;
 	struct mapping *map;
 
 	// Initialise external MCP23017 GPIO on I2C1
@@ -434,69 +435,71 @@ void init_io()
 		addDefaultIOMap(false);
 	}
 
-
-
 	// Configure A13 GPIO
 
 	int fd = open("/dev/mem", O_RDWR | O_SYNC);
 	if (fd < 0)
 	{
 		fprintf(stderr, "Unable to open port\n\r");
-		exit(fd);
+		//exit(fd);
+		mmappresent = 0;
 	}
 	gpio_addr = mmap(NULL, 65536, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0x01C20800 & 0xffff0000);
 	if (gpio_addr == MAP_FAILED)
 	{
 		fprintf(stderr, "Unable to open mmap\n\r");
-		exit(fd);
+		//exit(fd);
+		mmappresent = 0;
 	}
 	gpio_addr += 0x0800;
 
-	// For each port
-	for (j = 1; j <= 6; j++)
+	if (mmappresent)
 	{
-		// For each pin (max number of pins on each port is 28)
-		for (i = 0; i < 28; i++)
+		// For each port
+		for (j = 1; j <= 6; j++)
 		{
-
-			map = find_IO_mapping(maps, j, i, 1);
-
-			if (map != NULL)
+			// For each pin (max number of pins on each port is 28)
+			for (i = 0; i < 28; i++)
 			{
-				printf("Pulling %d %d %d\n", j, i, map->Pullup);
-				// which config register to use, 0-3
-				uint32_t configregister = i >> 3;
 
-				// which pull register to use, 0-1
-				uint32_t pullregister = i >> 4;
+				map = find_IO_mapping(maps, j, i, 1);
 
-				// how many bits to shift the config register
-				uint32_t configShift = (i % 8) * 4;
+				if (map != NULL)
+				{
+					printf("Pulling %d %d %d\n", j, i, map->Pullup);
+					// which config register to use, 0-3
+					uint32_t configregister = i >> 3;
 
-				// how many bits to shift the pull register
-				uint32_t pullShift = (i % 16) * 2;
+					// which pull register to use, 0-1
+					uint32_t pullregister = i >> 4;
 
-				volatile uint32_t *PortConfigRegister = gpio_addr + (j * 0x24) + (configregister * 0x04);
-				volatile uint32_t *PortPullRegister = gpio_addr + (j * 0x24) + 0x1C + (pullregister * 0x04);
-				uint32_t portConfig = *PortConfigRegister;
-				uint32_t portPull = *PortPullRegister;
+					// how many bits to shift the config register
+					uint32_t configShift = (i % 8) * 4;
 
-				// mask to unset the relevant pins in the registers
-				uint32_t configMask = ~(0b1111 << configShift);
-				uint32_t pullMask = ~(0b11 << pullShift);
+					// how many bits to shift the pull register
+					uint32_t pullShift = (i % 16) * 2;
 
-				// Set port as input
-				// portConfig = (portConfig & configMask) | (0b0000 << configShift); (not needed because input is 0 anyway)
-				portConfig = (portConfig & configMask);
+					volatile uint32_t *PortConfigRegister = gpio_addr + (j * 0x24) + (configregister * 0x04);
+					volatile uint32_t *PortPullRegister = gpio_addr + (j * 0x24) + 0x1C + (pullregister * 0x04);
+					uint32_t portConfig = *PortConfigRegister;
+					uint32_t portPull = *PortPullRegister;
 
-				portPull = (portPull & pullMask) | (map->Pullup << pullShift);
-				*PortConfigRegister = portConfig;
-				*PortPullRegister = portPull;
+					// mask to unset the relevant pins in the registers
+					uint32_t configMask = ~(0b1111 << configShift);
+					uint32_t pullMask = ~(0b11 << pullShift);
+
+					// Set port as input
+					// portConfig = (portConfig & configMask) | (0b0000 << configShift); (not needed because input is 0 anyway)
+					portConfig = (portConfig & configMask);
+
+					portPull = (portPull & pullMask) | (map->Pullup << pullShift);
+					*PortConfigRegister = portConfig;
+					*PortPullRegister = portPull;
+				}
 			}
 		}
 	}
 
-	unsigned char tmpchar;
 }
 
 void process_io()
@@ -523,20 +526,24 @@ void process_io()
 		//printf("arses : %d %d\n", last_map->port, last_map->Pin);
 
 		// Only digital pins
-		if (last_map->Type = MAP_IO && (!(last_map->port == 0 && !gpiopresent)))
+		if (last_map->Type == MAP_IO && (!(last_map->port == 0 && !gpiopresent)))
 		{
 
 			bool pinVal = 0;
-			if (last_map->port == 0) // port 0, I2C GPIO expander
+			if (last_map->port == 0 && gpiopresent) // port 0, I2C GPIO expander
 			{
 				pinVal = (bool)((gpios >> last_map->Pin) & 0x01);
 			}
-			else // Ports 1-6, olimex GPIO
+			else if (mmappresent) // Ports 1-6, olimex GPIO
 			{
 				volatile uint32_t *PortDataReg = gpio_addr + (last_map->port * 0x24) + 0x10;
 				uint32_t PortData = *PortDataReg;
 				PortData ^= 0xffffffff;
 				pinVal = (bool)((PortData >> last_map->Pin) & 0x01);
+			}
+			else
+			{
+				pinVal = 0;
 			}
 
 			// iodebounce = 0 when button not pressed,
@@ -554,11 +561,9 @@ void process_io()
 					printf("Button %d pressed\n", last_map->Pin);
 					if (firstTimeRound && last_map->DeckNo == 1 && (last_map->Action == ACTION_VOLUP || last_map->Action == ACTION_VOLDOWN))
 					{
-						printf("doing\n", last_map->Pin);
 						player_set_track(&deck[0].player, track_acquire_by_import(deck[0].importer, "/var/os-version.mp3"));
 						cues_load_from_file(&deck[0].cues, deck[0].player.track->path);
 						deck[1].player.setVolume = 0.0;
-
 					}
 					else
 					{
@@ -726,8 +731,6 @@ void process_pic()
 #define BUTTONSTATE_ACTING_INSTANT 2
 #define BUTTONSTATE_ACTING_HELD 3
 #define BUTTONSTATE_WAITING 4
-		int r;
-
 		switch (buttonState)
 		{
 
@@ -978,7 +981,7 @@ void *SC_InputThread(void *ptr)
 {
 	unsigned char picskip = 0;
 	unsigned char picpresent = 1;
-	unsigned char rotarypresent = 1;
+	//unsigned char rotarypresent = 1;
 
 	char mididevices[64][64];
 	int mididevicenum = 0, oldmididevicenum = 0;
@@ -988,7 +991,7 @@ void *SC_InputThread(void *ptr)
 	if ((file_i2c_rot = setupi2c("/dev/i2c-0", 0x36)) < 0)
 	{
 		printf("Couldn't init rotary sensor\n");
-		rotarypresent = 0;
+		//rotarypresent = 0;
 	}
 
 	// Initialise PIC input processor on I2C2
@@ -1001,16 +1004,19 @@ void *SC_InputThread(void *ptr)
 
 	init_io();
 
-	//detect SC500 by seeing if G11 is pulled high
+	//detect SC500 by seeing if G11 is pulled low
 
-	volatile uint32_t *PortDataReg = gpio_addr + (6 * 0x24) + 0x10;
-	uint32_t PortData = *PortDataReg;
-	PortData ^= 0xffffffff;
-	if ((PortData >> 11) & 0x01)
+	if (mmappresent)
 	{
-		printf("SC500 detected\n");
-		scsettings.disablevolumeadc = 1;
-		scsettings.disablepicbuttons = 1;
+		volatile uint32_t *PortDataReg = gpio_addr + (6 * 0x24) + 0x10;
+		uint32_t PortData = *PortDataReg;
+		PortData ^= 0xffffffff;
+		if ((PortData >> 11) & 0x01)
+		{
+			printf("SC500 detected\n");
+			scsettings.disablevolumeadc = 1;
+			scsettings.disablepicbuttons = 1;
+		}
 	}
 
 	srand(time(NULL)); // TODO - need better entropy source, SoC is starting up annoyingly deterministically
@@ -1041,7 +1047,7 @@ void *SC_InputThread(void *ptr)
 				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
 				   deck[1].player.target_position, deck[1].player.position,
 				   deck[0].player.setVolume, deck[1].player.setVolume);
-				   	//dump_maps();
+			dump_maps();
 
 			//printf("\nFPS: %06u\n", frameCount);
 			frameCount = 0;
@@ -1108,8 +1114,7 @@ void *SC_InputThread(void *ptr)
 			lastinputtime = inputtime;
 		}
 
-		//usleep(scsettings.updaterate);
-
+		usleep(scsettings.updaterate);
 	}
 }
 

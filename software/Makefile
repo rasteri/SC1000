@@ -15,8 +15,8 @@
 # MA 02110-1301, USA.
 #
 
-CC=/root/buildroot-2018.08.4/output/host/usr/bin/arm-linux-gcc
-#CC=gcc -g
+#CC=/root/buildroot-2018.08.4/output/host/usr/bin/arm-linux-gcc
+CC=gcc -g
 # Libraries and dependencies
 
 INSTALL ?= install
@@ -38,7 +38,7 @@ DOCDIR ?= $(PREFIX)/share/doc
 
 # Build flags
 
-CFLAGS ?= -O3
+CFLAGS ?= -Og -fstack-protector-all
 CFLAGS += -Wall
 CPPFLAGS += -MMD
 LDFLAGS ?= -O3

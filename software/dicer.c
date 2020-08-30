@@ -212,7 +212,6 @@ static int realtime(struct controller *c)
 static void clear(struct controller *c)
 {
 	struct dicer *d = c->local;
-	size_t n;
 
 	debug("%p", d);
 

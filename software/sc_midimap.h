@@ -88,5 +88,5 @@ void add_mapping(struct mapping **maps, unsigned char Type, unsigned char deckno
 struct mapping *find_MIDI_mapping(struct mapping *maps, unsigned char buf[3], char edge);
 struct mapping *find_IO_mapping(struct mapping *maps, unsigned char port, unsigned char pin, char edge);
 void IOevent(struct mapping *map, unsigned char MidiBuffer[3]);
-void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, char Edge, unsigned char *actions);
+void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char buf[3], unsigned char port, unsigned char Pin, bool Pullup, char Edge, char *actions);
 #endif

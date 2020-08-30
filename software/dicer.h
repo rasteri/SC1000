@@ -40,7 +40,7 @@ struct dicer
 	unsigned char ParsedBytes;
 	unsigned char MidiBuffer[3];
 
-    unsigned char PortName[32];
+    char PortName[32];
 };
 
 int dicer_init(struct controller *c, struct rt *rt, const char *hw);

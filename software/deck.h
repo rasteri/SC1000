@@ -78,5 +78,5 @@ void deck_prev_file(struct deck *d);
 void deck_next_folder(struct deck *d);
 void deck_prev_folder(struct deck *d);
 void deck_random_file(struct deck *d);
-
+void deck_record(struct deck *d);
 #endif
