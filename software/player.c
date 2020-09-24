@@ -485,38 +485,26 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples)
 		pl->motor_speed = pl->nominal_pitch;
 	}
 
-	double slipmatPitch;
-
-#define SLIP 0.0002 
-
-	// Not touching, gradually fade between the slipmat speed and the motor speed
-	if (pl->justPlay == 1 || pl->capTouch == 0)
+	if (
+		pl->justPlay == 1 || (pl->capTouch == 0
+		&& pl->oldCapTouch == 0 )// don't do it on the first iteration so we pick up backspins
+	)
 	{
-		if (pl->oldCapTouch)
-			pl->last_encoder_position = pl->position;
-		diff = pl->last_encoder_position - pl->target_position;
-		slipmatPitch = (-diff) * 40;
-		pl->last_encoder_position += pl->sample_dt * slipmatPitch * samples;
-		//printf("%f\n", slipmatPitch);
-		
-		if (pl->motor_speed - SLIP >= pl->slipmatSpeed ) pl->slipmatSpeed += SLIP;
-		else if (pl->motor_speed - SLIP <= pl->slipmatSpeed) pl->slipmatSpeed -= SLIP;
-		else pl->slipmatSpeed = pl->motor_speed;
-		
-		//target_pitch = (pl->motor_speed * pl->slipmatFade) + (slipmatPitch * (1- pl->slipmatFade));
-		target_pitch = pl->slipmatSpeed;
-		//target_pitch = slipmatPitch;
-		//pl->slipmatFade += (double)samples / (double)scsettings.slippiness;
-		//if (pl->slipmatFade > 1.0) pl->slipmatFade = 1.0;
-		//pl->motor_speed;
+
+		// Simulate slipmat for lasers/phasers
+		if (pl->pitch < pl->motor_speed - 0.1)
+			target_pitch = pl->pitch + (double)samples / scsettings.slippiness;
+		else if (pl->pitch > pl->motor_speed + 0.1)
+			target_pitch = pl->pitch - (double)samples / scsettings.slippiness;
+		else
+			target_pitch = pl->motor_speed;
 	}
 	else
 	{
-		//pl->slipmatFade = 0.0;
 		diff = pl->position - pl->target_position;
+
 		target_pitch = (-diff) * 40;
 	}
-	
 	pl->oldCapTouch = pl->capTouch;
 
 	filtered_pitch = (0.1 * target_pitch) + (0.9 * pl->pitch);
@@ -548,13 +536,9 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples)
 	{
 		r = build_pcm(pcm, samples, pl->sample_dt, pl->track,
 					  pl->position - pl->offset, pl->pitch, filtered_pitch, pl->volume, target_volume);
-		
+		pl->pitch = filtered_pitch;
 		spin_unlock(&pl->lock);
 	}
-	pl->pitch = filtered_pitch;
-	/*static double build_pcm(signed short *pcm, unsigned samples, double sample_dt,
-						struct track *tr, double position, double pitch, double end_pitch, double start_vol,
-						double end_vol)*/
 
 	pl->position += r;
 

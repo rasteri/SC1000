@@ -52,16 +52,14 @@ struct player {
     /* Current playback parameters */
 
     double position, /* seconds */
-        target_position, /* the position from the encoder */
+        target_position, /* seconds, or TARGET_UNKNOWN */
         offset, /* track start point in timecode */
         last_difference, /* last known position minus target_position */
         pitch, /* from timecoder */
         sync_pitch, /* pitch required to sync to timecode signal */
         volume,
         nominal_pitch, // Pitch after any note/pitch fader changes
-		motor_speed, // speed of virtual motor, usually same as nominal_pitch but affected by start/stop
-		last_encoder_position,//the virtual position the encoder is currently running at, irrespective of if it's being touched or not
-		 slipmatSpeed; // value to interpolate between motor and encoder speeds
+		motor_speed; // speed of virtual motor, usually same as nominal_pitch but affected by start/stop
 
     /* Timecode control */
 
@@ -74,7 +72,6 @@ struct player {
     double setVolume; // volume set by the volume controls on the back of the sc1000 or the volume buttons on the sc500 (or whatever over midi)
 	bool capTouch;
 	bool oldCapTouch;
-	
 	bool GoodToGo;
 	bool stopped;
 

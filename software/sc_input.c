@@ -260,14 +260,14 @@ void addDefaultIOMap(bool ExternalGPIO)
 		// CH0 Transport
 		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 1, ACTION_PREVFILE, 0);
 		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 2, ACTION_PREVFOLDER, 0);
-		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 3, ACTION_JOGPIT, 0);
-		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 0, ACTION_JOGPSTOP, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 3, ACTION_RANDOMFILE, 0);
 
 		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 13, 1, 1, ACTION_STARTSTOP, 0);
 
 		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 1, ACTION_NEXTFILE, 0);
 		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 2, ACTION_NEXTFOLDER, 0);
-		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 3, ACTION_RANDOMFILE, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 3, ACTION_JOGPIT, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 0, ACTION_JOGPSTOP, 0);
 
 		// CH0 Volume
 		add_mapping(&maps, MAP_IO, 0, midicommand, 4, 5, 1, 1, ACTION_VOLUP, 0);
@@ -1071,7 +1071,7 @@ void *SC_InputThread(void *ptr)
 			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\nTP: %f, P : %f, LEP: %f, SF: %f\n%f -- %f\n",
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], deck[1].encoderAngle,
 				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
-				   deck[1].player.target_position, deck[1].player.position, deck[1].player.last_encoder_position, deck[1].player.slipmatSpeed,
+				   deck[1].player.target_position, deck[1].player.position,
 				   deck[0].player.setVolume, deck[1].player.setVolume);
 			//dump_maps();
 

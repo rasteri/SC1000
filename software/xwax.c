@@ -100,7 +100,7 @@ void loadSettings()
 	scsettings.updaterate = 2000;
 	scsettings.debouncetime = 5;
 	scsettings.holdtime = 100;
-	scsettings.slippiness = 2000;
+	scsettings.slippiness = 200;
 	scsettings.brakespeed = 3000;
 	scsettings.pitchrange = 50;
 	scsettings.mididelay = 5;
