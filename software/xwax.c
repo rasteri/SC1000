@@ -93,14 +93,14 @@ void loadSettings()
 	// set defaults
 	scsettings.buffersize = 256;
 	scsettings.faderclosepoint = 2;
-	scsettings.faderopenpoint = 5;
+	scsettings.faderopenpoint = 10;
 	scsettings.platterenabled = 1;
 	scsettings.platterspeed = 2275;
 	scsettings.samplerate = 48000;
 	scsettings.updaterate = 2000;
 	scsettings.debouncetime = 5;
 	scsettings.holdtime = 100;
-	scsettings.slippiness = 300;
+	scsettings.slippiness = 2000;
 	scsettings.brakespeed = 3000;
 	scsettings.pitchrange = 50;
 	scsettings.mididelay = 5;
@@ -109,7 +109,7 @@ void loadSettings()
 	scsettings.initialVolume = 0.125;
 	scsettings.midiRemapped = 0;
 	scsettings.ioRemapped = 0;
-
+	scsettings.ADCSmoothing = 950;
 
 	// later we'll check for sc500 pin and use it to set following settings
 	scsettings.disablevolumeadc = 0;

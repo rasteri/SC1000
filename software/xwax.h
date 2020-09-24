@@ -43,6 +43,7 @@ typedef struct SC_SETTINGS {
     int faderopenpoint; // value required to open the fader (when fader is closed)
     int faderclosepoint; // value required to close the fader (when fader is open)
 
+    int ADCSmoothing; // IIR filter amount applied to ADCs
 
 
     // delay between iterations of the input loop

@@ -671,15 +671,16 @@ int oldPitchMode = 0;
 bool capIsTouched = 0;
 unsigned char buttons[4] = {0, 0, 0, 0}, totalbuttons[4] = {0, 0, 0, 0};
 unsigned int ADCs[4] = {0, 0, 0, 0};
+double FilteredADCs[4] = {0, 0, 0, 0};
 unsigned char buttonState = 0;
 unsigned int butCounter = 0;
+unsigned char faderOpen = 0;
 void process_pic()
 {
 	unsigned int i;
 
 	unsigned char result;
 
-	unsigned char faderOpen = 0;
 	unsigned int faderCutPoint;
 
 	i2c_read_address(file_i2c_pic, 0x00, &result);
@@ -705,18 +706,22 @@ void process_pic()
 	capIsTouched = (result >> 4 & 0x01);
 
 	process_io();
+	double filterAlpha = (double)scsettings.ADCSmoothing / 1000.0;
+	for (i = 0; i < 4; i++){
+		FilteredADCs[i] = filterAlpha * (double)ADCs[i] + (1.0 - filterAlpha) * FilteredADCs[i];
+	}
 
 	// Apply volume and fader
 
 	if (!scsettings.disablevolumeadc)
 	{
-		deck[0].player.setVolume = ((double)ADCs[2]) / 1024;
-		deck[1].player.setVolume = ((double)ADCs[3]) / 1024;
+		deck[0].player.setVolume = (FilteredADCs[2]) / 1024;
+		deck[1].player.setVolume = (FilteredADCs[3]) / 1024;
 	}
 
 	faderCutPoint = faderOpen ? scsettings.faderclosepoint : scsettings.faderopenpoint; // Fader Hysteresis
 
-	if (ADCs[0] > faderCutPoint && ADCs[1] > faderCutPoint)
+	if (FilteredADCs[0] > faderCutPoint && FilteredADCs[1] > faderCutPoint)
 	{ // cut on both sides of crossfader
 		deck[1].player.faderTarget = deck[1].player.setVolume;
 		faderOpen = 1;
@@ -725,6 +730,7 @@ void process_pic()
 	{
 		deck[1].player.faderTarget = 0.0;
 		faderOpen = 0;
+
 	}
 
 	deck[0].player.faderTarget = deck[0].player.setVolume;
@@ -862,6 +868,9 @@ void process_pic()
 	}
 }
 
+// Keep a running average of speed so if we suddenly let go it keeps going at that speed
+double averageSpeed = 0.0;
+
 void process_rot()
 {
 	unsigned char result;
@@ -900,12 +909,12 @@ void process_rot()
 
 	// rotary sensor sometimes returns incorrect values, if we skip more than 100 ignore that value
 	// If we see 3 blips in a row, then I guess we better accept the new value
-	if (abs(deck[1].newEncoderAngle - wrappedAngle) > 100 && numBlips < 2)
+	/*if (abs(deck[1].newEncoderAngle - wrappedAngle) > 100 && numBlips < 2)
 	{
 		//printf("blip! %d %d %d\n", newEncoderAngle, encoderAngle, wrappedAngle);
 		numBlips++;
 	}
-	else
+	else*/
 	{
 		numBlips = 0;
 		deck[1].encoderAngle = deck[1].newEncoderAngle;
@@ -919,7 +928,7 @@ void process_rot()
 				deck[(pitchMode - 1)].player.nominal_pitch = 1.0;
 				deck[1].angleOffset = -deck[1].encoderAngle;
 				oldPitchMode = 1;
-				capIsTouched = 0;
+				deck[1].player.capTouch = 0;
 			}
 
 			// Handle wrapping at zero
@@ -944,8 +953,9 @@ void process_rot()
 				// Handle touch sensor
 				if (capIsTouched)
 				{
+
 					// Positive touching edge
-					if (!deck[1].player.capTouch)
+					if (!deck[1].player.capTouch || oldPitchMode)
 					{
 						deck[1].angleOffset = (deck[1].player.position * scsettings.platterspeed) - deck[1].encoderAngle;
 						printf("touch!\n");
@@ -962,33 +972,33 @@ void process_rot()
 			else
 				deck[1].player.capTouch = 1;
 
-			if (deck[1].player.capTouch)
+			/*if (deck[1].player.capTouch) we always want to dump the target position so we can do lasers etc
+			{*/
+
+			// Handle wrapping at zero
+
+			if (crossedZero > 0)
 			{
-
-				// Handle wrapping at zero
-
-				if (crossedZero > 0)
-				{
-					deck[1].angleOffset += 4096;
-				}
-				else if (crossedZero < 0)
-				{
-					deck[1].angleOffset -= 4096;
-				}
-
-				// Convert the raw value to track position and set player to that pos
-
-				deck[1].player.target_position = (double)(deck[1].encoderAngle + deck[1].angleOffset) / scsettings.platterspeed;
-
-				// Loop when track gets to end
-
-				/*if (deck[1].player.target_position > ((double)deck[1].player.track->length / (double)deck[1].player.track->rate))
-						{
-							deck[1].player.target_position = 0;
-							angleOffset = encoderAngle;
-						}*/
+				deck[1].angleOffset += 4096;
 			}
+			else if (crossedZero < 0)
+			{
+				deck[1].angleOffset -= 4096;
+			}
+
+			// Convert the raw value to track position and set player to that pos
+
+			deck[1].player.target_position = (double)(deck[1].encoderAngle + deck[1].angleOffset) / scsettings.platterspeed;
+
+			// Loop when track gets to end
+
+			/*if (deck[1].player.target_position > ((double)deck[1].player.track->length / (double)deck[1].player.track->rate))
+					{
+						deck[1].player.target_position = 0;
+						angleOffset = encoderAngle;
+					}*/
 		}
+		//}
 		oldPitchMode = pitchMode;
 	}
 }
@@ -1058,10 +1068,10 @@ void *SC_InputThread(void *ptr)
 		{
 			lastTime = tv.tv_sec;
 			printf("\033[H\033[J"); // Clear Screen
-			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\nTP: %f, P : %f\n%f -- %f\n",
+			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\nTP: %f, P : %f, LEP: %f, SF: %f\n%f -- %f\n",
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], deck[1].encoderAngle,
 				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
-				   deck[1].player.target_position, deck[1].player.position,
+				   deck[1].player.target_position, deck[1].player.position, deck[1].player.last_encoder_position, deck[1].player.slipmatSpeed,
 				   deck[0].player.setVolume, deck[1].player.setVolume);
 			//dump_maps();
 
