@@ -243,25 +243,28 @@ void load_track(struct deck *d, struct track *track)
 
 void deck_next_file(struct deck *d)
 {
-	if (d->CurrentFile->next != NULL)
+	if (d->filesPresent && d->CurrentFile->next != NULL)
 	{
+		printf("files present\n");
 		d->CurrentFile = d->CurrentFile->next;
+		load_track(d, track_acquire_by_import(d->importer, d->CurrentFile->FullPath));
 	}
-	load_track(d, track_acquire_by_import(d->importer, d->CurrentFile->FullPath));
+	
 }
 
 void deck_prev_file(struct deck *d)
 {
-	if (d->CurrentFile->prev != NULL)
+	if (d->filesPresent && d->CurrentFile->prev != NULL)
 	{
 		d->CurrentFile = d->CurrentFile->prev;
+		load_track(d, track_acquire_by_import(d->importer, d->CurrentFile->FullPath));
 	}
-	load_track(d, track_acquire_by_import(d->importer, d->CurrentFile->FullPath));
+	
 }
 
 void deck_next_folder(struct deck *d)
 {
-	if (d->CurrentFolder->next != NULL)
+	if (d->filesPresent && d->CurrentFolder->next != NULL)
 	{
 		d->CurrentFolder = d->CurrentFolder->next;
 		d->CurrentFile = d->CurrentFolder->FirstFile;
@@ -270,7 +273,7 @@ void deck_next_folder(struct deck *d)
 }
 void deck_prev_folder(struct deck *d)
 {
-	if (d->CurrentFolder->prev != NULL)
+	if (d->filesPresent && d->CurrentFolder->prev != NULL)
 	{
 		d->CurrentFolder = d->CurrentFolder->prev;
 		d->CurrentFile = d->CurrentFolder->FirstFile;
@@ -280,13 +283,16 @@ void deck_prev_folder(struct deck *d)
 
 void deck_random_file(struct deck *d)
 {
-	int r = rand() % d->NumFiles;
-	printf("Playing file %d/%d\n", r, d->NumFiles);
-	load_track(d, track_acquire_by_import(d->importer, GetFileAtIndex(r, d->FirstFolder)->FullPath));
-	deck[1].player.nominal_pitch = 1.0;
+	if (d->filesPresent){
+		int r = rand() % d->NumFiles;
+		printf("Playing file %d/%d\n", r, d->NumFiles);
+		load_track(d, track_acquire_by_import(d->importer, GetFileAtIndex(r, d->FirstFolder)->FullPath));
+		deck[1].player.nominal_pitch = 1.0;
+	}
 }
 
 void deck_record(struct deck *d)
 {
-	d->player.recordingStarted = !d->player.recordingStarted;
+	if (deck[1].filesPresent)
+		d->player.recordingStarted = !d->player.recordingStarted;
 }

@@ -263,6 +263,7 @@ void addDefaultIOMap(bool ExternalGPIO)
 		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 3, ACTION_RANDOMFILE, 0);
 
 		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 13, 1, 1, ACTION_STARTSTOP, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 13, 1, 3, ACTION_JOGREVERSE, 0);
 
 		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 1, ACTION_NEXTFILE, 0);
 		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 2, ACTION_NEXTFOLDER, 0);
@@ -403,14 +404,14 @@ void init_io()
 			// If pin is marked as ground
 			if (map != NULL && map->Action == ACTION_GND)
 			{
-				printf("Grounding pin %d\n", i);
+				//printf("Grounding pin %d\n", i);
 				iodirs &= ~(0x0001 << i);
 			}
 
 			// If pin's pullup is disabled
 			if (map != NULL && !map->Pullup)
 			{
-				printf("Disabling pin %d pullup\n", i);
+				//printf("Disabling pin %d pullup\n", i);
 				pullups &= ~(0x0001 << i);
 			}
 			else printf ("Pulling up pin %d\n", i);
@@ -426,11 +427,11 @@ void init_io()
 		tmpchar = (unsigned char)((pullups >> 8) & 0xFF);
 		i2c_write_address(file_i2c_gpio, 0x0D, tmpchar);
 
-		printf("PULLUPS - B");
+		/*printf("PULLUPS - B");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((pullups >> 8) & 0xFF));
 		printf("A");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((pullups & 0xFF)));
-		printf("\n");
+		printf("\n");*/
 
 		// Bank A direction
 		tmpchar = (unsigned char)(iodirs & 0xFF);
@@ -440,11 +441,11 @@ void init_io()
 		tmpchar = (unsigned char)((iodirs >> 8) & 0xFF);
 		i2c_write_address(file_i2c_gpio, 0x01, tmpchar);
 
-		printf("IODIRS  - B");
+		/*printf("IODIRS  - B");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY((iodirs >> 8) & 0xFF));
 		printf("A");
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(iodirs & 0xFF));
-		printf("\n");
+		printf("\n");*/
 	}
 	else
 	{
@@ -482,7 +483,7 @@ void init_io()
 
 				if (map != NULL)
 				{
-					printf("Pulling %d %d %d\n", j, i, map->Pullup);
+					//printf("Pulling %d %d %d\n", j, i, map->Pullup);
 					// which config register to use, 0-3
 					uint32_t configregister = i >> 3;
 
@@ -671,7 +672,6 @@ int oldPitchMode = 0;
 bool capIsTouched = 0;
 unsigned char buttons[4] = {0, 0, 0, 0}, totalbuttons[4] = {0, 0, 0, 0};
 unsigned int ADCs[4] = {0, 0, 0, 0};
-double FilteredADCs[4] = {0, 0, 0, 0};
 unsigned char buttonState = 0;
 unsigned int butCounter = 0;
 unsigned char faderOpen = 0;
@@ -706,22 +706,18 @@ void process_pic()
 	capIsTouched = (result >> 4 & 0x01);
 
 	process_io();
-	double filterAlpha = (double)scsettings.ADCSmoothing / 1000.0;
-	for (i = 0; i < 4; i++){
-		FilteredADCs[i] = filterAlpha * (double)ADCs[i] + (1.0 - filterAlpha) * FilteredADCs[i];
-	}
 
 	// Apply volume and fader
 
 	if (!scsettings.disablevolumeadc)
 	{
-		deck[0].player.setVolume = (FilteredADCs[2]) / 1024;
-		deck[1].player.setVolume = (FilteredADCs[3]) / 1024;
+		deck[0].player.setVolume = (ADCs[2]) / 1024;
+		deck[1].player.setVolume = (ADCs[3]) / 1024;
 	}
 
 	faderCutPoint = faderOpen ? scsettings.faderclosepoint : scsettings.faderopenpoint; // Fader Hysteresis
 
-	if (FilteredADCs[0] > faderCutPoint && FilteredADCs[1] > faderCutPoint)
+	if (ADCs[0] > faderCutPoint && ADCs[1] > faderCutPoint)
 	{ // cut on both sides of crossfader
 		deck[1].player.faderTarget = deck[1].player.setVolume;
 		faderOpen = 1;
@@ -883,6 +879,9 @@ void process_rot()
 	deck[1].newEncoderAngle = result << 8;
 	i2c_read_address(file_i2c_rot, 0x0d, &result);
 	deck[1].newEncoderAngle = (deck[1].newEncoderAngle & 0x0f00) | result;
+
+	if (scsettings.jogReverse) 
+		deck[1].newEncoderAngle = 4095 - deck[1].newEncoderAngle;
 
 	// First time, make sure there's no difference
 	if (deck[1].encoderAngle == 0xffff)
@@ -1068,7 +1067,7 @@ void *SC_InputThread(void *ptr)
 		{
 			lastTime = tv.tv_sec;
 			printf("\033[H\033[J"); // Clear Screen
-			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\nTP: %f, P : %f, LEP: %f, SF: %f\n%f -- %f\n",
+			printf("\nFPS: %06u - ADCS: %04u, %04u, %04u, %04u, %04u\nButtons: %01u,%01u,%01u,%01u,%01u\nTP: %f, P : %f\n%f -- %f\n",
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], deck[1].encoderAngle,
 				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
 				   deck[1].player.target_position, deck[1].player.position,

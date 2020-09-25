@@ -85,7 +85,7 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 
 	if (map != NULL)
 	{
-		printf("Map notnull type:%d deck:%d po:%d edge:%d pin:%d action:%d param:%d\n", map->Type, map->DeckNo, map->port, map->Edge, map->Pin, map->Action, map->Param);
+		//printf("Map notnull type:%d deck:%d po:%d edge:%d pin:%d action:%d param:%d\n", map->Type, map->DeckNo, map->port, map->Edge, map->Pin, map->Action, map->Param);
 		//dump_maps();
 		if (map->Action == ACTION_CUE)
 		{
@@ -153,7 +153,8 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		}
 		else if (map->Action == ACTION_RECORD)
 		{
-			deck_record(&deck[0]); // Always record on deck 0
+			if (deck[1].filesPresent)
+				deck_record(&deck[0]); // Always record on deck 0
 		}
 		else if (map->Action == ACTION_VOLUME)
 		{
@@ -216,6 +217,10 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 			deck[map->DeckNo].player.setVolume -= scsettings.volAmountHeld;
 			if (deck[map->DeckNo].player.setVolume < 0.0)
 				deck[map->DeckNo].player.setVolume = 0.0;
+		}
+		else if (map->Action == ACTION_JOGREVERSE)
+		{
+			scsettings.jogReverse = !scsettings.jogReverse;
 		}
 	}
 }

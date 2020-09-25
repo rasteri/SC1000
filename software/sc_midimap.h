@@ -49,6 +49,7 @@
 #define ACTION_VOLUHOLD 21
 #define ACTION_VOLDHOLD 22
 #define ACTION_JOGPSTOP 23
+#define ACTION_JOGREVERSE 24
 
 #define MAP_MIDI 0
 #define MAP_IO 1

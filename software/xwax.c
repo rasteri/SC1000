@@ -109,7 +109,7 @@ void loadSettings()
 	scsettings.initialVolume = 0.125;
 	scsettings.midiRemapped = 0;
 	scsettings.ioRemapped = 0;
-	scsettings.ADCSmoothing = 950;
+	scsettings.jogReverse = 0;
 
 	// later we'll check for sc500 pin and use it to set following settings
 	scsettings.disablevolumeadc = 0;
@@ -159,6 +159,8 @@ void loadSettings()
 					scsettings.brakespeed = atoi(value);
 				else if (strcmp(param, "pitchrange") == 0)
 					scsettings.pitchrange = atoi(value);
+				else if (strcmp(param, "jogreverse") == 0)
+					scsettings.jogReverse = atoi(value);
 				else if (strstr(param, "midii") != NULL)
 				{
 					scsettings.midiRemapped = 1;
