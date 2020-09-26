@@ -17,14 +17,16 @@ S16 - 26 - 29 - E4= BEATVOL
 G11 - SC500 detection port
 
 J7
-3 - 38 - G10
-4 - 10 - B15
-5 - 37 (LED1?) - G9
-6 - 11 - B16
-7 - 15 - C3
-8 - 12 - C0
-9 - 14 - C2
-10 - 13 - C1
+1 - GND
+2 - VCC
+3 - 38 - G10 - SHIFT
+4 - 10 - B15 - BEAT START/STOP
+5 - 37 (LED1?) - 
+6 - 11 - B16 - SAMPLE START/STOP
+7 - 15 - C3 - CUE
+8 - 12 - C0 - CUE
+9 - 14 - C2 - CUE
+10 - 13 - C1 - CUE
 
 01C20800 base
 
