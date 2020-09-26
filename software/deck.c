@@ -211,7 +211,7 @@ void deck_load_folder(struct deck *d, char *FolderName)
 	}
 	if (d->filesPresent)
 	{
-		//DumpFileStructure(FirstBeatFolder);
+		//DumpFileStructure(d->FirstFolder);
 		d->CurrentFolder = d->FirstFolder;
 		d->CurrentFile = d->CurrentFolder->FirstFile;
 		// Load first beat
@@ -248,6 +248,8 @@ void deck_next_file(struct deck *d)
 		printf("files present\n");
 		d->CurrentFile = d->CurrentFile->next;
 		load_track(d, track_acquire_by_import(d->importer, d->CurrentFile->FullPath));
+	} else {
+		printf("file not present\n");
 	}
 	
 }

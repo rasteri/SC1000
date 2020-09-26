@@ -711,8 +711,8 @@ void process_pic()
 
 	if (!scsettings.disablevolumeadc)
 	{
-		deck[0].player.setVolume = (ADCs[2]) / 1024;
-		deck[1].player.setVolume = (ADCs[3]) / 1024;
+		deck[0].player.setVolume = ((double)ADCs[2]) / 1024;
+		deck[1].player.setVolume = ((double)ADCs[3]) / 1024;
 	}
 
 	faderCutPoint = faderOpen ? scsettings.faderclosepoint : scsettings.faderopenpoint; // Fader Hysteresis
