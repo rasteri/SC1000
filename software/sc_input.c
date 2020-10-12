@@ -908,12 +908,12 @@ void process_rot()
 
 	// rotary sensor sometimes returns incorrect values, if we skip more than 100 ignore that value
 	// If we see 3 blips in a row, then I guess we better accept the new value
-	/*if (abs(deck[1].newEncoderAngle - wrappedAngle) > 100 && numBlips < 2)
+	if (abs(deck[1].newEncoderAngle - wrappedAngle) > 100 && numBlips < 2)
 	{
 		//printf("blip! %d %d %d\n", newEncoderAngle, encoderAngle, wrappedAngle);
 		numBlips++;
 	}
-	else*/
+	else
 	{
 		numBlips = 0;
 		deck[1].encoderAngle = deck[1].newEncoderAngle;
