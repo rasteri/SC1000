@@ -866,13 +866,12 @@ void process_pic()
 
 // Keep a running average of speed so if we suddenly let go it keeps going at that speed
 double averageSpeed = 0.0;
-
+unsigned int numBlips = 0;
 void process_rot()
 {
 	unsigned char result;
 	int8_t crossedZero; // 0 when we haven't crossed zero, -1 when we've crossed in anti-clockwise direction, 1 when crossed in clockwise
 	int wrappedAngle = 0x0000;
-	unsigned int numBlips = 0;
 	// Handle rotary sensor
 
 	i2c_read_address(file_i2c_rot, 0x0c, &result);
@@ -910,7 +909,7 @@ void process_rot()
 	// If we see 3 blips in a row, then I guess we better accept the new value
 	if (abs(deck[1].newEncoderAngle - wrappedAngle) > 100 && numBlips < 2)
 	{
-		//printf("blip! %d %d %d\n", newEncoderAngle, encoderAngle, wrappedAngle);
+		//printf("blip! %d %d %d\n", deck[1].newEncoderAngle, deck[1].encoderAngle, wrappedAngle);
 		numBlips++;
 	}
 	else

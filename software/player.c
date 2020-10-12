@@ -490,7 +490,8 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples)
 		&& pl->oldCapTouch == 0 )// don't do it on the first iteration so we pick up backspins
 	)
 	{
-
+		if (pl->pitch > 20.0) pl->pitch = 20.0;
+		if (pl->pitch < -20.0) pl->pitch = -20.0;
 		// Simulate slipmat for lasers/phasers
 		if (pl->pitch < pl->motor_speed - 0.1)
 			target_pitch = pl->pitch + (double)samples / scsettings.slippiness;
