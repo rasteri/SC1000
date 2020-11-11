@@ -362,6 +362,11 @@ void addDefaultIOMap(bool ExternalGPIO)
 			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 0, 1, 1, ACTION_CUE, 0); // J7 pin 8
 			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 2, 1, 1, ACTION_CUE, 0); // J7 pin 9
 			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 1, 1, 1, ACTION_CUE, 0); // J7 pin 10
+
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 3, 1, 3, ACTION_DELETECUE, 0); // J7 pin 7
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 0, 1, 3, ACTION_DELETECUE, 0); // J7 pin 8
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 2, 1, 3, ACTION_DELETECUE, 0); // J7 pin 9
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 1, 1, 3, ACTION_DELETECUE, 0); // J7 pin 10
 		}
 	}
 	//dump_maps();

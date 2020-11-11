@@ -1,7 +1,7 @@
 #!/bin/sh
 
 function do_upgrade {
-        echo "---SC500/SC1000 Update Script v1.6 ALPHA---"
+        echo "---SC500/SC1000 Update Script v1.6---"
 
         mkdir /tmp/bootpart
 
