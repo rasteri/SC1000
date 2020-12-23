@@ -96,6 +96,11 @@ Simply switch on SC1000 with a valid USB stick in, and after a few seconds it wi
 Note that you shouldn't touch the jog wheel while you are turning the device on - this is because the SC1000 does a short calibration routine. Leave it a few seconds before touching it.
 
 
+## Optional Mods ##
+
+* [LED mod](./mods/led_ring/README.md)
+
+
 ## License ##
 
 Copyright (C) 2018 Andrew Tait <rasteri@gmail.com>

@@ -25,6 +25,7 @@
 #include "rig.h"
 #include "track.h"
 #include "xwax.h"
+#include "led_mod.h"
 #include "sc_input.h"
 #include "sc_midimap.h"
 #include "dicer.h"
@@ -57,7 +58,7 @@ void i2c_read_address(int file_i2c, unsigned char address, unsigned char *result
 	*result = address;
 	if (write(file_i2c, result, 1) != 1)
 	{
-		printf("I2C read error\n");
+		printf("I2C write error\n");
 		exit(1);
 	}
 
@@ -1059,6 +1060,15 @@ void *SC_InputThread(void *ptr)
 	sleep(2);
 
 	int secondCount = 0;
+
+	if (scsettings.ledringenabled) 
+	{
+		// Enable optional LED mod
+		printf("LED ring mod enabled.\n");
+		LED_Mod_Start();
+	} else {
+		printf("LED ring mod disabled.\n");
+	}
 
 	while (1) // Main input loop
 	{

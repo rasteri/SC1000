@@ -51,6 +51,7 @@ OBJS = controller.o \
 	device.o \
 	dummy.o \
 	external.o \
+	led_mod.o \
 	player.o \
 	realtime.o \
 	rig.o \
