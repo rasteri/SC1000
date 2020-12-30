@@ -38,7 +38,7 @@ The beats and samples folders should in turn contain a number of subfolders, to 
 
 Optionally, you can put an updated version of xwax on the root of the USB stick, and the SC1000 will run it instead of the internal version. This gives a very easy way to update the software on the device.
 
-(http://rasteri.com/SC1000_MIDI_chart.png)
+![SC implementation chart](http://rasteri.com/SC1000_MIDI_chart.png)
 
 
 [![Demo Video](https://img.youtube.com/vi/ReuCnZciOf4/0.jpg)](https://www.youtube.com/watch?v=ReuCnZciOf4)
