@@ -9,7 +9,37 @@ The device, including its enclosure, uses no custom parts apart from printed cir
 
 The build tutorial video can be found here : https://www.youtube.com/watch?v=t1wy7IFSynY
 
-If you want to support development of the SC1000, please visit https://www.patreon.com/rasteri
+## Usage ##
+
+Simply switch on SC1000 with a valid USB stick in, and after a few seconds it will start playing the first beat and sample on the USB stick. Plug in some headphones or a portable speaker, adjust the volume controls to your liking, and get skratchin!
+
+*Pressing* the **beat/sample down** button will select the next file in the current folder, and *holding* the button will skip to the next folder.
+
+Note that you shouldn't touch the jog wheel while you are turning the device on - this is because the SC1000 does a short calibration routine. Leave it a few seconds before touching it.
+
+
+## USB Folder layout ##
+
+The SC1000 expects the USB stick to have two folders on it - **beats** and **samples**. Note that the names of these folders *must* be in all-lowercase letters.
+
+The beats and samples folders should in turn contain a number of subfolders, to organise your files into albums. Each of these subfolders should contain a number of audio files, in **mp3** or **wav** format. For example, you might have a folder layout like : 
+
+* beats/Deluxe Shampoo Breaks/beat1.mp3
+* beats/Deluxe Shampoo Breaks/beat2.mp3
+* beats/Deluxe Shampoo Breaks/beat3.mp3
+* beats/Gag Seal Breaks/beat1.wav
+* beats/Gag Seal Breaks/beat2.wav
+* beats/Gag Seal Breaks/beat3.wav
+* samples/Super Seal Breaks/01 - Aaaah.wav
+* samples/Super Seal Breaks/02 - Fresh.wav
+* samples/Enter the Scratch Game vol 1/01 - Aaaah Fresh.wav
+* samples/Enter the Scratch Game vol 1/02 - Funkyfresh Aaaah.wav
+* samples/Enter the Scratch Game vol 1/03 - Funkydope Aaaah.wav
+
+Optionally, you can put an updated version of xwax on the root of the USB stick, and the SC1000 will run it instead of the internal version. This gives a very easy way to update the software on the device.
+
+![SC implementation chart](http://rasteri.com/SC1000_MIDI_chart.png)
+
 
 [![Demo Video](https://img.youtube.com/vi/ReuCnZciOf4/0.jpg)](https://www.youtube.com/watch?v=ReuCnZciOf4)
 
@@ -66,34 +96,7 @@ A video covering most of this information can be found at https://www.youtube.co
 * **Assemble the enclosure** - drill and tap M3 holes in the aluminium, and screw the whole enclosure together. Make sure the magnet at the end of the jogwheel bolt is suspended directly above the rotary sensor IC.
 
 
-## USB Folder layout ##
 
-The SC1000 expects the USB stick to have two folders on it - **beats** and **samples**. Note that the names of these folders *must* be in all-lowercase letters.
-
-The beats and samples folders should in turn contain a number of subfolders, to organise your files into albums. Each of these subfolders should contain a number of audio files, in **mp3** or **wav** format. For example, you might have a folder layout like : 
-
-* beats/Deluxe Shampoo Breaks/beat1.mp3
-* beats/Deluxe Shampoo Breaks/beat2.mp3
-* beats/Deluxe Shampoo Breaks/beat3.mp3
-* beats/Gag Seal Breaks/beat1.wav
-* beats/Gag Seal Breaks/beat2.wav
-* beats/Gag Seal Breaks/beat3.wav
-* samples/Super Seal Breaks/01 - Aaaah.wav
-* samples/Super Seal Breaks/02 - Fresh.wav
-* samples/Enter the Scratch Game vol 1/01 - Aaaah Fresh.wav
-* samples/Enter the Scratch Game vol 1/02 - Funkyfresh Aaaah.wav
-* samples/Enter the Scratch Game vol 1/03 - Funkydope Aaaah.wav
-
-Optionally, you can put an updated version of xwax on the root of the USB stick, and the SC1000 will run it instead of the internal version. This gives a very easy way to update the software on the device.
-
-
-## Usage ##
-
-Simply switch on SC1000 with a valid USB stick in, and after a few seconds it will start playing the first beat and sample on the USB stick. Plug in some headphones or a portable speaker, adjust the volume controls to your liking, and get skratchin!
-
-*Pressing* the **beat/sample down** button will select the next file in the current folder, and *holding* the button will skip to the next folder.
-
-Note that you shouldn't touch the jog wheel while you are turning the device on - this is because the SC1000 does a short calibration routine. Leave it a few seconds before touching it.
 
 
 ## Optional Mods ##
