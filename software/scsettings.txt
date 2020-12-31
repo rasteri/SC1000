@@ -207,3 +207,14 @@ mididelay=5
 
 # Fader is assigned to sample pitch
 #midii=11,0,0,CH1_PITCH
+
+
+
+######################
+# LED mod (optional) #
+######################
+#
+# See ../mods/led_ring/README.md
+
+# 1 to enable LED ring mod, default 0 (disabled)
+#ledringenabled=1

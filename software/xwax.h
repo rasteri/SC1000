@@ -92,6 +92,13 @@ typedef struct SC_SETTINGS {
     bool midiRemapped;
     bool ioRemapped;
 
+    /* Optional mods */
+
+    // Enable the LED ring mod (send rotation angle to UART3)
+    // 1 when enabled, 0 when not (default: 0)
+    int ledringenabled;
+
+
 } SC_SETTINGS;
 
 extern SC_SETTINGS scsettings;
