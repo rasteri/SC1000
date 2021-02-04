@@ -167,6 +167,7 @@ void loadSettings()
 					controlType = atoi(strtok_r(value, delimc, &valuetok));
 					channel = atoi(strtok_r(NULL, delimc, &valuetok));
 					notenum = atoi(strtok_r(NULL, delimc, &valuetok));
+					edge = atoi(strtok_r(NULL, delimc, &valuetok));
 					actions = strtok_r(NULL, delimc, &valuetok);
 
 					// Build MIDI command
@@ -180,7 +181,7 @@ void loadSettings()
 						0,
 						0,
 						0,
-						0,
+						edge,
 						actions);
 				}
 				else if (strstr(param, "io") != NULL)
@@ -193,13 +194,12 @@ void loadSettings()
 						port = atoi(strtok_r(value, delimc, &valuetok));
 						pin = atoi(strtok_r(NULL, delimc, &valuetok));
 					}
-					else {
+					else {0
 						pin = atoi(strtok_r(value, delimc, &valuetok));
 					}
 					pullup = atoi(strtok_r(NULL, delimc, &valuetok));
 					edge = atoi(strtok_r(NULL, delimc, &valuetok));
 					actions = strtok_r(NULL, delimc, &valuetok);
-
 					add_config_mapping(
 						&maps,
 						MAP_IO,
@@ -218,7 +218,7 @@ void loadSettings()
 				}
 			}
 		}
-	}
+	}0
 
 	
 

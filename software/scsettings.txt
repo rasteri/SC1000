@@ -181,7 +181,7 @@ mididelay=5
 # CHx_NOTEy - Change the pitch musically, replace y with the note number (60 being 0%)
 
 
-# edge is 1 for pressing, 3 for pressing while shifted
+# edge is 1 for normal event, 3 for event while shifted
 
 # Here's an annotated example for my Akai MPD18
 # Which has 16 pads from C2(36) to Eb3(51)
@@ -207,3 +207,118 @@ mididelay=5
 
 # Fader is assigned to sample pitch
 #midii=11,0,0,CH1_PITCH
+
+
+#### LEMUR PRESET, normally hardcoded ####
+
+# CC 0 of channels 0/1 is volume
+midii=11,0,0,1,CH0_VOLUME
+midii=11,1,0,1,CH1_VOLUME
+
+# Pitch bend on channels 0 and 1 is pitch
+
+midii=14,0,0,1,CH1_PITCH
+midii=14,1,0,1,CH1_PITCH
+
+# notes on channels 0 and 1 are cue points
+midii=9,0,0,1,CH0_CUE
+midii=9,0,1,1,CH0_CUE
+midii=9,0,2,1,CH0_CUE
+midii=9,0,3,1,CH0_CUE
+midii=9,0,4,1,CH0_CUE
+midii=9,0,5,1,CH0_CUE
+midii=9,0,6,1,CH0_CUE
+midii=9,0,7,1,CH0_CUE
+
+midii=9,1,0,1,CH1_CUE
+midii=9,1,1,1,CH1_CUE
+midii=9,1,2,1,CH1_CUE
+midii=9,1,3,1,CH1_CUE
+midii=9,1,4,1,CH1_CUE
+midii=9,1,5,1,CH1_CUE
+midii=9,1,6,1,CH1_CUE
+midii=9,1,7,1,CH1_CUE
+
+
+# Also add the delete cue command for shift modifier
+
+midii=9,0,0,3,CH0_DELETECUE
+midii=9,0,1,3,CH0_DELETECUE
+midii=9,0,2,3,CH0_DELETECUE
+midii=9,0,3,3,CH0_DELETECUE
+midii=9,0,4,3,CH0_DELETECUE
+midii=9,0,5,3,CH0_DELETECUE
+midii=9,0,6,3,CH0_DELETECUE
+midii=9,0,7,3,CH0_DELETECUE
+
+midii=9,1,0,3,CH1_DELETECUE
+midii=9,1,1,3,CH1_DELETECUE
+midii=9,1,2,3,CH1_DELETECUE
+midii=9,1,3,3,CH1_DELETECUE
+midii=9,1,4,3,CH1_DELETECUE
+midii=9,1,5,3,CH1_DELETECUE
+midii=9,1,6,3,CH1_DELETECUE
+midii=9,1,7,3,CH1_DELETECUE
+
+
+# Notes on channel 3 are C1-style notes
+midii=9,3,48,1,CH1_NOTE48
+midii=9,3,49,1,CH1_NOTE49
+midii=9,3,50,1,CH1_NOTE50
+midii=9,3,51,1,CH1_NOTE51
+midii=9,3,52,1,CH1_NOTE52
+midii=9,3,53,1,CH1_NOTE53
+midii=9,3,54,1,CH1_NOTE54
+midii=9,3,55,1,CH1_NOTE55
+midii=9,3,56,1,CH1_NOTE56
+midii=9,3,57,1,CH1_NOTE57
+midii=9,3,58,1,CH1_NOTE58
+midii=9,3,59,1,CH1_NOTE59
+midii=9,3,60,1,CH1_NOTE60
+midii=9,3,61,1,CH1_NOTE61
+midii=9,3,62,1,CH1_NOTE62
+midii=9,3,63,1,CH1_NOTE63
+midii=9,3,64,1,CH1_NOTE64
+midii=9,3,65,1,CH1_NOTE65
+midii=9,3,66,1,CH1_NOTE66
+midii=9,3,67,1,CH1_NOTE67
+midii=9,3,68,1,CH1_NOTE68
+midii=9,3,69,1,CH1_NOTE69
+midii=9,3,70,1,CH1_NOTE70
+midii=9,3,71,1,CH1_NOTE71
+midii=9,3,72,1,CH1_NOTE72
+
+
+# Channel 4 has various other commands mapped to its notes
+# Notes 0-1 = start stop
+midii=9,4,0,1,CH0_PITCH
+midii=9,4,1,1,CH1_PITCH
+
+# Notes 2-3 = Next file
+midii=9,4,2,1,CH0_NEXTFILE
+midii=9,4,3,1,CH1_NEXTFILE
+
+# Notes 4-5 = Next folder
+midii=9,4,4,1,CH0_NEXTFOLDER
+midii=9,4,5,1,CH1_NEXTFOLDER
+
+# Notes 6-7 = Prev file
+midii=9,4,6,1,CH0_PREVFILE
+midii=9,4,7,1,CH1_PREVFILE
+
+# Notes 8-9 = Prev folder
+midii=9,4,8,1,CH0_PREVFOLDER
+midii=9,4,9,1,CH1_PREVFOLDER
+
+# Notes 10-11 = Random file
+midii=9,4,10,1,CH0_RANDOMFILE
+midii=9,4,11,1,CH1_RANDOMFILE
+
+# Note 126 = record
+midii=9,4,126,1,CH0_RECORD
+
+# Note 127 = shift
+midii=9,4,127,1,CH1_SHIFTON
+midii=8,4,127,3,CH1_SHIFTOFF
+
+# Status,channel,data,edge,action
