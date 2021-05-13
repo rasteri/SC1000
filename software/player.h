@@ -58,7 +58,9 @@ struct player {
         pitch, /* from timecoder */
         sync_pitch, /* pitch required to sync to timecode signal */
         volume,
-        nominal_pitch, // Pitch after any note/pitch fader changes
+        note_pitch, // Pitch after note change
+        fader_pitch, // pitch after fader change
+        bend_pitch, // pitch after semitone bend change
 		motor_speed; // speed of virtual motor, usually same as nominal_pitch but affected by start/stop
 
     /* Timecode control */

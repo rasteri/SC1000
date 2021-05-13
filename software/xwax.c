@@ -162,6 +162,8 @@ void loadSettings()
 					scsettings.pitchrange = atoi(value);
 				else if (strcmp(param, "jogreverse") == 0)
 					scsettings.jogReverse = atoi(value);
+				else if (strcmp(param, "cutbeats") == 0)
+					scsettings.cutbeats = atoi(value);
 				else if (strstr(param, "midii") != NULL)
 				{
 					scsettings.midiRemapped = 1;
@@ -195,7 +197,7 @@ void loadSettings()
 						port = atoi(strtok_r(value, delimc, &valuetok));
 						pin = atoi(strtok_r(NULL, delimc, &valuetok));
 					}
-					else {0
+					else {
 						pin = atoi(strtok_r(value, delimc, &valuetok));
 					}
 					pullup = atoi(strtok_r(NULL, delimc, &valuetok));
@@ -219,7 +221,7 @@ void loadSettings()
 				}
 			}
 		}
-	}0
+	}
 
 	
 

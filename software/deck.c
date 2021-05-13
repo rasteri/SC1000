@@ -229,7 +229,9 @@ void load_track(struct deck *d, struct track *track)
 	pl->position = 0;
 	pl->offset = 0;
 	cues_load_from_file(&d->cues, pl->track->path);
-	pl->nominal_pitch = 1.0;
+	pl->fader_pitch = 1.0;
+	pl->bend_pitch = 1.0;
+	pl->note_pitch = 1.0;
 	if (!d->player.justPlay)
 	{
 		// If touch sensor is enabled, set the "zero point" to the current encoder angle
@@ -289,7 +291,6 @@ void deck_random_file(struct deck *d)
 		int r = rand() % d->NumFiles;
 		printf("Playing file %d/%d\n", r, d->NumFiles);
 		load_track(d, track_acquire_by_import(d->importer, GetFileAtIndex(r, d->FirstFolder)->FullPath));
-		deck[1].player.nominal_pitch = 1.0;
 	}
 }
 

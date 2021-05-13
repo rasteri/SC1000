@@ -256,7 +256,9 @@ void player_init(struct player *pl, unsigned int sample_rate,
 	pl->setVolume = scsettings.initialVolume;
 	pl->GoodToGo = 0;
 	pl->samplesSoFar = 0;
-	pl->nominal_pitch = 1.0;
+	pl->note_pitch = 1.0;
+	pl->fader_pitch = 1.0;
+	pl->bend_pitch = 1.0;
 	pl->stopped = 0;
 	pl->recording = false;
 	pl->recordingStarted = false;
@@ -482,12 +484,16 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples)
 	}
 	else
 	{
-		pl->motor_speed = pl->nominal_pitch;
+		// stack all the pitch bends on top of each other
+		pl->motor_speed = pl->note_pitch * pl->fader_pitch * pl->bend_pitch;
 	}
 
-	if (
-		pl->justPlay == 1 || (pl->capTouch == 0
-		&& pl->oldCapTouch == 0 )// don't do it on the first iteration so we pick up backspins
+	// deal with case where we've released the platter
+	if ( pl->justPlay == 1 || // platter is always released on beat deck
+		(
+			pl->motor_speed != 0.0 && // don't consider platter released if platter is off (to stop sticker drift)
+			pl->capTouch == 0 && pl->oldCapTouch == 0 // don't do it on the first iteration so we pick up backspins
+		) 
 	)
 	{
 		if (pl->pitch > 20.0) pl->pitch = 20.0;

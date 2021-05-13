@@ -115,7 +115,7 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		}
 		else if (map->Action == ACTION_NOTE)
 		{
-			deck[map->DeckNo].player.nominal_pitch = pow(pow(2, (double)1 / 12), map->Param - 0x3C); // equal temperament
+			deck[map->DeckNo].player.note_pitch = pow(pow(2, (double)1 / 12), map->Param - 0x3C); // equal temperament
 		}
 		else if (map->Action == ACTION_STARTSTOP)
 		{
@@ -177,7 +177,7 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 					pitch = (((double)MidiBuffer[2] - 64.0) * ((double)scsettings.pitchrange / 6400.0) + 1);
 				}
 
-				deck[map->DeckNo].player.nominal_pitch = pitch;
+				deck[map->DeckNo].player.fader_pitch = pitch;
 			}
 		}
 		else if (map->Action == ACTION_JOGPIT)
@@ -221,6 +221,10 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		else if (map->Action == ACTION_JOGREVERSE)
 		{
 			scsettings.jogReverse = !scsettings.jogReverse;
+		}
+		else if (map->Action == ACTION_BEND) // temporary bend of pitch that goes on top of the other pitch values
+		{
+			deck[map->DeckNo].player.bend_pitch = pow(pow(2, (double)1 / 12), map->Param - 0x3C);
 		}
 	}
 }

@@ -199,38 +199,47 @@ void addDefaultIOMap(bool ExternalGPIO)
 			// Notes 2-3 of channel 4 are Next File
 			midicommand[0] = 0x94;
 			midicommand[1] = deckno + 2;
-			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
 			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_NEXTFILE, 0);
 
 			// Notes 4-5 of channel 4 are Next Folder
 			midicommand[0] = 0x94;
 			midicommand[1] = deckno + 4;
-			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
 			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_NEXTFOLDER, 0);
 
 			// Notes 6-7 of channel 4 are Prev File
 			midicommand[0] = 0x94;
 			midicommand[1] = deckno + 6;
-			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
 			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_PREVFILE, 0);
 
 			// Notes 8-9 of channel 4 are Prev Folder
 			midicommand[0] = 0x94;
 			midicommand[1] = deckno + 8;
-			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
 			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_PREVFOLDER, 0);
 
 			// Notes 10-11 of channel 4 are Random File
 			midicommand[0] = 0x94;
 			midicommand[1] = deckno + 10;
-			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
 			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_RANDOMFILE, 0);
 
-			// Notes 10-11 of channel 4 are Random File
+			//Notes 12-13 of channel 4 are pitch bend down
 			midicommand[0] = 0x94;
-			midicommand[1] = deckno + 10;
-			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
-			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_RANDOMFILE, 0);
+			midicommand[1] = deckno + 12;
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_BEND, 59);
+
+			//Releasing 12-13 resets pitch bend
+			midicommand[0] = 0x84;
+			midicommand[1] = deckno + 12;
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_BEND, 60);
+
+			//Notes 14-15 of channel 4 are pitch bend up
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 14;
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_BEND, 61);
+
+			//Releasing 14-15 resets pitch bend
+			midicommand[0] = 0x84;
+			midicommand[1] = deckno + 14;
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_BEND, 60);
 		}
 
 		// Note 7E of channel 4 is RECORD
@@ -242,6 +251,8 @@ void addDefaultIOMap(bool ExternalGPIO)
 		midicommand[0] = 0x94;
 		midicommand[1] = 0x7F;
 		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_SHIFTON, 0);
+
+		// Also map shift disengage
 		midicommand[0] = 0x84;
 		midicommand[1] = 0x7F;
 		// Edge is 3 in this next statement because obviously we're shifted if we're disengaging shift
@@ -940,7 +951,7 @@ void process_rot()
 			if (!oldPitchMode)
 			{ // We just entered pitchmode, set offset etc
 
-				deck[(pitchMode - 1)].player.nominal_pitch = 1.0;
+				deck[(pitchMode - 1)].player.note_pitch = 1.0;
 				deck[1].angleOffset = -deck[1].encoderAngle;
 				oldPitchMode = 1;
 				deck[1].player.capTouch = 0;
@@ -958,7 +969,7 @@ void process_rot()
 			}
 
 			// Use the angle of the platter to control sample pitch
-			deck[(pitchMode - 1)].player.nominal_pitch = (((double)(deck[1].encoderAngle + deck[1].angleOffset)) / 16384) + 1.0;
+			deck[(pitchMode - 1)].player.note_pitch = (((double)(deck[1].encoderAngle + deck[1].angleOffset)) / 16384) + 1.0;
 		}
 		else
 		{
