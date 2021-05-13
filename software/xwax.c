@@ -110,6 +110,7 @@ void loadSettings()
 	scsettings.midiRemapped = 0;
 	scsettings.ioRemapped = 0;
 	scsettings.jogReverse = 0;
+	scsettings.cutbeats = 0;
 
 	// later we'll check for sc500 pin and use it to set following settings
 	scsettings.disablevolumeadc = 0;

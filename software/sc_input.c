@@ -679,14 +679,16 @@ unsigned char buttons[4] = {0, 0, 0, 0}, totalbuttons[4] = {0, 0, 0, 0};
 unsigned int ADCs[4] = {0, 0, 0, 0};
 unsigned char buttonState = 0;
 unsigned int butCounter = 0;
-unsigned char faderOpen = 0;
+unsigned char faderOpen1 = 0, faderOpen2 = 0;
 void process_pic()
 {
 	unsigned int i;
 
 	unsigned char result;
 
-	unsigned int faderCutPoint;
+	unsigned int faderCutPoint1, faderCutPoint2;
+	
+	double fadertarget0, fadertarget1;
 
 	i2c_read_address(file_i2c_pic, 0x00, &result);
 	ADCs[0] = result;
@@ -719,22 +721,32 @@ void process_pic()
 		deck[0].player.setVolume = ((double)ADCs[2]) / 1024;
 		deck[1].player.setVolume = ((double)ADCs[3]) / 1024;
 	}
+	
+	// Fader Hysteresis
+	faderCutPoint1 = faderOpen1 ? scsettings.faderclosepoint : scsettings.faderopenpoint; 
+	faderCutPoint2 = faderOpen2 ? scsettings.faderclosepoint : scsettings.faderopenpoint; 
+	
+	faderOpen1 = 1; faderOpen2 = 1;
+	
+	fadertarget0 = deck[0].player.setVolume;
+	fadertarget1 = deck[1].player.setVolume;
+	
 
-	faderCutPoint = faderOpen ? scsettings.faderclosepoint : scsettings.faderopenpoint; // Fader Hysteresis
-
-	if (ADCs[0] > faderCutPoint && ADCs[1] > faderCutPoint)
-	{ // cut on both sides of crossfader
-		deck[1].player.faderTarget = deck[1].player.setVolume;
-		faderOpen = 1;
+	if (ADCs[0] > faderCutPoint1)
+	{ 
+		if (scsettings.cutbeats == 1) fadertarget0 = 0.0;
+		else fadertarget1 = 0.0;
+		faderOpen1 = 1;
 	}
-	else
+	if (ADCs[1] > faderCutPoint2)
 	{
-		deck[1].player.faderTarget = 0.0;
-		faderOpen = 0;
-
+		if (scsettings.cutbeats == 2) fadertarget0 = 0.0;
+		else fadertarget1 = 0.0;
+		faderOpen2 = 1;
 	}
 
-	deck[0].player.faderTarget = deck[0].player.setVolume;
+	deck[0].player.faderTarget = fadertarget0;
+	deck[0].player.faderTarget = fadertarget1;
 
 	if (!scsettings.disablepicbuttons)
 	{

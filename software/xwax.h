@@ -87,10 +87,14 @@ typedef struct SC_SETTINGS {
     // whether or not to reverse the jogwheel
     int jogReverse;
 	
+	// whether or not the fader cuts the beats
+	int cutbeats;
+	
 	double initialVolume;
 
     bool midiRemapped;
     bool ioRemapped;
+
 
 } SC_SETTINGS;
 
