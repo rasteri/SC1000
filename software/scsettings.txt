@@ -211,7 +211,7 @@ midii=11,1,0,1,CH1_VOLUME
 
 # Pitch bend on channels 0 and 1 is pitch
 
-midii=14,0,0,1,CH1_PITCH
+midii=14,0,0,1,CH0_PITCH
 midii=14,1,0,1,CH1_PITCH
 
 # notes on channels 0 and 1 are cue points
