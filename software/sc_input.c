@@ -743,21 +743,21 @@ void process_pic()
 	fadertarget1 = deck[1].player.setVolume;
 	
 
-	if (ADCs[0] > faderCutPoint1)
+	if (ADCs[0] < faderCutPoint1)
 	{ 
 		if (scsettings.cutbeats == 1) fadertarget0 = 0.0;
 		else fadertarget1 = 0.0;
-		faderOpen1 = 1;
+		faderOpen1 = 0;
 	}
-	if (ADCs[1] > faderCutPoint2)
+	if (ADCs[1] < faderCutPoint2)
 	{
 		if (scsettings.cutbeats == 2) fadertarget0 = 0.0;
 		else fadertarget1 = 0.0;
-		faderOpen2 = 1;
+		faderOpen2 = 0;
 	}
 
 	deck[0].player.faderTarget = fadertarget0;
-	deck[0].player.faderTarget = fadertarget1;
+	deck[1].player.faderTarget = fadertarget1; 
 
 	if (!scsettings.disablepicbuttons)
 	{
@@ -977,11 +977,11 @@ void process_rot()
 			if (scsettings.platterenabled)
 			{
 				// Handle touch sensor
-				if (capIsTouched)
+				if (capIsTouched || deck[1].player.motor_speed == 0.0)
 				{
 
 					// Positive touching edge
-					if (!deck[1].player.capTouch || oldPitchMode)
+					if (!deck[1].player.capTouch || oldPitchMode && !deck[1].player.stopped)
 					{
 						deck[1].angleOffset = (deck[1].player.position * scsettings.platterspeed) - deck[1].encoderAngle;
 						printf("touch!\n");
@@ -1098,7 +1098,7 @@ void *SC_InputThread(void *ptr)
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], deck[1].encoderAngle,
 				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
 				   deck[1].player.target_position, deck[1].player.position,
-				   deck[0].player.setVolume, deck[1].player.setVolume);
+				   deck[0].player.volume, deck[1].player.volume);
 			//dump_maps();
 
 			//printf("\nFPS: %06u\n", frameCount);

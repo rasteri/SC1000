@@ -285,8 +285,8 @@ midii=9,3,72,1,CH1_NOTE72
 
 # Channel 4 has various other commands mapped to its notes
 # Notes 0-1 = start stop
-midii=9,4,0,1,CH0_PITCH
-midii=9,4,1,1,CH1_PITCH
+midii=9,4,0,1,CH0_STARTSTOP
+midii=9,4,1,1,CH1_STARTSTOP
 
 # Notes 2-3 = Next file
 midii=9,4,2,1,CH0_NEXTFILE

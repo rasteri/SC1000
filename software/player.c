@@ -478,7 +478,7 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples)
 		if (pl->motor_speed > 0.1)
 			pl->motor_speed = pl->motor_speed - (double)samples / (scsettings.brakespeed * 10);
 		else
-		{
+		{	
 			pl->motor_speed = 0.0;
 		}
 	}
@@ -491,7 +491,6 @@ void player_collect(struct player *pl, signed short *pcm, unsigned samples)
 	// deal with case where we've released the platter
 	if ( pl->justPlay == 1 || // platter is always released on beat deck
 		(
-			pl->motor_speed != 0.0 && // don't consider platter released if platter is off (to stop sticker drift)
 			pl->capTouch == 0 && pl->oldCapTouch == 0 // don't do it on the first iteration so we pick up backspins
 		) 
 	)
