@@ -120,9 +120,12 @@ void loadSettings()
 	fp = fopen("/media/sda/scsettings.txt", "r");
 	if (fp == NULL)
 	{
-		// couldn't open settings
+		// load internal copy instead
+		fp = fopen("/var/scsettings.txt", "r");
 	}
-	else
+
+
+	if (fp != NULL)
 	{
 		while ((read = getline(&line, &len, fp)) != -1)
 		{
@@ -173,19 +176,44 @@ void loadSettings()
 					edge = atoi(strtok_r(NULL, delimc, &valuetok));
 					actions = strtok_r(NULL, delimc, &valuetok);
 
-					// Build MIDI command
-					midicommand[0] = (controlType << 4) | channel;
-					midicommand[1] = notenum;
-					midicommand[2] = 0;
-					add_config_mapping(
-						&maps,
-						MAP_MIDI,
-						midicommand,
-						0,
-						0,
-						0,
-						edge,
-						actions);
+					//255 means bind to all notes
+					if (notenum == 255){
+
+						// Build MIDI command
+						midicommand[0] = (controlType << 4) | channel;
+						midicommand[1] = notenum;
+						midicommand[2] = 0;
+
+						char tempact[20];
+						for (midicommand[1] = 0; midicommand[1] < 128; midicommand[1]++){
+							sprintf(tempact, "%s%u", actions, midicommand[1]);
+							add_config_mapping(
+								&maps,
+								MAP_MIDI,
+								midicommand,
+								0,
+								0,
+								0,
+								edge,
+								tempact);
+						}
+					}
+					// otherwise just bind to one note
+					else {
+						// Build MIDI command
+						midicommand[0] = (controlType << 4) | channel;
+						midicommand[1] = notenum;
+						midicommand[2] = 0;
+						add_config_mapping(
+							&maps,
+							MAP_MIDI,
+							midicommand,
+							0,
+							0,
+							0,
+							edge,
+							actions);
+					}
 				}
 				else if (strstr(param, "io") != NULL)
 				{

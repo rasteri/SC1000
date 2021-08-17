@@ -7,7 +7,7 @@ function do_upgrade {
 
         mount /dev/mmcblk0p1 /tmp/bootpart
 
-	if tar -C /tmp/bootpart/ -xf /media/sda/sc.tar zImage && tar -C /tmp/bootpart/ -xf /media/sda/sc.tar sun5i-a13-olinuxino.dtb && tar -C /usr/bin -xf /media/sda/sc.tar xwax && tar -C /var -xf /media/sda/sc.tar os-version.mp3 && tar -C /var -xf /media/sda/sc.tar scratchsentence.mp3 ; then
+	if tar -C /tmp/bootpart/ -xf /media/sda/sc.tar zImage && tar -C /tmp/bootpart/ -xf /media/sda/sc.tar sun5i-a13-olinuxino.dtb && tar -C /usr/bin -xf /media/sda/sc.tar xwax && tar -C /var -xf /media/sda/sc.tar os-version.mp3 && tar -C /var -xf /media/sda/sc.tar scsettings.txt && tar -C /var -xf /media/sda/sc.tar scratchsentence.mp3 ; then
                 echo "Software updated successfully!"
                 umount /tmp/bootpart
                 sync
