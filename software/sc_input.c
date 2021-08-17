@@ -499,35 +499,41 @@ void init_io()
 
 				if (map != NULL)
 				{
-					//printf("Pulling %d %d %d\n", j, i, map->Pullup);
-					// which config register to use, 0-3
-					uint32_t configregister = i >> 3;
+					// dirty hack, don't map J7 SCL/SDA pins if MCP is present
+					if (gpiopresent && j == 1 && (i == 15 || i == 16)){
+						map->Action = ACTION_NOTHING;
+					}
+					else {
+						//printf("Pulling %d %d %d\n", j, i, map->Pullup);
+						// which config register to use, 0-3
+						uint32_t configregister = i >> 3;
 
-					// which pull register to use, 0-1
-					uint32_t pullregister = i >> 4;
+						// which pull register to use, 0-1
+						uint32_t pullregister = i >> 4;
 
-					// how many bits to shift the config register
-					uint32_t configShift = (i % 8) * 4;
+						// how many bits to shift the config register
+						uint32_t configShift = (i % 8) * 4;
 
-					// how many bits to shift the pull register
-					uint32_t pullShift = (i % 16) * 2;
+						// how many bits to shift the pull register
+						uint32_t pullShift = (i % 16) * 2;
 
-					volatile uint32_t *PortConfigRegister = gpio_addr + (j * 0x24) + (configregister * 0x04);
-					volatile uint32_t *PortPullRegister = gpio_addr + (j * 0x24) + 0x1C + (pullregister * 0x04);
-					uint32_t portConfig = *PortConfigRegister;
-					uint32_t portPull = *PortPullRegister;
+						volatile uint32_t *PortConfigRegister = gpio_addr + (j * 0x24) + (configregister * 0x04);
+						volatile uint32_t *PortPullRegister = gpio_addr + (j * 0x24) + 0x1C + (pullregister * 0x04);
+						uint32_t portConfig = *PortConfigRegister;
+						uint32_t portPull = *PortPullRegister;
 
-					// mask to unset the relevant pins in the registers
-					uint32_t configMask = ~(0b1111 << configShift);
-					uint32_t pullMask = ~(0b11 << pullShift);
+						// mask to unset the relevant pins in the registers
+						uint32_t configMask = ~(0b1111 << configShift);
+						uint32_t pullMask = ~(0b11 << pullShift);
 
-					// Set port as input
-					// portConfig = (portConfig & configMask) | (0b0000 << configShift); (not needed because input is 0 anyway)
-					portConfig = (portConfig & configMask);
+						// Set port as input
+						// portConfig = (portConfig & configMask) | (0b0000 << configShift); (not needed because input is 0 anyway)
+						portConfig = (portConfig & configMask);
 
-					portPull = (portPull & pullMask) | (map->Pullup << pullShift);
-					*PortConfigRegister = portConfig;
-					*PortPullRegister = portPull;
+						portPull = (portPull & pullMask) | (map->Pullup << pullShift);
+						*PortConfigRegister = portConfig;
+						*PortPullRegister = portPull;
+					}
 				}
 			}
 		}

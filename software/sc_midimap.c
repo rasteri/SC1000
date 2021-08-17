@@ -284,7 +284,7 @@ void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char
 	else if (strstr(actions + 4, "NOTE") != NULL)
 	{
 		action = ACTION_NOTE;
-		parameter = atoi(actions + 9);
+		parameter = atoi(actions + 8);
 	}
 	add_mapping(maps, Type, deckno, buf, port, Pin, Pullup, Edge, action, parameter);
 }

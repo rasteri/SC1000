@@ -51,6 +51,7 @@
 #define ACTION_JOGPSTOP 23
 #define ACTION_JOGREVERSE 24
 #define ACTION_BEND 25
+#define ACTION_NOTHING 255
 
 #define MAP_MIDI 0
 #define MAP_IO 1
