@@ -65,7 +65,7 @@ A video covering most of this information can be found at https://www.youtube.co
 ### Ingredients
 
 * **Main PCB and components** - Board files are in [hardware](./hardware) and can be ordered from somewhere like https://jlcpcb.com/
-* **Components** - Bill of Materials is in [hardware/SC1000/docs/SC1000 - Bill Of Materials.xlsx](./hardware/docs/SC1000%20-%20Bill%20Of%20Materials.xlsx) and can be ordered from Mouser
+* **Components** - Bill of Materials is in [hardware/](./hardware) and can be ordered from Mouser
 * **A13 System-on-Module** - Available from https://www.olimex.com/Products/SOM/A13/A13-SOM-256/, connects to the main PCB via 0.05" headers
 * **SD Card** - To hold the operating system. It only needs 200Mb so just get the smallest card you can find
 * **Enclosure parts** - The enclosure is made from PCBs and aluminium supports. Gerber files are in *./hardware/gerbers/Enclosure/*, aluminium supports are 20x10x156.8mm. The front and rear plates should be 1mm thick, the rest should be 1.6mm. I got mine from https://www.aluminiumwarehouse.co.uk/20-mm-x-10-mm-aluminium-flat-bar, they even cut it for me.
