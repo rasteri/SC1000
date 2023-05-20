@@ -191,7 +191,6 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		}
 		else if (map->Action == ACTION_SC500)
 		{
-
 			printf("SC500 detected\n");
 		}
 		else if (map->Action == ACTION_VOLUP)
@@ -220,7 +219,9 @@ void IOevent(struct mapping *map, unsigned char MidiBuffer[3])
 		}
 		else if (map->Action == ACTION_JOGREVERSE)
 		{
+			printf("Reversed Jog Wheel - %d", scsettings.jogReverse);
 			scsettings.jogReverse = !scsettings.jogReverse;
+			printf(",%d", scsettings.jogReverse);
 		}
 		else if (map->Action == ACTION_BEND) // temporary bend of pitch that goes on top of the other pitch values
 		{
@@ -281,6 +282,10 @@ void add_config_mapping(struct mapping **maps, unsigned char Type, unsigned char
 		action = ACTION_VOLUHOLD;
 	else if (strstr(actions + 4, "VOLDHOLD") != NULL)
 		action = ACTION_VOLDHOLD;
+	else if (strstr(actions + 4, "JOGREVERSE") != NULL)
+		action = ACTION_JOGREVERSE;
+	else if (strstr(actions + 4, "SC500") != NULL)
+		action = ACTION_SC500;
 	else if (strstr(actions + 4, "NOTE") != NULL)
 	{
 		action = ACTION_NOTE;

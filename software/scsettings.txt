@@ -71,6 +71,9 @@ cutbeats=0
 # gpio=port,pin,pull,edge,action
 
 #### SC500 Buttons ####
+# Detection pin
+gpio=6,11,1,1,CH0_SC500
+
 # Shift
 gpio=2,9,1,1,CH0_SHIFTON
 gpio=2,9,1,0,CH0_SHIFTOFF
@@ -81,7 +84,9 @@ gpio=2,14,1,2,CH0_PREVFOLDER
 gpio=2,14,1,3,CH0_RANDOMFILE
 
 gpio=2,13,1,1,CH0_STARTSTOP
-gpio=2,13,1,3,CH0_JOGREVERSE
+
+# even though this is on a beat button it still affects sample
+gpio=2,13,1,3,CH1_JOGREVERSE
 
 gpio=2,10,1,1,CH0_NEXTFILE
 gpio=2,10,1,2,CH0_NEXTFOLDER

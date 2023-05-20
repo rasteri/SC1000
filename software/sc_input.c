@@ -666,12 +666,15 @@ void process_rot()
 	// Handle rotary sensor
 
 	i2c_read_address(file_i2c_rot, 0x0c, &result);
-	deck[1].newEncoderAngle = result << 8;
+	deck[1].newEncoderAngle = ((int)result) << 8;
 	i2c_read_address(file_i2c_rot, 0x0d, &result);
-	deck[1].newEncoderAngle = (deck[1].newEncoderAngle & 0x0f00) | result;
+	deck[1].newEncoderAngle = (deck[1].newEncoderAngle & 0x0f00) | (int)result;
 
-	if (scsettings.jogReverse) 
+	if (scsettings.jogReverse) {
+		//printf("%d,",deck[1].newEncoderAngle);
 		deck[1].newEncoderAngle = 4095 - deck[1].newEncoderAngle;
+		//printf("%d\n",deck[1].newEncoderAngle);
+	}
 
 	// First time, make sure there's no difference
 	if (deck[1].encoderAngle == 0xffff)

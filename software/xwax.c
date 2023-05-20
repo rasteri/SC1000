@@ -161,7 +161,7 @@ void loadSettings()
 					scsettings.slippiness = atoi(value);
 				else if (strcmp(param, "brakespeed") == 0)
 					scsettings.brakespeed = atoi(value);
-				else if (strcmp(param, "pitchrange") == 0)
+				else if (strcmp(param, "pitchrange") == 0)    
 					scsettings.pitchrange = atoi(value);
 				else if (strcmp(param, "jogreverse") == 0)
 					scsettings.jogReverse = atoi(value);
