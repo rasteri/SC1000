@@ -131,7 +131,7 @@ void main(void) {
 
     RC0 = 1;
 
-    ANSEL = 0b10000000; //AN7/RC3 is analog
+    ANSEL = 0b11100000;  //AN5/RC1, AN6/RC2, AN7/RC3 are alanog
     ANSELH = 0b00000001; //AN8/RC6 is analog
 
     /* 16Tosc conversion clock, 6Tad acquisition time, ADC Result Right Justified */
