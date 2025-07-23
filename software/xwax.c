@@ -47,6 +47,7 @@
 #include "sc_input.h"
 #include "sc_midimap.h"
 #include "dicer.h"
+#include "led_mod.h"
 
 #define DEFAULT_IMPORTER EXECDIR "/xwax-import"
 
@@ -116,6 +117,8 @@ void loadSettings()
 	scsettings.disablevolumeadc = 0;
 	scsettings.disablepicbuttons = 0;
 
+	scsettings.ledringenabled = 0;
+
 	// Load any settings from config file
 	fp = fopen("/media/sda/scsettings.txt", "r");
 	if (fp == NULL)
@@ -167,6 +170,8 @@ void loadSettings()
 					scsettings.jogReverse = atoi(value);
 				else if (strcmp(param, "cutbeats") == 0)
 					scsettings.cutbeats = atoi(value);
+				else if (strcmp(param, "ledringenabled") == 0)
+					scsettings.ledringenabled = atoi(value);
 				else if (strstr(param, "midii") != NULL)
 				{
 					scsettings.midiRemapped = 1;

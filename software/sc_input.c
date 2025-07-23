@@ -25,6 +25,7 @@
 #include "rig.h"
 #include "track.h"
 #include "xwax.h"
+#include "led_mod.h"
 #include "sc_input.h"
 #include "sc_midimap.h"
 #include "dicer.h"
@@ -57,7 +58,7 @@ void i2c_read_address(int file_i2c, unsigned char address, unsigned char *result
 	*result = address;
 	if (write(file_i2c, result, 1) != 1)
 	{
-		printf("I2C read error\n");
+		printf("I2C write error\n");
 		exit(1);
 	}
 
@@ -144,6 +145,233 @@ unsigned char mmappresent = 1;
 int file_i2c_gpio;
 volatile void *gpio_addr;
 
+void addDefaultIOMap(bool ExternalGPIO)
+{
+
+	unsigned char midicommand[3];
+	unsigned char deckno;
+	unsigned char notenum;
+
+	if (!scsettings.midiRemapped)
+	{
+		// Set up per-deck cue/startstop/pitchbend mappings
+		for (deckno = 0; deckno < 2; deckno++)
+		{
+			//CC 0 of channels 0/1 is volume
+			midicommand[0] = 0xB0 + deckno;
+			midicommand[1] = 0x00;
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_VOLUME, 0);
+
+			// Notes on channels 0 and 1 are cue points
+			for (notenum = 0; notenum < 128; notenum++)
+			{
+				midicommand[0] = 0x90 + deckno;
+				midicommand[1] = notenum;
+				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_CUE, 0);
+
+				// Also add the delete cue command for shift modifier
+				midicommand[0] = 0x90 + deckno;
+				midicommand[1] = notenum;
+				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 3, ACTION_DELETECUE, 0);
+			}
+
+			// Notes on channels 2 and 3 are C1-style notes
+			for (notenum = 0; notenum < 128; notenum++)
+			{
+				midicommand[0] = 0x92 + deckno;
+				midicommand[1] = notenum;
+				//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_NOTE, notenum);
+				add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_NOTE, notenum);
+			}
+
+			// Pitch bend on channels 0 and 1 is, well, pitchbend
+			midicommand[0] = 0xE0 + deckno;
+			midicommand[1] = 0;
+			midicommand[2] = 0;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_PITCH, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_PITCH, 0);
+
+			// Notes 0-1 of channel 4 are startstop
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_STARTSTOP, 0);
+
+			// Notes 2-3 of channel 4 are Next File
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 2;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_NEXTFILE, 0);
+
+			// Notes 4-5 of channel 4 are Next Folder
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 4;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_NEXTFOLDER, 0);
+
+			// Notes 6-7 of channel 4 are Prev File
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 6;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_PREVFILE, 0);
+
+			// Notes 8-9 of channel 4 are Prev Folder
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 8;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_PREVFOLDER, 0);
+
+			// Notes 10-11 of channel 4 are Random File
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 10;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_RANDOMFILE, 0);
+
+			// Notes 10-11 of channel 4 are Random File
+			midicommand[0] = 0x94;
+			midicommand[1] = deckno + 10;
+			//add_MIDI_mapping(&maps, midicommand, deckno, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_RANDOMFILE, 0);
+		}
+
+		// Note 7E of channel 4 is RECORD
+		midicommand[0] = 0x94;
+		midicommand[1] = 0x7E;
+		add_mapping(&maps, MAP_MIDI, 0, midicommand, 0, 0, 0, 1, ACTION_RECORD, 0);
+
+		// note 7F of channel 4 is shift
+		midicommand[0] = 0x94;
+		midicommand[1] = 0x7F;
+		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 1, ACTION_SHIFTON, 0);
+		midicommand[0] = 0x84;
+		midicommand[1] = 0x7F;
+		// Edge is 3 in this next statement because obviously we're shifted if we're disengaging shift
+		add_mapping(&maps, MAP_MIDI, deckno, midicommand, 0, 0, 0, 3, ACTION_SHIFTOFF, 0);
+	}
+
+	// Now onto GPIO
+
+	// SC500 detection pin, always mapped no matter what
+	add_mapping(&maps, MAP_IO, 0, midicommand, 6, 11, 1, 1, ACTION_SC500, 0);
+
+	if (!scsettings.ioRemapped)
+	{
+		// To start with we always map SC500 buttons, no harm in it even on the SC1000
+
+		// CH0 Transport
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 1, ACTION_PREVFILE, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 2, ACTION_PREVFOLDER, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 14, 1, 3, ACTION_RANDOMFILE, 0);
+
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 13, 1, 1, ACTION_STARTSTOP, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 13, 1, 3, ACTION_JOGREVERSE, 0);
+
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 1, ACTION_NEXTFILE, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 2, ACTION_NEXTFOLDER, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 3, ACTION_JOGPIT, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 2, 10, 1, 0, ACTION_JOGPSTOP, 0);
+
+		// CH0 Volume
+		add_mapping(&maps, MAP_IO, 0, midicommand, 4, 5, 1, 1, ACTION_VOLUP, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 4, 5, 1, 2, ACTION_VOLUHOLD, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 4, 4, 1, 1, ACTION_VOLDOWN, 0);
+		add_mapping(&maps, MAP_IO, 0, midicommand, 4, 4, 1, 2, ACTION_VOLDHOLD, 0);
+
+		// Shift
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 9, 1, 1, ACTION_SHIFTON, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 9, 1, 0, ACTION_SHIFTOFF, 0);
+
+		// CH1 cues
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 4, 1, 1, ACTION_CUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 4, 1, 3, ACTION_DELETECUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 7, 1, 1, ACTION_CUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 7, 1, 3, ACTION_DELETECUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 11, 1, 1, ACTION_CUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 11, 1, 3, ACTION_DELETECUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 12, 1, 1, ACTION_CUE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 12, 1, 3, ACTION_DELETECUE, 0);
+
+		// CH1 transport
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 5, 1, 1, ACTION_PREVFILE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 5, 1, 2, ACTION_PREVFOLDER, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 5, 1, 3, ACTION_JOGPIT, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 5, 1, 0, ACTION_JOGPSTOP, 0);
+
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 6, 1, 1, ACTION_STARTSTOP, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 6, 1, 3, ACTION_RECORD, 0);
+
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 8, 1, 1, ACTION_NEXTFILE, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 8, 1, 2, ACTION_NEXTFOLDER, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 2, 8, 1, 3, ACTION_RANDOMFILE, 0);
+
+		// CH1 Volume
+		add_mapping(&maps, MAP_IO, 1, midicommand, 1, 10, 1, 1, ACTION_VOLUP, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 1, 10, 1, 2, ACTION_VOLUHOLD, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 1, 4, 1, 1, ACTION_VOLDOWN, 0);
+		add_mapping(&maps, MAP_IO, 1, midicommand, 1, 4, 1, 2, ACTION_VOLDHOLD, 0);
+
+		// If there's an external GPIO on the expansion port (J7),
+		// map it like in the default settings file of v1.4
+		if (ExternalGPIO)
+		{
+			add_mapping(&maps, MAP_IO, 0, midicommand, 0, 0, 0, 1, ACTION_GND, 0);
+			
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 1, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 2, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 3, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 4, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 5, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 6, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 7, 1, 1, ACTION_CUE, 0);
+			
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 1, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 2, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 3, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 4, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 5, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 6, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 7, 1, 3, ACTION_DELETECUE, 0);
+
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 8, 1, 1, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_IO, 0, midicommand, 0, 9, 1, 1, ACTION_SHIFTON, 0);
+			add_mapping(&maps, MAP_IO, 0, midicommand, 0, 9, 1, 0, ACTION_SHIFTOFF, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 10, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 0, midicommand, 0, 11, 1, 1, ACTION_STARTSTOP, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 12, 0, 1, ACTION_GND, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 13, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 14, 1, 1, ACTION_CUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 15, 1, 1, ACTION_CUE, 0);
+			
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 10, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 13, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 14, 1, 3, ACTION_DELETECUE, 0);
+			add_mapping(&maps, MAP_IO, 1, midicommand, 0, 15, 1, 3, ACTION_DELETECUE, 0);
+		}
+
+		// If not, map the expansion port pins as regular inputs
+		else
+		{
+			// Shift, startstop for first three pins
+			add_mapping(&maps, MAP_IO, 0, midicommand, 6, 10, 1, 1, ACTION_SHIFTON, 0);	  //J7 pin 3
+			add_mapping(&maps, MAP_IO, 0, midicommand, 6, 10, 1, 0, ACTION_SHIFTOFF, 0);  //J7 pin 3
+			add_mapping(&maps, MAP_IO, 0, midicommand, 1, 15, 1, 1, ACTION_STARTSTOP, 0); //J7 pin 4
+			//J7 pin5 is pulled down through an LED so probably won't work as a switch input
+			add_mapping(&maps, MAP_IO, 1, midicommand, 1, 16, 1, 1, ACTION_STARTSTOP, 0); //J7 pin 6
+
+			// Everything else is sample cues
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 3, 1, 1, ACTION_CUE, 0); // J7 pin 7
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 0, 1, 1, ACTION_CUE, 0); // J7 pin 8
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 2, 1, 1, ACTION_CUE, 0); // J7 pin 9
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 1, 1, 1, ACTION_CUE, 0); // J7 pin 10
+
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 3, 1, 3, ACTION_DELETECUE, 0); // J7 pin 7
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 0, 1, 3, ACTION_DELETECUE, 0); // J7 pin 8
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 2, 1, 3, ACTION_DELETECUE, 0); // J7 pin 9
+			add_mapping(&maps, MAP_IO, 1, midicommand, 2, 1, 1, 3, ACTION_DELETECUE, 0); // J7 pin 10
+		}
+	}
+	//dump_maps();
+}
 bool firstTimeRound = 1;
 void init_io()
 {
@@ -169,6 +397,7 @@ void init_io()
 	// Configure external IO
 	if (gpiopresent)
 	{
+		addDefaultIOMap(true);
 
 		// default to pulled up and input
 		unsigned int pullups = 0xFFFF;
@@ -224,6 +453,10 @@ void init_io()
 		printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(iodirs & 0xFF));
 		printf("\n");*/
 	}
+	else
+	{
+		addDefaultIOMap(false);
+	}
 
 	// Configure A13 GPIO
 
@@ -256,41 +489,35 @@ void init_io()
 
 				if (map != NULL)
 				{
-					// dirty hack, don't map J7 SCL/SDA pins if MCP is present
-					if (gpiopresent && j == 1 && (i == 15 || i == 16)){
-						map->Action = ACTION_NOTHING;
-					}
-					else {
-						//printf("Pulling %d %d %d\n", j, i, map->Pullup);
-						// which config register to use, 0-3
-						uint32_t configregister = i >> 3;
+					//printf("Pulling %d %d %d\n", j, i, map->Pullup);
+					// which config register to use, 0-3
+					uint32_t configregister = i >> 3;
 
-						// which pull register to use, 0-1
-						uint32_t pullregister = i >> 4;
+					// which pull register to use, 0-1
+					uint32_t pullregister = i >> 4;
 
-						// how many bits to shift the config register
-						uint32_t configShift = (i % 8) * 4;
+					// how many bits to shift the config register
+					uint32_t configShift = (i % 8) * 4;
 
-						// how many bits to shift the pull register
-						uint32_t pullShift = (i % 16) * 2;
+					// how many bits to shift the pull register
+					uint32_t pullShift = (i % 16) * 2;
 
-						volatile uint32_t *PortConfigRegister = gpio_addr + (j * 0x24) + (configregister * 0x04);
-						volatile uint32_t *PortPullRegister = gpio_addr + (j * 0x24) + 0x1C + (pullregister * 0x04);
-						uint32_t portConfig = *PortConfigRegister;
-						uint32_t portPull = *PortPullRegister;
+					volatile uint32_t *PortConfigRegister = gpio_addr + (j * 0x24) + (configregister * 0x04);
+					volatile uint32_t *PortPullRegister = gpio_addr + (j * 0x24) + 0x1C + (pullregister * 0x04);
+					uint32_t portConfig = *PortConfigRegister;
+					uint32_t portPull = *PortPullRegister;
 
-						// mask to unset the relevant pins in the registers
-						uint32_t configMask = ~(0b1111 << configShift);
-						uint32_t pullMask = ~(0b11 << pullShift);
+					// mask to unset the relevant pins in the registers
+					uint32_t configMask = ~(0b1111 << configShift);
+					uint32_t pullMask = ~(0b11 << pullShift);
 
-						// Set port as input
-						// portConfig = (portConfig & configMask) | (0b0000 << configShift); (not needed because input is 0 anyway)
-						portConfig = (portConfig & configMask);
+					// Set port as input
+					// portConfig = (portConfig & configMask) | (0b0000 << configShift); (not needed because input is 0 anyway)
+					portConfig = (portConfig & configMask);
 
-						portPull = (portPull & pullMask) | (map->Pullup << pullShift);
-						*PortConfigRegister = portConfig;
-						*PortPullRegister = portPull;
-					}
+					portPull = (portPull & pullMask) | (map->Pullup << pullShift);
+					*PortConfigRegister = portConfig;
+					*PortPullRegister = portPull;
 				}
 			}
 		}
@@ -453,16 +680,14 @@ unsigned char buttons[4] = {0, 0, 0, 0}, totalbuttons[4] = {0, 0, 0, 0};
 unsigned int ADCs[4] = {0, 0, 0, 0};
 unsigned char buttonState = 0;
 unsigned int butCounter = 0;
-unsigned char faderOpen1 = 0, faderOpen2 = 0;
+unsigned char faderOpen = 0;
 void process_pic()
 {
 	unsigned int i;
 
 	unsigned char result;
 
-	unsigned int faderCutPoint1, faderCutPoint2;
-	
-	double fadertarget0, fadertarget1;
+	unsigned int faderCutPoint;
 
 	i2c_read_address(file_i2c_pic, 0x00, &result);
 	ADCs[0] = result;
@@ -495,32 +720,22 @@ void process_pic()
 		deck[0].player.setVolume = ((double)ADCs[2]) / 1024;
 		deck[1].player.setVolume = ((double)ADCs[3]) / 1024;
 	}
-	
-	// Fader Hysteresis
-	faderCutPoint1 = faderOpen1 ? scsettings.faderclosepoint : scsettings.faderopenpoint; 
-	faderCutPoint2 = faderOpen2 ? scsettings.faderclosepoint : scsettings.faderopenpoint; 
-	
-	faderOpen1 = 1; faderOpen2 = 1;
-	
-	fadertarget0 = deck[0].player.setVolume;
-	fadertarget1 = deck[1].player.setVolume;
-	
 
-	if (ADCs[0] < faderCutPoint1)
-	{ 
-		if (scsettings.cutbeats == 1) fadertarget0 = 0.0;
-		else fadertarget1 = 0.0;
-		faderOpen1 = 0;
+	faderCutPoint = faderOpen ? scsettings.faderclosepoint : scsettings.faderopenpoint; // Fader Hysteresis
+
+	if (ADCs[0] > faderCutPoint && ADCs[1] > faderCutPoint)
+	{ // cut on both sides of crossfader
+		deck[1].player.faderTarget = deck[1].player.setVolume;
+		faderOpen = 1;
 	}
-	if (ADCs[1] < faderCutPoint2)
+	else
 	{
-		if (scsettings.cutbeats == 2) fadertarget0 = 0.0;
-		else fadertarget1 = 0.0;
-		faderOpen2 = 0;
+		deck[1].player.faderTarget = 0.0;
+		faderOpen = 0;
+
 	}
 
-	deck[0].player.faderTarget = fadertarget0;
-	deck[1].player.faderTarget = fadertarget1; 
+	deck[0].player.faderTarget = deck[0].player.setVolume;
 
 	if (!scsettings.disablepicbuttons)
 	{
@@ -666,15 +881,12 @@ void process_rot()
 	// Handle rotary sensor
 
 	i2c_read_address(file_i2c_rot, 0x0c, &result);
-	deck[1].newEncoderAngle = ((int)result) << 8;
+	deck[1].newEncoderAngle = result << 8;
 	i2c_read_address(file_i2c_rot, 0x0d, &result);
-	deck[1].newEncoderAngle = (deck[1].newEncoderAngle & 0x0f00) | (int)result;
+	deck[1].newEncoderAngle = (deck[1].newEncoderAngle & 0x0f00) | result;
 
-	if (scsettings.jogReverse) {
-		//printf("%d,",deck[1].newEncoderAngle);
+	if (scsettings.jogReverse) 
 		deck[1].newEncoderAngle = 4095 - deck[1].newEncoderAngle;
-		//printf("%d\n",deck[1].newEncoderAngle);
-	}
 
 	// First time, make sure there's no difference
 	if (deck[1].encoderAngle == 0xffff)
@@ -717,7 +929,7 @@ void process_rot()
 			if (!oldPitchMode)
 			{ // We just entered pitchmode, set offset etc
 
-				deck[(pitchMode - 1)].player.note_pitch = 1.0;
+				deck[(pitchMode - 1)].player.nominal_pitch = 1.0;
 				deck[1].angleOffset = -deck[1].encoderAngle;
 				oldPitchMode = 1;
 				deck[1].player.capTouch = 0;
@@ -735,7 +947,7 @@ void process_rot()
 			}
 
 			// Use the angle of the platter to control sample pitch
-			deck[(pitchMode - 1)].player.note_pitch = (((double)(deck[1].encoderAngle + deck[1].angleOffset)) / 16384) + 1.0;
+			deck[(pitchMode - 1)].player.nominal_pitch = (((double)(deck[1].encoderAngle + deck[1].angleOffset)) / 16384) + 1.0;
 		}
 		else
 		{
@@ -743,11 +955,11 @@ void process_rot()
 			if (scsettings.platterenabled)
 			{
 				// Handle touch sensor
-				if (capIsTouched || deck[1].player.motor_speed == 0.0)
+				if (capIsTouched)
 				{
 
 					// Positive touching edge
-					if (!deck[1].player.capTouch || oldPitchMode && !deck[1].player.stopped)
+					if (!deck[1].player.capTouch || oldPitchMode)
 					{
 						deck[1].angleOffset = (deck[1].player.position * scsettings.platterspeed) - deck[1].encoderAngle;
 						printf("touch!\n");
@@ -849,6 +1061,15 @@ void *SC_InputThread(void *ptr)
 
 	int secondCount = 0;
 
+	if (scsettings.ledringenabled) 
+	{
+		// Enable optional LED mod
+		printf("LED ring mod enabled.\n");
+		LED_Mod_Start();
+	} else {
+		printf("LED ring mod disabled.\n");
+	}
+
 	while (1) // Main input loop
 	{
 
@@ -864,7 +1085,7 @@ void *SC_InputThread(void *ptr)
 				   frameCount, ADCs[0], ADCs[1], ADCs[2], ADCs[3], deck[1].encoderAngle,
 				   buttons[0], buttons[1], buttons[2], buttons[3], capIsTouched,
 				   deck[1].player.target_position, deck[1].player.position,
-				   deck[0].player.volume, deck[1].player.volume);
+				   deck[0].player.setVolume, deck[1].player.setVolume);
 			//dump_maps();
 
 			//printf("\nFPS: %06u\n", frameCount);

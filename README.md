@@ -99,6 +99,11 @@ A video covering most of this information can be found at https://www.youtube.co
 
 
 
+## Optional Mods ##
+
+* [LED mod](./mods/led_ring/README.md)
+
+
 ## License ##
 
 Copyright (C) 2018 Andrew Tait <rasteri@gmail.com>

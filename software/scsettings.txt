@@ -266,3 +266,16 @@ midii=9,4,127,1,CH1_SHIFTON
 midii=8,4,127,3,CH1_SHIFTOFF
 
 # Status,channel,data,edge,action
+# Fader is assigned to sample pitch
+#midii=11,0,0,CH1_PITCH
+
+
+
+######################
+# LED mod (optional) #
+######################
+#
+# See ../mods/led_ring/README.md
+
+# 1 to enable LED ring mod, default 0 (disabled)
+#ledringenabled=1
