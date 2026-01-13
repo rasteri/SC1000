@@ -11,4 +11,6 @@ software/*.d
 dist
 *.swp
 *.swo
+*.o
+*.d
 

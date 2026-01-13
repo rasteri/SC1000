@@ -1,0 +1,962 @@
+{
+  "gpio_mapping": [
+    {
+      "action": "sc500",
+      "deck": "beats",
+      "event": "button_pressed",
+      "pin": 11,
+      "port": 6,
+      "pull_up": true
+    },
+    {
+      "action": "shift_on",
+      "deck": "beats",
+      "event": "button_pressed",
+      "pin": 9,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "shift_off",
+      "deck": "beats",
+      "event": "button_released",
+      "pin": 9,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "prev_file",
+      "deck": "beats",
+      "event": "button_pressed",
+      "pin": 14,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "prev_folder",
+      "deck": "beats",
+      "event": "button_holding",
+      "pin": 14,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "random_file",
+      "deck": "beats",
+      "event": "button_pressed_shifted",
+      "pin": 14,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "start_stop",
+      "deck": "beats",
+      "event": "button_pressed",
+      "pin": 13,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "record",
+      "deck": "beats",
+      "event": "button_released_shifted",
+      "pin": 13,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "loop_erase",
+      "deck": "beats",
+      "event": "button_holding_shifted",
+      "pin": 13,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "jog_reverse",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 13,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "next_file",
+      "deck": "beats",
+      "event": "button_pressed",
+      "pin": 10,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "next_folder",
+      "deck": "beats",
+      "event": "button_holding",
+      "pin": 10,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "jog_pit",
+      "deck": "beats",
+      "event": "button_pressed_shifted",
+      "pin": 10,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "jog_pstop",
+      "deck": "beats",
+      "event": "button_released",
+      "pin": 10,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "volume_up",
+      "deck": "beats",
+      "event": "button_pressed",
+      "pin": 5,
+      "port": 4,
+      "pull_up": true
+    },
+    {
+      "action": "volume_up_hold",
+      "deck": "beats",
+      "event": "button_holding",
+      "pin": 5,
+      "port": 4,
+      "pull_up": true
+    },
+    {
+      "action": "volume_down",
+      "deck": "beats",
+      "event": "button_pressed",
+      "pin": 4,
+      "port": 4,
+      "pull_up": true
+    },
+    {
+      "action": "volume_down_hold",
+      "deck": "beats",
+      "event": "button_holding",
+      "pin": 4,
+      "port": 4,
+      "pull_up": true
+    },
+    {
+      "action": "prev_file",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 5,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "prev_folder",
+      "deck": "scratch",
+      "event": "button_holding",
+      "pin": 5,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "jog_pit",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 5,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "jog_pstop",
+      "deck": "scratch",
+      "event": "button_released",
+      "pin": 5,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "start_stop",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 6,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "record",
+      "deck": "scratch",
+      "event": "button_released_shifted",
+      "pin": 6,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "loop_erase",
+      "deck": "scratch",
+      "event": "button_holding_shifted",
+      "pin": 6,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "next_file",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 8,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "next_folder",
+      "deck": "scratch",
+      "event": "button_holding",
+      "pin": 8,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "random_file",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 8,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "volume_up",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 10,
+      "port": 1,
+      "pull_up": true
+    },
+    {
+      "action": "volume_up_hold",
+      "deck": "scratch",
+      "event": "button_holding",
+      "pin": 10,
+      "port": 1,
+      "pull_up": true
+    },
+    {
+      "action": "volume_down",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 4,
+      "port": 1,
+      "pull_up": true
+    },
+    {
+      "action": "volume_down_hold",
+      "deck": "scratch",
+      "event": "button_holding",
+      "pin": 4,
+      "port": 1,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 4,
+      "port": 2,
+      "pull_up": true,
+      "parameter": 1
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_released",
+      "pin": 4,
+      "port": 2,
+      "pull_up": true,
+      "parameter": 1
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 4,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 7,
+      "port": 2,
+      "pull_up": true,
+      "parameter": 2
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_released",
+      "pin": 7,
+      "port": 2,
+      "pull_up": true,
+      "parameter": 2
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 7,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 11,
+      "port": 2,
+      "pull_up": true,
+      "parameter": 3
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_released",
+      "pin": 11,
+      "port": 2,
+      "pull_up": true,
+      "parameter": 3
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 11,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 12,
+      "port": 2,
+      "pull_up": true,
+      "parameter": 4
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_released",
+      "pin": 12,
+      "port": 2,
+      "pull_up": true,
+      "parameter": 4
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 12,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "shift_on",
+      "deck": "beats",
+      "event": "button_pressed",
+      "pin": 10,
+      "port": 6,
+      "pull_up": true
+    },
+    {
+      "action": "shift_off",
+      "deck": "beats",
+      "event": "button_released",
+      "pin": 10,
+      "port": 6,
+      "pull_up": true
+    },
+    {
+      "action": "start_stop",
+      "deck": "beats",
+      "event": "button_pressed",
+      "pin": 15,
+      "port": 1,
+      "pull_up": true
+    },
+    {
+      "action": "start_stop",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 16,
+      "port": 1,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 3,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 0,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 2,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 1,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 3,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 0,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 2,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 1,
+      "port": 2,
+      "pull_up": true
+    },
+    {
+      "action": "gnd",
+      "deck": "beats",
+      "event": "button_pressed",
+      "pin": 0,
+      "port": 0,
+      "pull_up": false
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 1,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 2,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 3,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 4,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 5,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 6,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 7,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 1,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 2,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 3,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 4,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 5,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 6,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 7,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "start_stop",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 8,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "shift_on",
+      "deck": "beats",
+      "event": "button_pressed",
+      "pin": 9,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "shift_off",
+      "deck": "beats",
+      "event": "button_released",
+      "pin": 9,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 10,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 10,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "start_stop",
+      "deck": "beats",
+      "event": "button_pressed",
+      "pin": 11,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "gnd",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 12,
+      "port": 0,
+      "pull_up": false
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 13,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 14,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "cue",
+      "deck": "scratch",
+      "event": "button_pressed",
+      "pin": 15,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 13,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 14,
+      "port": 0,
+      "pull_up": true
+    },
+    {
+      "action": "delete_cue",
+      "deck": "scratch",
+      "event": "button_pressed_shifted",
+      "pin": 15,
+      "port": 0,
+      "pull_up": true
+    }
+  ],
+  "midi_mapping": [
+    {
+      "action": "volume",
+      "channel": 0,
+      "deck": "beats",
+      "parameter1": 0,
+      "parameter2": 0,
+      "shifted": false,
+      "type": "midi_cc"
+    },
+    {
+      "action": "volume",
+      "channel": 1,
+      "deck": "scratch",
+      "parameter1": 0,
+      "parameter2": 0,
+      "shifted": false,
+      "type": "midi_cc"
+    },
+    {
+      "action": "pitch",
+      "channel": 0,
+      "deck": "scratch",
+      "parameter1": 0,
+      "parameter2": 24,
+      "shifted": false,
+      "type": "midi_pb"
+    },
+    {
+      "action": "pitch",
+      "channel": 1,
+      "deck": "beats",
+      "parameter1": 0,
+      "parameter2": 24,
+      "shifted": false,
+      "type": "midi_pb"
+    },
+    {
+      "action": "cue",
+      "channel": 2,
+      "deck": "scratch",
+      "parameter1": 255,
+      "parameter2": 0,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "cue",
+      "channel": 3,
+      "deck": "beats",
+      "parameter1": 255,
+      "parameter2": 0,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "delete_cue",
+      "channel": 2,
+      "deck": "scratch",
+      "parameter1": 255,
+      "parameter2": 0,
+      "shifted": true,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "delete_cue",
+      "channel": 3,
+      "deck": "beats",
+      "parameter1": 255,
+      "parameter2": 0,
+      "shifted": true,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "note",
+      "channel": 0,
+      "deck": "scratch",
+      "parameter1": 255,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "note",
+      "channel": 1,
+      "deck": "beats",
+      "parameter1": 255,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "start_stop",
+      "channel": 4,
+      "deck": "beats",
+      "parameter1": 0,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "start_stop",
+      "channel": 4,
+      "deck": "scratch",
+      "parameter1": 1,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "next_file",
+      "channel": 4,
+      "deck": "beats",
+      "parameter1": 2,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "next_file",
+      "channel": 4,
+      "deck": "scratch",
+      "parameter1": 3,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "next_folder",
+      "channel": 4,
+      "deck": "beats",
+      "parameter1": 4,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "next_folder",
+      "channel": 4,
+      "deck": "scratch",
+      "parameter1": 5,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "prev_file",
+      "channel": 4,
+      "deck": "beats",
+      "parameter1": 6,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "prev_file",
+      "channel": 4,
+      "deck": "scratch",
+      "parameter1": 7,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "prev_folder",
+      "channel": 4,
+      "deck": "beats",
+      "parameter1": 8,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "prev_folder",
+      "channel": 4,
+      "deck": "scratch",
+      "parameter1": 9,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "random_file",
+      "channel": 4,
+      "deck": "beats",
+      "parameter1": 10,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "random_file",
+      "channel": 4,
+      "deck": "scratch",
+      "parameter1": 11,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "record",
+      "channel": 4,
+      "deck": "beats",
+      "parameter1": 126,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "shift_on",
+      "channel": 4,
+      "deck": "scratch",
+      "parameter1": 127,
+      "parameter2": 127,
+      "shifted": false,
+      "type": "midi_note_on"
+    },
+    {
+      "action": "shift_off",
+      "channel": 4,
+      "deck": "scratch",
+      "parameter1": 127,
+      "parameter2": 127,
+      "shifted": true,
+      "type": "midi_note_off"
+    }
+  ],
+  "sc1000": {
+    "audio_init_delay": 2,
+    "brake_speed": 3000,
+    "buffer_period_factor": 4,
+    "cut_beats": 0,
+    "debounce_time": 5,
+    "disable_pic_buttons": false,
+    "disable_volume_adc": false,
+    "double_cut": 0,
+    "fader_close_point": 3,
+    "fader_open_point": 5,
+    "hamster": 0,
+    "hold_time": 150,
+    "initial_volume": 0.125,
+    "jog_reverse": false,
+    "midi_init_delay": 5,
+    "period_size": 256,
+    "pitch_range": 50,
+    "platter_enabled": true,
+    "platter_speed": 2275,
+    "sample_rate": 48000,
+    "single_vca": 0,
+    "slippiness": 200,
+    "update_rate": 2000,
+    "volume_amount": 0.03,
+    "volume_amount_held": 0.001,
+    "loop_max_seconds": 60
+  },
+  "audio_devices": [
+    {
+      "name": "Bitwig Connect",
+      "device": "hw:1",
+      "type": "usb",
+      "supports_cv": true,
+      "input_channels": 4,
+      "input_left": 2,
+      "input_right": 3,
+      "output_map": {
+        "audio": 0,
+        "cv_platter_speed": 8,
+        "cv_crossfader": 9,
+        "cv_gate_a": 10,
+        "cv_gate_b": 11
+      }
+    },
+    {
+      "name": "Internal Codec",
+      "device": "hw:0",
+      "type": "main"
+    }
+  ]
+}

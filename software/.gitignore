@@ -1,0 +1,31 @@
+# Build directories
+build-*/
+cmake-build-*/
+clion-cmake-*/
+
+# IDE files
+.idea/
+.vscode/
+*.code-workspace
+
+# Generated files
+*.o
+*.d
+*.a
+*.so
+*.out
+
+# Test artifacts
+*.wav
+*.raw
+*.png
+*.csv
+
+# Editor backups
+*~
+*.swp
+*.bak
+
+# Debug output
+gmon.out
+CLAUDE.md

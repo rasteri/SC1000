@@ -1,0 +1,4 @@
+rootfs.tar
+zImage
+*.dtb
+u-boot-*.bin

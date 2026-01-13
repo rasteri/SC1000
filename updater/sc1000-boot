@@ -1,0 +1,160 @@
+#!/bin/sh
+# SC1000/SC500 Boot and Update Script v3.0
+#
+# This script is placed on the USB stick as 'sc1000'.
+# When the device boots, the init script runs this instead of the internal binary.
+#
+# Behavior:
+#   - If specific buttons are held at boot: extract sc.tar and update system
+#   - Otherwise: run the internal binary normally
+#
+# Button combinations for update:
+#   SC500: Either beat button (GPIO Port E bits 4 or 5)
+#   SC1000: Specific button combo via PIC I2C (address 0x69, register 0x05)
+#
+# v3.0: Removed legacy xwax naming, added init script migration
+
+BINARY_NAME="sc1000"
+
+do_upgrade() {
+    echo "=== SC500/SC1000 Update Script v3.0 ==="
+
+    mkdir -p /tmp/bootpart
+
+    if ! mount /dev/mmcblk0p1 /tmp/bootpart 2>/dev/null; then
+        echo "ERROR: Could not mount boot partition"
+        play_feedback "failed"
+        return 1
+    fi
+
+    # Extract kernel and device tree (optional - may not be in tarball)
+    tar -C /tmp/bootpart/ -xf /media/sda/sc.tar zImage 2>/dev/null && echo "Updated: zImage"
+    tar -C /tmp/bootpart/ -xf /media/sda/sc.tar sun5i-a13-olinuxino.dtb 2>/dev/null && echo "Updated: device tree"
+
+    # Extract binary
+    if tar -tf /media/sda/sc.tar "$BINARY_NAME" >/dev/null 2>&1; then
+        if tar -C /usr/bin -xf /media/sda/sc.tar "$BINARY_NAME"; then
+            chmod +x "/usr/bin/$BINARY_NAME"
+            echo "Updated: $BINARY_NAME"
+            # Remove legacy xwax binary if present
+            if [ -f "/usr/bin/xwax" ]; then
+                rm -f "/usr/bin/xwax"
+                echo "Removed: legacy xwax binary"
+            fi
+        else
+            echo "ERROR: Could not extract $BINARY_NAME"
+            umount /tmp/bootpart
+            play_feedback "failed"
+            return 1
+        fi
+    else
+        echo "ERROR: No $BINARY_NAME found in sc.tar"
+        umount /tmp/bootpart
+        play_feedback "failed"
+        return 1
+    fi
+
+    # Migrate init script from S50xwax to S50sc1000
+    if tar -tf /media/sda/sc.tar S50sc1000 >/dev/null 2>&1; then
+        if tar -C /etc/init.d -xf /media/sda/sc.tar S50sc1000; then
+            chmod +x "/etc/init.d/S50sc1000"
+            echo "Updated: S50sc1000 init script"
+            # Remove legacy init script if present
+            if [ -f "/etc/init.d/S50xwax" ]; then
+                rm -f "/etc/init.d/S50xwax"
+                echo "Removed: legacy S50xwax init script"
+            fi
+        fi
+    fi
+
+    # Update importer script
+    if tar -tf /media/sda/sc.tar sc1000-import >/dev/null 2>&1; then
+        tar -C /root -xf /media/sda/sc.tar sc1000-import && chmod +x /root/sc1000-import && echo "Updated: sc1000-import"
+        # Remove legacy importer if present
+        if [ -f "/root/xwax-import" ]; then
+            rm -f "/root/xwax-import"
+            echo "Removed: legacy xwax-import"
+        fi
+    fi
+
+    # Extract settings - try JSON first (new format), fall back to txt (legacy)
+    if tar -tf /media/sda/sc.tar sc_settings.json >/dev/null 2>&1; then
+        tar -C /media/sda -xf /media/sda/sc.tar sc_settings.json && echo "Updated: sc_settings.json"
+    fi
+    if tar -tf /media/sda/sc.tar scsettings.txt >/dev/null 2>&1; then
+        tar -C /var -xf /media/sda/sc.tar scsettings.txt && echo "Updated: scsettings.txt (legacy)"
+    fi
+
+    # Extract optional audio files
+    tar -C /var -xf /media/sda/sc.tar os-version.mp3 2>/dev/null
+    tar -C /var -xf /media/sda/sc.tar scratchsentence.mp3 2>/dev/null
+
+    echo "=== Update completed successfully! ==="
+    umount /tmp/bootpart
+    sync
+
+    play_feedback "successful"
+}
+
+play_feedback() {
+    local type="$1"
+    tar -C /tmp/ -xf /media/sda/sc.tar "${type}.mp3" 2>/dev/null
+    if [ -f "/tmp/${type}.mp3" ]; then
+        mpg123 --loop -1 "/tmp/${type}.mp3"
+    fi
+}
+
+run_binary() {
+    if [ -x "/usr/bin/$BINARY_NAME" ]; then
+        exec "/usr/bin/$BINARY_NAME"
+    else
+        echo "ERROR: No $BINARY_NAME executable found in /usr/bin"
+        exit 1
+    fi
+}
+
+check_update_buttons() {
+    # Set SC500 detection pin as input with pull-up
+    /sbin/devmem 0x01C208DC 32 0x00010010
+    /sbin/devmem 0x01C208F4 32 0x00400119
+
+    # Bit 11 high = SC1000, low = SC500
+    PORTG=$(/sbin/devmem 0x01C208E8)
+
+    if [ $(($PORTG & 0x800)) -eq 0 ]; then
+        # SC500 detected
+        echo "SC500 Detected"
+        # Pull up beat buttons
+        /sbin/devmem 0x01C208AC 32 0x00000500
+
+        # Bit 4 or 5 low = beat button held
+        PORTE=$(/sbin/devmem 0x01C208A0 32)
+
+        if [ $(($PORTE & 0x10)) -ne $((0x10)) ]; then
+            return 0  # Update requested
+        elif [ $(($PORTE & 0x20)) -ne $((0x20)) ]; then
+            return 0  # Update requested
+        fi
+    else
+        # SC1000 detected
+        echo "SC1000 Detected"
+        # Check PIC input processor for button state
+        # Pattern matches specific button combinations
+        if i2cget -y 2 0x69 0x05 2>/dev/null | grep -Exq "0x[0-f](7|b|3)"; then
+            return 0  # Update requested
+        fi
+    fi
+
+    return 1  # No update requested
+}
+
+# Main entry point
+echo "SC1000 Boot Script v3.0"
+
+if [ -f /media/sda/sc.tar ] && check_update_buttons; then
+    echo "Update buttons held - starting upgrade..."
+    do_upgrade
+else
+    echo "Normal boot - starting application..."
+    run_binary
+fi

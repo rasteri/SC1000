@@ -1,0 +1,108 @@
+#!/bin/sh
+# Init script to mount USB stick and start SC1000
+# Waits for USB and ALSA to be ready before starting
+
+BINARY_NAME="sc1000"
+USB_DEVICE="/dev/sda1"
+USB_MOUNT="/media/sda"
+ALSA_CARD="0"
+
+# Maximum wait times (in seconds)
+USB_TIMEOUT=30
+ALSA_TIMEOUT=15
+
+wait_for_usb() {
+    echo -n "Waiting for USB device..."
+    count=0
+    while [ ! -b "$USB_DEVICE" ] && [ $count -lt $USB_TIMEOUT ]; do
+        sleep 1
+        count=$((count + 1))
+    done
+
+    if [ -b "$USB_DEVICE" ]; then
+        echo " found after ${count}s"
+        return 0
+    else
+        echo " timeout after ${USB_TIMEOUT}s"
+        return 1
+    fi
+}
+
+wait_for_alsa() {
+    echo -n "Waiting for ALSA..."
+    count=0
+    while ! cat /proc/asound/cards 2>/dev/null | grep -q "^\s*${ALSA_CARD}\s" && [ $count -lt $ALSA_TIMEOUT ]; do
+        sleep 1
+        count=$((count + 1))
+    done
+
+    if cat /proc/asound/cards 2>/dev/null | grep -q "^\s*${ALSA_CARD}\s"; then
+        echo " ready after ${count}s"
+        return 0
+    else
+        echo " timeout after ${ALSA_TIMEOUT}s"
+        return 1
+    fi
+}
+
+do_start() {
+    echo "Starting SC1000..."
+
+    # Wait for ALSA to be ready
+    if wait_for_alsa; then
+        alsactl -f /etc/asound.state restore 2>/dev/null || true
+    else
+        echo "WARNING: ALSA not ready, continuing anyway"
+    fi
+
+    # Wait for USB and mount
+    mkdir -p "$USB_MOUNT"
+    if wait_for_usb; then
+        if ! mountpoint -q "$USB_MOUNT"; then
+            mount "$USB_DEVICE" "$USB_MOUNT" 2>/dev/null || {
+                echo "WARNING: Could not mount USB stick"
+            }
+        fi
+    else
+        echo "WARNING: USB device not found"
+    fi
+
+    # Find and start the binary
+    # Priority: USB > system
+    if [ -x "$USB_MOUNT/$BINARY_NAME" ]; then
+        echo "Running $BINARY_NAME from USB stick"
+        "$USB_MOUNT/$BINARY_NAME" &
+    elif [ -x "/usr/bin/$BINARY_NAME" ]; then
+        echo "Running $BINARY_NAME from system"
+        "/usr/bin/$BINARY_NAME" &
+    else
+        echo "ERROR: No $BINARY_NAME executable found!"
+        return 1
+    fi
+
+    echo "SC1000 started."
+}
+
+do_stop() {
+    echo "Stopping SC1000..."
+    killall "$BINARY_NAME" 2>/dev/null || true
+    echo "done."
+}
+
+case "$1" in
+    start|"")
+        do_start
+        ;;
+    stop)
+        do_stop
+        ;;
+    restart)
+        do_stop
+        sleep 1
+        do_start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}" >&2
+        exit 1
+        ;;
+esac
