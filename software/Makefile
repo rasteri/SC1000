@@ -61,6 +61,7 @@ OBJS = controller.o \
 	sc_input.o \
 	sc_playlist.o \
 	sc_midimap.o \
+	sc_display.o \
 	dicer.o \
 	midi.o \
 	xwax.o

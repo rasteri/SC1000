@@ -29,6 +29,7 @@
 #include "sc_midimap.h"
 #include "dicer.h"
 #include "midi.h"
+#include <pthread.h>
 
 bool shifted = 0;
 bool shiftLatched = 0;
@@ -446,6 +447,10 @@ void process_io()
 
 int file_i2c_rot, file_i2c_pic;
 
+/* Serialises /dev/i2c-0 between the jog read here and the OLED
+ * display driver in sc_display.c. */
+pthread_mutex_t i2c0_lock = PTHREAD_MUTEX_INITIALIZER;
+
 int pitchMode = 0; // If we're in pitch-change mode
 int oldPitchMode = 0;
 bool capIsTouched = 0;
@@ -665,9 +670,11 @@ void process_rot()
 	int wrappedAngle = 0x0000;
 	// Handle rotary sensor
 
+	pthread_mutex_lock(&i2c0_lock);
 	i2c_read_address(file_i2c_rot, 0x0c, &result);
 	deck[1].newEncoderAngle = ((int)result) << 8;
 	i2c_read_address(file_i2c_rot, 0x0d, &result);
+	pthread_mutex_unlock(&i2c0_lock);
 	deck[1].newEncoderAngle = (deck[1].newEncoderAngle & 0x0f00) | (int)result;
 
 	if (scsettings.jogReverse) {

@@ -9,6 +9,13 @@ The device, including its enclosure, uses no custom parts apart from printed cir
 
 The build tutorial video can be found here : https://www.youtube.com/watch?v=t1wy7IFSynY
 
+### SSD1306 OLED waveform display (fork add-on) ###
+
+This fork adds an optional 128×64 I²C OLED that shows a zoomed, scrolling
+waveform of the sample track, with cue-point markers and a whole-track
+progress bar. See [`oled-build/README.md`](oled-build/README.md) for wiring,
+the required `i2c-0` 400 kHz device-tree patch, build, and USB-stick deploy.
+
 ## Usage ##
 
 Simply switch on SC1000 with a valid USB stick in, and after a few seconds it will start playing the first beat and sample on the USB stick. Plug in some headphones or a portable speaker, adjust the volume controls to your liking, and get skratchin!

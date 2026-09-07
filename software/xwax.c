@@ -45,6 +45,7 @@
 #include "track.h"
 #include "xwax.h"
 #include "sc_input.h"
+#include "sc_display.h"
 #include "sc_midimap.h"
 #include "dicer.h"
 
@@ -370,6 +371,9 @@ int main(int argc, char *argv[])
 	// Start input processing thread
 
 	SC_Input_Start();
+
+	// Start OLED status display (no-op if no panel fitted)
+	SC_Display_Start();
 
 	// Start realtime stuff
 
